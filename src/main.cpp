@@ -8,7 +8,7 @@
 
 #include "framebuffer.h"
 #include "soaspritergb.h"
-#include "soapritergba.h"
+#include "soaspritergba.h"
 #include "pngloader.h"
 #include <emmintrin.h>
 

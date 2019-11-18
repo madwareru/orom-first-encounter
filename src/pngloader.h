@@ -2,7 +2,7 @@
 #define PNGLOADER_H
 
 #include "soaspritergb.h"
-#include "soapritergba.h"
+#include "soaspritergba.h"
 #include <memory>
 
 std::shared_ptr<SOASpriteRGB> load_sprite_from_png_24(const char* filename);

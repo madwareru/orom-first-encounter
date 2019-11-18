@@ -1,4 +1,4 @@
-#include "soapritergba.h"
+#include "soaspritergba.h"
 #include "emmintrin.h"
 #include <iostream>
 
