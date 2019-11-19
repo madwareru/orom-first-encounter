@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <chrono>
 #include <thread>
 
@@ -11,6 +12,7 @@
 #include "soaspritergba.h"
 #include "pngloader.h"
 #include <emmintrin.h>
+#include "loaders/rage_of_mages_1_res.h"
 
 #define WIN_TITLE "Software rendering bootstrap"
 #define WIN_W 1024
@@ -107,6 +109,47 @@ int main() {
 void init() {
     terrain_sprite_asset = load_sprite_from_png<SOASpriteRGB>("superts2.png");
     transparent_sprite_asset = load_sprite_from_png<SOASpriteRGBA>("atlas.png");
+
+    std::ifstream ifs("graphics.res", std::ifstream::binary);
+    kaitai::kstream ks(&ifs);
+    rage_of_mages_1_res_t res = rage_of_mages_1_res_t(&ks);
+
+    std::cout << "just opened graphics.res" << std::endl;
+    std::cout << "signature is " << res.signature() << std::endl;
+    std::cout << "trying to read content of directory \"terrain\"" << std::endl;
+    auto root_resource_nodes = res.nodes()->header();
+    for(size_t i = 0; i < root_resource_nodes->size(); ++i) {
+        auto res = root_resource_nodes->at(i);
+        auto res_type = res->resource_type();
+        if(res_type != rage_of_mages_1_res_t::RESOURCE_TYPE_E_DIRECTORY) {
+            continue;
+        }
+        auto dir_resource = dynamic_cast<rage_of_mages_1_res_t::directory_resource_t*>(res->resource());
+        if(dir_resource->directory_name() != "terrain") {
+            continue;
+        }
+
+        auto terrain_directory_nodes = dir_resource->nodes()->header();
+        for(size_t j = 0; j < terrain_directory_nodes->size(); ++j) {
+            auto terrain_dir_entry = terrain_directory_nodes->at(j);
+            auto entry_type = terrain_dir_entry->resource_type();
+            switch (entry_type) {
+                case rage_of_mages_1_res_t::RESOURCE_TYPE_E_FILE: {
+                        std::cout << "found a file ";
+                        auto file_resource = dynamic_cast<rage_of_mages_1_res_t::file_resource_t*>(terrain_dir_entry->resource());
+                        std::cout << "with fileName " << file_resource->file_name() << std::endl;
+                    }
+                    break;
+                case rage_of_mages_1_res_t::RESOURCE_TYPE_E_DIRECTORY:{
+                        std::cout << "found a directory ";
+                        auto subdir_resource = dynamic_cast<rage_of_mages_1_res_t::directory_resource_t*>(terrain_dir_entry->resource());
+                        std::cout << "with a name " << subdir_resource->directory_name() << std::endl;
+                    }
+                    break;
+            }
+        }
+        break;
+    }
 }
 
 void update(double delta_time) {
