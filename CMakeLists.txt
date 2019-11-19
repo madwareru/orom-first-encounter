@@ -17,12 +17,14 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(modules/glfw)
+add_subdirectory(modules/kaitai_struct)
 
 add_executable(${PROJECT_NAME}
     ${SOURCES}
     ${THIRD_PARTY_SOURCES})
 
 target_link_libraries(${PROJECT_NAME} glfw)
+target_link_libraries(${PROJECT_NAME} kaitai_struct_cpp_stl_runtime)
 set_target_properties(${PROJECT_NAME} PROPERTIES
          CXX_STANDARD 17
          CXX_STANDARD_REQUIRED YES
