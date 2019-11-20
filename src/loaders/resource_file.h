@@ -20,9 +20,9 @@ struct ResourceFile
 
     ~ResourceFile();
 private:
-    std::ifstream* in_file_stream_;
-    kaitai::kstream* kaitai_stream_;
-    rage_of_mages_1_res_t* resource_file_nodes_;
+    std::ifstream* in_file_stream_{nullptr};
+    kaitai::kstream* kaitai_stream_{nullptr};
+    rage_of_mages_1_res_t* resource_file_nodes_{nullptr};
 };
 
 #endif // RESOURCE_FILE_H

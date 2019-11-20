@@ -76,7 +76,7 @@ rage_of_mages_1_res_t::file_resource_t* ResourceFile::get_resource(const char* p
 }
 
 ResourceFile::~ResourceFile() {
-    delete resource_file_nodes_;
-    delete kaitai_stream_;
-    delete in_file_stream_;
+    if(resource_file_nodes_ != nullptr) delete resource_file_nodes_;
+    if(kaitai_stream_ != nullptr) delete kaitai_stream_;
+    if(in_file_stream_ != nullptr) delete in_file_stream_;
 }
