@@ -7,16 +7,16 @@
 
 ResourceFile::ResourceFile(std::string fileName)
 {
-    in_file_stream_ = new std::ifstream(fileName, std::ifstream::binary);
-    kaitai_stream_ = new kaitai::kstream(in_file_stream_);
-    resource_file_nodes_ = new rage_of_mages_1_res_t(kaitai_stream_);
+    in_file_stream_ = new std::ifstream{fileName, std::ifstream::binary};
+    kaitai_stream_ = new kaitai::kstream{in_file_stream_};
+    resource_file_nodes_ = new rage_of_mages_1_res_t{kaitai_stream_};
 }
 
 ResourceFile::ResourceFile(const char* fileName)
 {
-    in_file_stream_ = new std::ifstream(fileName, std::ifstream::binary);
-    kaitai_stream_ = new kaitai::kstream(in_file_stream_);
-    resource_file_nodes_ = new rage_of_mages_1_res_t(kaitai_stream_);
+    in_file_stream_ = new std::ifstream{fileName, std::ifstream::binary};
+    kaitai_stream_ = new kaitai::kstream{in_file_stream_};
+    resource_file_nodes_ = new rage_of_mages_1_res_t{kaitai_stream_};
 }
 
 rage_of_mages_1_res_t::file_resource_t* ResourceFile::get_resource(const char* path){

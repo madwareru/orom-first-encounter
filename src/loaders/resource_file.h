@@ -2,9 +2,9 @@
 #define RESOURCE_FILE_H
 
 #include <fstream>
-#include <cstdarg>
 #include <kaitaistruct.h>
 #include "rage_of_mages_1_res.h"
+#include "registry_file.h"
 
 struct ResourceFile
 {

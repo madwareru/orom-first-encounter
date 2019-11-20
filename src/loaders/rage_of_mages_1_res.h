@@ -115,7 +115,7 @@ public:
         bool n_resource;
 
     public:
-        bool _is_null_resource() { resource(); return n_resource; };
+        bool _is_null_resource() { resource(); return n_resource; }
 
     private:
         rage_of_mages_1_res_t* m__root;

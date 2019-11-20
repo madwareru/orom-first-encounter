@@ -13,7 +13,9 @@
 #include "pngloader.h"
 #include <emmintrin.h>
 #include "loaders/rage_of_mages_1_res.h"
+
 #include "loaders/resource_file.h"
+#include "loaders/registry_file.h"
 
 #define WIN_TITLE "Software rendering bootstrap"
 #define WIN_W 1024
@@ -113,6 +115,28 @@ void init() {
     transparent_sprite_asset = load_sprite_from_png<SOASpriteRGBA>("atlas.png");
 
     graphic_resources = std::make_shared<ResourceFile>("graphics.res");
+
+    auto units_reg = graphic_resources->get_resource("units/units.reg");
+    if(units_reg != nullptr) {
+        std::cout << "size of units/units.reg in bytes are " << units_reg->bytes().size() << std::endl;
+        RegistryFile units_reg_file{units_reg->bytes()};
+        auto [files_found, files_value] = units_reg_file.get_string("Files/File0");
+        if(files_found) {
+            std::cout << "Found File/File0 entry of type string with a value of \"" << files_value << "\"" << std::endl;
+        }
+    }
+
+    auto bush = graphic_resources->get_resource("objects/bush1/sprites.256");
+    if(bush != nullptr) {
+        try {
+
+            RegistryFile bush_reg_file{bush->bytes()};
+
+        } catch (const std::exception& ex) {
+            std::cerr << ex.what() << std::endl;
+
+        }
+    }
 
     auto tile_4_03 = graphic_resources->get_resource("terrain/tile4-03.bmp");
     if(tile_4_03 != nullptr) {
