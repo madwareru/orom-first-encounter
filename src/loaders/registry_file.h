@@ -19,7 +19,7 @@ struct RegistryFile
     std::tuple<bool, int> get_int(const char* path);
     std::tuple<bool, double> get_double(const char* path);
     std::tuple<bool, std::string> get_string(const char* path);
-    std::tuple<bool, std::vector<int32_t>*> get_int_array(const char* path);
+    std::tuple<bool, std::vector<int32_t>> get_int_array(const char* path);
 
     ~RegistryFile();
 private:

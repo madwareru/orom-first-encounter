@@ -1,5 +1,6 @@
 #include "registry_file.h"
 #include <iostream>
+#include "../macro_shared.h"
 
 RegistryFile::RegistryFile(const char* file_name)
 {
@@ -23,7 +24,7 @@ rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(cons
     for(;;) {
         while(path[i] != '\0' && path[i] != '/') {
             if(buffer_offset >= 256) {
-                std::cerr << "Too long filename occured. Not enough size of a buffer" << std::endl;
+                std::cerr << "Too long filename occured. Not enough size of a buffer" LOCATION << std::endl;
                 return nullptr;
             }
             buffer[buffer_offset++] = path[i++];
@@ -47,10 +48,10 @@ rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(cons
                 continue;
             }
             header_list = subdir_entry->value()->header();
-            std::cout << "successfully found subdir " << buffer << std::endl;
+            std::cout << "successfully found subdir " << buffer << LOCATION << std::endl;
             goto subdir_found;
         }
-        std::cerr << "Subdirectory with a name " << buffer << " not found" << std::endl;
+        std::cerr << "Subdirectory with a name " << buffer << " not found" LOCATION  << std::endl;
         return nullptr;
         subdir_found: ++i;
     }
@@ -63,7 +64,7 @@ rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(cons
         }
         return entry;
     }
-    std::cerr << "Registry header with a name " << buffer << " not found" << std::endl;
+    std::cerr << "Registry header with a name " << buffer << " not found" LOCATION << std::endl;
     return nullptr;
 }
 
@@ -88,11 +89,11 @@ std::tuple<bool, std::string> RegistryFile::get_string(const char *path) {
         : std::make_tuple(true, dynamic_cast<rage_of_mages_1_reg_t::string_entry_t*>(header->value())->value());
 }
 
-std::tuple<bool, std::vector<int32_t>*> RegistryFile::get_int_array(const char *path) {
+std::tuple<bool, std::vector<int32_t>> RegistryFile::get_int_array(const char *path) {
     auto header = get_registry_header(path);
     return header == nullptr || header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_INT_ARRAY
-        ? std::make_tuple(false, nullptr)
-        : std::make_tuple(true, dynamic_cast<rage_of_mages_1_reg_t::int_array_entry_t*>(header->value())->value());
+        ? std::make_tuple(false, std::vector<int32_t>{})
+        : std::make_tuple(true, *(dynamic_cast<rage_of_mages_1_reg_t::int_array_entry_t*>(header->value())->value()));
 }
 
 RegistryFile::~RegistryFile() {

@@ -50,4 +50,8 @@ namespace playground_hpp::defer
 #define DEFER(lambda)\
     ::playground_hpp::defer::detail::defer_impl UTIL_PP_CAT(util_auto_defer_,__LINE__){lambda};
 
+#define DEFER_CLEANUP(x)\
+    auto x##_ptr = x;   \
+    DEFER([&](){ if(x##_ptr != nullptr) { delete x##_ptr; } })
+
 #endif // DEFER_ACTION_H

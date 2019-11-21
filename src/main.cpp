@@ -16,6 +16,8 @@
 
 #include "loaders/resource_file.h"
 #include "loaders/registry_file.h"
+#include "defer_action.h"
+#include "macro_shared.h"
 
 #define WIN_TITLE "Software rendering bootstrap"
 #define WIN_W 1024
@@ -116,27 +118,30 @@ void init() {
 
     graphic_resources = std::make_shared<ResourceFile>("graphics.res");
 
-    auto units_reg = graphic_resources->get_resource("units/units.reg");
-    if(units_reg != nullptr) {
-        std::cout << "size of units/units.reg in bytes are " << units_reg->bytes().size() << std::endl;
-        RegistryFile units_reg_file{units_reg->bytes()};
-        auto [files_found, files_value] = units_reg_file.get_string("Files/File0");
-        if(files_found) {
-            std::cout << "Found File/File0 entry of type string with a value of \"" << files_value << "\"" << std::endl;
+    { // here we should be able to safely retrieve resource file as a registry and read string value from it
+        auto [success, units_reg_file] = graphic_resources->read_registry_res("units/units.reg");
+        DEFER_CLEANUP(units_reg_file);
+        if(success) {
+            LOG("registry succesfully loaded from resource");
+            auto [files_found, files_value] = units_reg_file->get_string("Files/File0");
+            if(files_found) {
+                LOG("Found Files/File0 entry of type string with a value of \"" << files_value << "\"");
+            }
+        } else {
+            LOG_ERROR("this is not a registry resource");
         }
     }
 
-    auto bush = graphic_resources->get_resource("objects/bush1/sprites.256");
-    if(bush != nullptr) {
-        try {
-
-            RegistryFile bush_reg_file{bush->bytes()};
-
-        } catch (const std::exception& ex) {
-            std::cerr << ex.what() << std::endl;
-
+    {
+        auto [success, bush] = graphic_resources->read_registry_res("objects/bush1/sprites.256");
+        DEFER_CLEANUP(bush);
+        if(success) {
+            LOG("registry succesfully loaded from resource");
+        } else {
+            LOG_ERROR("this is not a registry resource");
         }
     }
+
 
     auto tile_4_03 = graphic_resources->get_resource("terrain/tile4-03.bmp");
     if(tile_4_03 != nullptr) {
