@@ -37,6 +37,15 @@ namespace  {
     std::shared_ptr<ResourceFile> graphic_resources;
     std::shared_ptr<SOASpriteRGB> terrain_sprite_asset;
     std::shared_ptr<SOASpriteRGBA> transparent_sprite_asset;
+
+    std::shared_ptr<SOASpriteRGB> tile_0;
+    std::shared_ptr<SOASpriteRGB> tile_1;
+    std::shared_ptr<SOASpriteRGB> tile_2;
+    std::shared_ptr<SOASpriteRGB> tile_3;
+    std::shared_ptr<SOASpriteRGB> tile_4;
+    std::shared_ptr<SOASpriteRGB> tile_5;
+    std::shared_ptr<SOASpriteRGB> tile_6;
+    std::shared_ptr<SOASpriteRGB> tile_7;
     const size_t coord_range[32] = {
         33, 64, 973, 117, 45, 98, 128, 255,
         87, 17, 563, 343, 805, 488, 301, 505,
@@ -142,10 +151,17 @@ void init() {
         }
     }
 
-
-    auto tile_4_03 = graphic_resources->get_resource("terrain/tile4-03.bmp");
-    if(tile_4_03 != nullptr) {
-        std::cout << "size of terrain/tile4-03.bmp in bytes are " << tile_4_03->bytes().size() << std::endl;
+    try {
+        tile_0 = graphic_resources->read_bmp_shared("terrain/tile1-00.bmp");
+        tile_1 = graphic_resources->read_bmp_shared("terrain/tile1-01.bmp");
+        tile_2 = graphic_resources->read_bmp_shared("terrain/tile1-02.bmp");
+        tile_3 = graphic_resources->read_bmp_shared("terrain/tile1-03.bmp");
+        tile_4 = graphic_resources->read_bmp_shared("terrain/tile1-04.bmp");
+        tile_5 = graphic_resources->read_bmp_shared("terrain/tile1-05.bmp");
+        tile_6 = graphic_resources->read_bmp_shared("terrain/tile1-06.bmp");
+        tile_7 = graphic_resources->read_bmp_shared("terrain/tile1-07.bmp");
+    } catch (const std::exception& ex) {
+        LOG_ERROR(ex.what());
     }
 }
 
@@ -155,8 +171,14 @@ void update(double delta_time) {
 
 void render() {
     clear_back(0x40, 0x40, 0x40);
-    terrain_sprite_asset->blit_on_sprite_colorkeyed16(sprite, 16, 16, 0xFF, 0, 0xFF);
-    transparent_sprite_asset->blit_on_sprite(sprite, 64, 64);
+    tile_0->blit_on_sprite(sprite, 0, 0);
+    tile_1->blit_on_sprite(sprite, 32, 0);
+    tile_2->blit_on_sprite(sprite, 64, 0);
+    tile_3->blit_on_sprite(sprite, 96, 0);
+    tile_4->blit_on_sprite(sprite, 128, 0);
+    tile_5->blit_on_sprite(sprite, 160, 0);
+    tile_6->blit_on_sprite(sprite, 192, 0);
+    tile_7->blit_on_sprite(sprite, 224, 0);
 
     draw_back_on_device();
 }

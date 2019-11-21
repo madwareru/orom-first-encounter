@@ -7,6 +7,7 @@
 #include "registry_file.h"
 #include <tuple>
 #include <memory>
+#include "../soaspritergb.h"
 
 struct ResourceFile
 {
@@ -18,6 +19,12 @@ struct ResourceFile
     ResourceFile& operator=(ResourceFile&&) = delete;
 
     rage_of_mages_1_res_t::file_resource_t* get_resource(const char* path);
+
+    //
+    // This may throw an exception when resource user have read
+    // wasn't exist or didn't contained an actual registy file
+    //
+    std::shared_ptr<SOASpriteRGB> read_bmp_shared(const char* path);
 
     //
     // This may throw an exception when resource user have read

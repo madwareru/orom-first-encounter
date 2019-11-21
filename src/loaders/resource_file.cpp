@@ -1,6 +1,7 @@
 #include "resource_file.h"
 #include <iostream>
 #include "../macro_shared.h"
+#include "rage_of_mages_1_bmp.h"
 
 ResourceFile::ResourceFile(const char* fileName)
 {
@@ -103,6 +104,62 @@ std::tuple<bool, RegistryFile*> ResourceFile::read_registry_res(const char* path
     }
     return std::make_tuple(success, result);
 }
+
+std::shared_ptr<SOASpriteRGB> ResourceFile::read_bmp_shared(const char* path) {
+    auto bmp_resource = get_resource(path);
+    if(bmp_resource == nullptr) {
+        throw std::exception("Resource doesn't exist");
+    }
+    auto bytes = bmp_resource->bytes();
+    kaitai::kstream ks{bytes};
+    rage_of_mages_1_bmp_t bmp_file{&ks};
+
+    if(bmp_file.bi_version() != 40) {
+        throw std::exception("this version of bmp not supported");
+    }
+
+    if(bmp_file.data() == nullptr) {
+        throw std::exception("data is null");
+    }
+
+    auto result = std::make_shared<SOASpriteRGB>(bmp_file.data()->width(), bmp_file.data()->height());
+    result->mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
+        switch (bmp_file.data()->bi_bitcount()) {
+            case 8: {
+                auto palette = bmp_file.data()->palette();
+                for(size_t i = 0; i < w * h; ++i) {
+                    auto idx = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(i));
+                    auto clr = palette->at(idx);
+                    bbuf[i] = clr & 0xFF; clr /= 0x100;
+                    gbuf[i] = clr & 0xFF; clr /= 0x100;
+                    rbuf[i] = clr & 0xFF;
+                }
+            } break;
+            case 24: {
+                size_t offset = 0;
+                for(size_t i = 0; i < w * h; ++i) {
+                    rbuf[i] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(offset++));
+                    gbuf[i] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(offset++));
+                    bbuf[i] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(offset++));
+                }
+            } break;
+            case 32: {
+                size_t offset = 0;
+                for(size_t i = 0; i < w * h; ++i) {
+                    rbuf[i] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(offset++));
+                    gbuf[i] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(offset++));
+                    bbuf[i] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(offset++));
+                    ++offset;
+                }
+            } break;
+            default:
+                throw std::exception("unsupported bitcount detected");
+                break;
+        }
+    });
+    return result;
+}
+
 
 ResourceFile::~ResourceFile() {
     if(resource_file_nodes_ != nullptr) delete resource_file_nodes_;
