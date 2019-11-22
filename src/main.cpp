@@ -10,10 +10,9 @@
 #include "framebuffer.h"
 #include "soaspritergb.h"
 #include "soaspritergba.h"
-#include "pngloader.h"
+#include "loaders/pngloader.h"
 #include <emmintrin.h>
 #include <vector>
-#include "loaders/rage_of_mages_1_res.h"
 
 #include "loaders/resource_file.h"
 #include "loaders/registry_file.h"
@@ -26,7 +25,6 @@
 #define WIN_H 768
 #define FPS_60_MILLIS 0.0166
 #define FULLSCREEN false
-
 #define VSYNC_ON
 
 namespace  {
@@ -37,9 +35,6 @@ namespace  {
     FrameBuffer frame_buffer{WIN_W, WIN_H};
     SOASpriteRGB sprite{WIN_W, WIN_H};
     std::shared_ptr<ResourceFile> graphic_resources;
-    std::shared_ptr<SOASpriteRGB> terrain_sprite_asset;
-    std::shared_ptr<SOASpriteRGBA> transparent_sprite_asset;
-
     std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4];
 }
 
@@ -110,24 +105,6 @@ int main() {
 }
 
 void init() {
-    init_height_scaler_lookup();
-    {
-        const char* lookup[10] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
-        std::ofstream scaler_hardcode{"hardcode.txt", std::ofstream::trunc};
-        scaler_hardcode << "uint8_t height_scaler_lookup[STANDART_TILE_HEIGHT * MAX_COLUMN_HEIGHT] = { ";
-        for(size_t i = 0; i < STANDART_TILE_HEIGHT * (MAX_COLUMN_HEIGHT + 1); ++i)
-        {
-            if(i % 32 == 0) {
-                scaler_hardcode << std::endl << "    ";
-            }
-            scaler_hardcode << lookup[height_scaler_lookup[i]] << ", ";
-        }
-        scaler_hardcode << std::endl << "};" << std::endl;
-    }
-
-    terrain_sprite_asset = load_sprite_from_png<SOASpriteRGB>("superts2.png");
-    transparent_sprite_asset = load_sprite_from_png<SOASpriteRGBA>("atlas.png");
-
     graphic_resources = std::make_shared<ResourceFile>("graphics.res");
 
     { // here we should be able to safely retrieve resource file as a registry and read string value from it

@@ -1,10 +1,12 @@
 #ifndef PNGLOADER_H
 #define PNGLOADER_H
 
-#include "soaspritergb.h"
-#include "soaspritergba.h"
+#include "../soaspritergb.h"
+#include "../soaspritergba.h"
 #include <memory>
+#include <string>
 
+std::shared_ptr<SOASpriteRGB> load_sprite_from_png_24(const std::string& memory_buffer);
 std::shared_ptr<SOASpriteRGB> load_sprite_from_png_24(const char* filename);
 std::shared_ptr<SOASpriteRGBA> load_sprite_from_png_32(const char* filename);
 
