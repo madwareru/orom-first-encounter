@@ -12,12 +12,14 @@
 #include "soaspritergba.h"
 #include "pngloader.h"
 #include <emmintrin.h>
+#include <vector>
 #include "loaders/rage_of_mages_1_res.h"
 
 #include "loaders/resource_file.h"
 #include "loaders/registry_file.h"
 #include "defer_action.h"
 #include "macro_shared.h"
+#include "globals/globals.h"
 
 #define WIN_TITLE "Software rendering bootstrap"
 #define WIN_W 1024
@@ -25,7 +27,7 @@
 #define FPS_60_MILLIS 0.0166
 #define FULLSCREEN false
 
-//#define VSYNC_ON
+#define VSYNC_ON
 
 namespace  {
     GLFWwindow* glfw_window;
@@ -38,21 +40,7 @@ namespace  {
     std::shared_ptr<SOASpriteRGB> terrain_sprite_asset;
     std::shared_ptr<SOASpriteRGBA> transparent_sprite_asset;
 
-    std::shared_ptr<SOASpriteRGB> tile_0;
-    std::shared_ptr<SOASpriteRGB> tile_1;
-    std::shared_ptr<SOASpriteRGB> tile_2;
-    std::shared_ptr<SOASpriteRGB> tile_3;
-    std::shared_ptr<SOASpriteRGB> tile_4;
-    std::shared_ptr<SOASpriteRGB> tile_5;
-    std::shared_ptr<SOASpriteRGB> tile_6;
-    std::shared_ptr<SOASpriteRGB> tile_7;
-    const size_t coord_range[32] = {
-        33, 64, 973, 117, 45, 98, 128, 255,
-        87, 17, 563, 343, 805, 488, 301, 505,
-        451, 198, 828, 25, 323, 645, 739, 117,
-        343, 805, 488, 301, 64, 973, 528, 215
-    };
-
+    std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4];
 }
 
 void init();
@@ -122,6 +110,21 @@ int main() {
 }
 
 void init() {
+    init_height_scaler_lookup();
+    {
+        const char* lookup[10] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"};
+        std::ofstream scaler_hardcode{"hardcode.txt", std::ofstream::trunc};
+        scaler_hardcode << "uint8_t height_scaler_lookup[STANDART_TILE_HEIGHT * MAX_COLUMN_HEIGHT] = { ";
+        for(size_t i = 0; i < STANDART_TILE_HEIGHT * (MAX_COLUMN_HEIGHT + 1); ++i)
+        {
+            if(i % 32 == 0) {
+                scaler_hardcode << std::endl << "    ";
+            }
+            scaler_hardcode << lookup[height_scaler_lookup[i]] << ", ";
+        }
+        scaler_hardcode << std::endl << "};" << std::endl;
+    }
+
     terrain_sprite_asset = load_sprite_from_png<SOASpriteRGB>("superts2.png");
     transparent_sprite_asset = load_sprite_from_png<SOASpriteRGBA>("atlas.png");
 
@@ -142,26 +145,24 @@ void init() {
     }
 
     {
-        auto [success, bush] = graphic_resources->read_registry_res("objects/bush1/sprites.256");
-        DEFER_CLEANUP(bush);
-        if(success) {
-            LOG("registry succesfully loaded from resource");
-        } else {
-            LOG_ERROR("this is not a registry resource");
+        char buf[32];
+        for(size_t i = 1; i <= 4; ++i) {
+            const size_t capacity = (i < 4) ? 16 : 4;
+            tiles[i-1].reserve(capacity);
+            try {
+                for(size_t j = 0; j < capacity; ++j)
+                {
+                    if(j < 10) {
+                        sprintf(buf, "terrain/tile%d-0%d.bmp", (int)i, (int)j);
+                    } else {
+                        sprintf(buf, "terrain/tile%d-%d.bmp", (int)i, (int)j);
+                    }
+                    tiles[i-1].emplace_back(graphic_resources->read_bmp_shared(buf));
+                }
+            } catch (const std::exception& ex) {
+                LOG_ERROR(ex.what());
+            }
         }
-    }
-
-    try {
-        tile_0 = graphic_resources->read_bmp_shared("terrain/tile1-00.bmp");
-        tile_1 = graphic_resources->read_bmp_shared("terrain/tile1-01.bmp");
-        tile_2 = graphic_resources->read_bmp_shared("terrain/tile1-02.bmp");
-        tile_3 = graphic_resources->read_bmp_shared("terrain/tile1-03.bmp");
-        tile_4 = graphic_resources->read_bmp_shared("terrain/tile1-04.bmp");
-        tile_5 = graphic_resources->read_bmp_shared("terrain/tile1-05.bmp");
-        tile_6 = graphic_resources->read_bmp_shared("terrain/tile1-06.bmp");
-        tile_7 = graphic_resources->read_bmp_shared("terrain/tile1-07.bmp");
-    } catch (const std::exception& ex) {
-        LOG_ERROR(ex.what());
     }
 }
 
@@ -171,15 +172,18 @@ void update(double delta_time) {
 
 void render() {
     clear_back(0x40, 0x40, 0x40);
-    tile_0->blit_on_sprite(sprite, 0, 0);
-    tile_1->blit_on_sprite(sprite, 32, 0);
-    tile_2->blit_on_sprite(sprite, 64, 0);
-    tile_3->blit_on_sprite(sprite, 96, 0);
-    tile_4->blit_on_sprite(sprite, 128, 0);
-    tile_5->blit_on_sprite(sprite, 160, 0);
-    tile_6->blit_on_sprite(sprite, 192, 0);
-    tile_7->blit_on_sprite(sprite, 224, 0);
-
+    size_t x = 0;
+    size_t y = 0;
+    for(auto tileset : tiles) {
+        for(auto tile : tileset) {
+            tile->blit_on_sprite(sprite, x, y);
+            x += 32;
+            if(x >= 1024) {
+                x %= 1024;
+                y += 32 * 14;
+            }
+        }
+    }
     draw_back_on_device();
 }
 
