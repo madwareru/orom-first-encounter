@@ -16,6 +16,8 @@ set (INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+find_package(OpenGL REQUIRED)
+
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -30,8 +32,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${INCLUDE_DIRS}
 )
 
-target_link_libraries(${PROJECT_NAME} glfw)
-target_link_libraries(${PROJECT_NAME} kaitai_struct_cpp_stl_runtime)
+target_link_libraries(${PROJECT_NAME}
+    glfw
+    kaitai_struct_cpp_stl_runtime
+    opengl32)
 set_target_properties(${PROJECT_NAME} PROPERTIES
          CXX_STANDARD 17
          CXX_STANDARD_REQUIRED YES
