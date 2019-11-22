@@ -86,23 +86,18 @@ namespace  {
 
 int main() {
     WindowCreationParams window_params {
-        "Open Rage Of Mages",
-        1024,
-        768,
-        false,
-        0x40, 0x40, 0x40,
-        &init,
-        &update,
-        &render
+        "Open Rage Of Mages", // title
+        1024,                 // width
+        768,                  // height
+        false,                // fullscreen
+        0x40, 0x40, 0x40      // clear color
     };
-
-    GLFWwindow* glfw_window;
 
     if(!glfwInit()) {
         return 1;
     }
 
-    glfw_window = glfwCreateWindow(
+    GLFWwindow* glfw_window = glfwCreateWindow(
         window_params.w_width,
         window_params.w_height,
         window_params.window_name,
@@ -114,16 +109,16 @@ int main() {
         return 1;
     }
 
-    glfwSetWindowSizeLimits(
+    DEFER([&](){ glfwDestroyWindow(glfw_window); })
+
+    if(!start_window(
         glfw_window,
-        window_params.w_width,
-        window_params.w_height,
-        window_params.w_width,
-        window_params.w_height
-    );
+        window_params,
+        &init,
+        &update,
+        &render
+    )) return 1;
 
-    if(!start_window(glfw_window, window_params)) return 1;
 
-    glfwDestroyWindow(glfw_window);
     return 0;
 }

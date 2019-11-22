@@ -28,12 +28,13 @@ struct WindowCreationParams {
     uint8_t clear_color_r;
     uint8_t clear_color_g;
     uint8_t clear_color_b;
-
-    init_proc   init_proc_addr;
-    update_proc update_proc_addr;
-    render_proc render_proc_addr;
 };
 
-bool start_window(GLFWwindow* glfw_window, const WindowCreationParams& window_params);
+bool start_window(
+    GLFWwindow* glfw_window,
+    const WindowCreationParams& window_params,
+    init_proc   init_proc_addr,
+    update_proc update_proc_addr,
+    render_proc render_proc_addr);
 
 #endif // WINDOW_H

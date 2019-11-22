@@ -2,9 +2,15 @@
 #include <util/macro_shared.h>
 
 #define FPS_60_MILLIS 0.0166
-//#define VSYNC_ON
+#define VSYNC_ON
 
-bool start_window(GLFWwindow* glfw_window, const WindowCreationParams& window_params) {
+bool start_window(
+    GLFWwindow* glfw_window,
+    const WindowCreationParams& window_params,
+    init_proc   init_proc_addr,
+    update_proc update_proc_addr,
+    render_proc render_proc_addr
+) {
     HWND h_window;
     HDC h_dc;
     char title_buf[255];
@@ -14,9 +20,17 @@ bool start_window(GLFWwindow* glfw_window, const WindowCreationParams& window_pa
     auto clear_g = window_params.clear_color_g;
     auto clear_b = window_params.clear_color_b;
 
-    auto render = (window_params.render_proc_addr);
-    auto update = (window_params.update_proc_addr);
-    auto init   = (window_params.init_proc_addr);
+    auto render = (render_proc_addr);
+    auto update = (update_proc_addr);
+    auto init   = (init_proc_addr);
+
+    glfwSetWindowSizeLimits(
+        glfw_window,
+        window_params.w_width,
+        window_params.w_height,
+        window_params.w_width,
+        window_params.w_height
+    );
 
     h_window = glfwGetWin32Window(glfw_window);
     h_dc = GetDC(h_window);
@@ -31,8 +45,29 @@ bool start_window(GLFWwindow* glfw_window, const WindowCreationParams& window_pa
     double last_frame_gtime = glfwGetTime();
     int32_t fps = 0;
 
-    LOG("CREATING A BACKGROUNG SPRITE WITH W = " << window_params.w_width << ", H = " << window_params.w_height);
     SOASpriteRGB background_sprite{window_params.w_width, window_params.w_height};
+
+    background_sprite.mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
+        const size_t size = w * h;
+        __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(clear_r));
+        __m128i clrg = _mm_set1_epi8(static_cast<int8_t>(clear_g));
+        __m128i clrb = _mm_set1_epi8(static_cast<int8_t>(clear_b));
+
+        uint8_t *rb = rbuf;
+        uint8_t *gb = gbuf;
+        uint8_t *bb = bbuf;
+
+        for(size_t i = size / 16; i; --i) {
+            _mm_stream_si128(reinterpret_cast<__m128i*>(bb), clrb);
+            _mm_stream_si128(reinterpret_cast<__m128i*>(gb), clrg);
+            _mm_stream_si128(reinterpret_cast<__m128i*>(rb), clrr);
+            rb += 16;
+            gb += 16;
+            bb += 16;
+        }
+    });
+    background_sprite.blit_on_frame_buffer(frame_buffer, 0, 0);
+    frame_buffer.blit_on_dc(h_dc);
 
     (*init)();
 
