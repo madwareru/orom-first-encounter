@@ -48,7 +48,6 @@ rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(cons
                 continue;
             }
             header_list = subdir_entry->value()->header();
-            std::cout << "successfully found subdir " << buffer << LOCATION << std::endl;
             goto subdir_found;
         }
         std::cerr << "Subdirectory with a name " << buffer << " not found" LOCATION  << std::endl;
