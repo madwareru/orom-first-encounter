@@ -4,7 +4,7 @@
 #define FPS_60_MILLIS 0.0166
 #define VSYNC_ON
 
-bool start_window(
+bool start_main_loop(
     GLFWwindow* glfw_window,
     const WindowCreationParams& window_params,
     init_proc   init_proc_addr,

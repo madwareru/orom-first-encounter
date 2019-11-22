@@ -1,25 +1,22 @@
 #include <iostream>
 #include <fstream>
-#include <chrono>
-#include <thread>
+#include <emmintrin.h>
+#include <vector>
 
-#include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
+#include <globals/globals.h>
+
+#include <windowing/window.h>
+
+#include <util/defer_action.h>
+#include <util/macro_shared.h>
 
 #include <graphics/framebuffer.h>
 #include <graphics/soaspritergb.h>
 #include <graphics/soaspritergba.h>
-#include <loaders/pngloader.h>
-#include <emmintrin.h>
-#include <vector>
 
+#include <loaders/pngloader.h>
 #include <loaders/resource_file.h>
 #include <loaders/registry_file.h>
-#include <util/defer_action.h>
-#include <util/macro_shared.h>
-#include <globals/globals.h>
-#include <windowing/window.h>
 
 namespace  {
     std::shared_ptr<ResourceFile> graphic_resources;
@@ -97,13 +94,7 @@ int main() {
         return 1;
     }
 
-    GLFWwindow* glfw_window = glfwCreateWindow(
-        window_params.w_width,
-        window_params.w_height,
-        window_params.window_name,
-        window_params.fullscreen ? glfwGetPrimaryMonitor() : nullptr,
-        nullptr
-    );
+    GLFWwindow* glfw_window = INIT_WINDOW(window_params);
 
     if(!glfw_window) {
         return 1;
@@ -111,7 +102,7 @@ int main() {
 
     DEFER([&](){ glfwDestroyWindow(glfw_window); })
 
-    if(!start_window(
+    if(!start_main_loop(
         glfw_window,
         window_params,
         &init,

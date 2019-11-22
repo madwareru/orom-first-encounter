@@ -30,7 +30,18 @@ struct WindowCreationParams {
     uint8_t clear_color_b;
 };
 
-bool start_window(
+#define INIT_WINDOW(window_params)    \
+    glfwCreateWindow(                 \
+        window_params.w_width,        \
+        window_params.w_height,       \
+        window_params.window_name,    \
+        window_params.fullscreen      \
+            ? glfwGetPrimaryMonitor() \
+            : nullptr,                \
+        nullptr                       \
+    )
+
+bool start_main_loop(
     GLFWwindow* glfw_window,
     const WindowCreationParams& window_params,
     init_proc   init_proc_addr,
