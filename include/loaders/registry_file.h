@@ -3,7 +3,7 @@
 
 #include <fstream>
 #include <kaitaistruct.h>
-#include "rage_of_mages_1_reg.h"
+#include <loaders/ksy/rage_of_mages_1_reg.h>
 #include <tuple>
 
 struct RegistryFile

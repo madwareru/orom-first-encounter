@@ -1,5 +1,5 @@
-#include "soaspritergba.h"
-#include "emmintrin.h"
+#include <graphics/soaspritergba.h>
+#include <emmintrin.h>
 #include <iostream>
 
 SOASpriteRGBA::SOASpriteRGBA(size_t w, size_t h): width_{w}, height_{h} {

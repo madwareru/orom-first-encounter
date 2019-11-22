@@ -7,18 +7,18 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
-#include "framebuffer.h"
-#include "soaspritergb.h"
-#include "soaspritergba.h"
-#include "loaders/pngloader.h"
+#include <graphics/framebuffer.h>
+#include <graphics/soaspritergb.h>
+#include <graphics/soaspritergba.h>
+#include <loaders/pngloader.h>
 #include <emmintrin.h>
 #include <vector>
 
-#include "loaders/resource_file.h"
-#include "loaders/registry_file.h"
-#include "defer_action.h"
-#include "macro_shared.h"
-#include "globals/globals.h"
+#include <loaders/resource_file.h>
+#include <loaders/registry_file.h>
+#include <util/defer_action.h>
+#include <util/macro_shared.h>
+#include <globals/globals.h>
 
 #define WIN_TITLE "Software rendering bootstrap"
 #define WIN_W 1024
@@ -33,14 +33,15 @@ namespace  {
     HDC h_dc;
     char title_buf[255];
     FrameBuffer frame_buffer{WIN_W, WIN_H};
-    SOASpriteRGB sprite{WIN_W, WIN_H};
     std::shared_ptr<ResourceFile> graphic_resources;
     std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4];
 }
 
-void init();
-void update(double);
-void render();
+SOASpriteRGB background_sprite{WIN_W, WIN_H};
+
+static void init();
+static void update(double);
+static void render();
 
 void draw_back_on_device();
 void clear_back(uint8_t r, uint8_t g, uint8_t b);
@@ -104,7 +105,7 @@ int main() {
     return 0;
 }
 
-void init() {
+static void init() {
     graphic_resources = std::make_shared<ResourceFile>("graphics.res");
 
     { // here we should be able to safely retrieve resource file as a registry and read string value from it
@@ -143,17 +144,17 @@ void init() {
     }
 }
 
-void update(double delta_time) {
+static void update(double delta_time) {
 
 }
 
-void render() {
+static void render() {
     clear_back(0x40, 0x40, 0x40);
     size_t x = 0;
     size_t y = 0;
     for(auto tileset : tiles) {
         for(auto tile : tileset) {
-            tile->blit_on_sprite(sprite, x, y);
+            tile->blit_on_sprite(background_sprite, x, y);
             x += 32;
             if(x >= 1024) {
                 x %= 1024;
@@ -166,7 +167,7 @@ void render() {
 
 
 void clear_back(uint8_t r, uint8_t g, uint8_t b) {
-    sprite.mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
+    background_sprite.mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
         const size_t size = w * h;
         __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(r));
         __m128i clrg = _mm_set1_epi8(static_cast<int8_t>(g));
@@ -188,6 +189,6 @@ void clear_back(uint8_t r, uint8_t g, uint8_t b) {
 }
 
 void draw_back_on_device() {
-    sprite.blit_on_frame_buffer(frame_buffer, 0, 0);
+    background_sprite.blit_on_frame_buffer(frame_buffer, 0, 0);
     frame_buffer.blit_on_dc(h_dc);
 }

@@ -3,11 +3,11 @@
 
 #include <fstream>
 #include <kaitaistruct.h>
-#include "rage_of_mages_1_res.h"
-#include "registry_file.h"
+#include <loaders/ksy/rage_of_mages_1_res.h>
+#include <loaders/registry_file.h>
 #include <tuple>
 #include <memory>
-#include "../soaspritergb.h"
+#include <graphics/soaspritergb.h>
 
 struct ResourceFile
 {

@@ -1,4 +1,4 @@
-#include "framebuffer.h"
+#include <graphics/framebuffer.h>
 #include <intrin.h>
 
 FrameBuffer::FrameBuffer(size_t w, size_t h): width_{w}, height_{h} {

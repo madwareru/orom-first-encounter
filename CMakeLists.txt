@@ -6,11 +6,15 @@ link_runtime_static()
 
 file(GLOB_RECURSE SOURCES
     "src/*.cpp"
-    "src/*.h"
+    "include/*.h"
     "src/*.rc")
 file(GLOB_RECURSE THIRD_PARTY_SOURCES
     "third_party/*.cpp"
     "third_party/*.h")
+
+set (INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -22,6 +26,9 @@ add_subdirectory(modules/kaitai_struct)
 add_executable(${PROJECT_NAME}
     ${SOURCES}
     ${THIRD_PARTY_SOURCES})
+target_include_directories(${PROJECT_NAME} PUBLIC
+    ${INCLUDE_DIRS}
+)
 
 target_link_libraries(${PROJECT_NAME} glfw)
 target_link_libraries(${PROJECT_NAME} kaitai_struct_cpp_stl_runtime)

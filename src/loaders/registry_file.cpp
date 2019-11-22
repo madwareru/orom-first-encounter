@@ -1,6 +1,6 @@
-#include "registry_file.h"
+#include <loaders/registry_file.h>
 #include <iostream>
-#include "../macro_shared.h"
+#include <util/macro_shared.h>
 
 RegistryFile::RegistryFile(const char* file_name)
 {

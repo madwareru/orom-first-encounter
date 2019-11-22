@@ -1,8 +1,6 @@
 // This is a generated file! Please edit source .ksy file and use kaitai-struct-compiler to rebuild
 
-#include "rage_of_mages_1_reg.h"
-
-
+#include <loaders/ksy/rage_of_mages_1_reg.h>
 
 rage_of_mages_1_reg_t::rage_of_mages_1_reg_t(kaitai::kstream* p__io, kaitai::kstruct* p__parent, rage_of_mages_1_reg_t* p__root) : kaitai::kstruct(p__io) {
     m__parent = p__parent;

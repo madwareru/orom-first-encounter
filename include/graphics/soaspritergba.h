@@ -4,7 +4,7 @@
 #include <cinttypes>
 #include <Windows.h>
 #include <wingdi.h>
-#include "soaspritergb.h"
+#include <graphics/soaspritergb.h>
 
 struct SOASpriteRGBA
 {

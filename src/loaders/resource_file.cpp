@@ -1,7 +1,7 @@
-#include "resource_file.h"
+#include <loaders/resource_file.h>
 #include <iostream>
-#include "../macro_shared.h"
-#include "rage_of_mages_1_bmp.h"
+#include <util/macro_shared.h>
+#include <loaders/ksy/rage_of_mages_1_bmp.h>
 
 ResourceFile::ResourceFile(const char* fileName)
 {

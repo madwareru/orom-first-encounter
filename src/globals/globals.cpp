@@ -1,4 +1,4 @@
-#include "globals.h"
+#include <globals/globals.h>
 
 /*
   MAX_COLUMN_HEIGHT times of repetitions for each pixel of a tile column

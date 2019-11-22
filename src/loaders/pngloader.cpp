@@ -1,5 +1,5 @@
-#include "pngloader.h"
-#include "../defer_action.h"
+#include <loaders/pngloader.h>
+#include <util/defer_action.h>
 #include "../../third_party/lodepng.h"
 #include <cinttypes>
 #include <iostream>

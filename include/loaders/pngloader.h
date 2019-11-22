@@ -1,8 +1,8 @@
 #ifndef PNGLOADER_H
 #define PNGLOADER_H
 
-#include "../soaspritergb.h"
-#include "../soaspritergba.h"
+#include <graphics/soaspritergb.h>
+#include <graphics/soaspritergba.h>
 #include <memory>
 #include <string>
 
