@@ -22,7 +22,6 @@
 #include <windowing/window.h>
 
 namespace  {
-    GLFWwindow* glfw_window;
     std::shared_ptr<ResourceFile> graphic_resources;
     std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4];
 
@@ -96,6 +95,8 @@ int main() {
         &update,
         &render
     };
+
+    GLFWwindow* glfw_window;
 
     if(!glfwInit()) {
         return 1;
