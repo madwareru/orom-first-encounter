@@ -96,6 +96,13 @@ int main() {
         render
     };
 
+    using callback_holder = std::variant<
+        KeyCallbackHolder,
+        CursorPosCallbackHolder,
+        MouseButtonCallbackHolder>;
+
+    std::vector<callback_holder> eventCallbacks;
+
     if(!glfwInit()) {
         return 1;
     }
@@ -111,7 +118,8 @@ int main() {
     if(!start_main_loop(
         glfw_window,
         window_params,
-        lifetime_procs
+        lifetime_procs,
+        eventCallbacks
     )) return 1;
 
     return 0;

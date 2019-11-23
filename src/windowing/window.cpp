@@ -5,10 +5,26 @@
 #define FPS_60_MILLIS 0.0166
 #define VSYNC_ON
 
+LifetimeProcHolder::LifetimeProcHolder(
+    init_proc   init_proc_addr_p,
+    update_proc update_proc_addr_p,
+    render_proc render_proc_addr_p
+) :
+    init_proc_addr{init_proc_addr_p},
+    update_proc_addr{update_proc_addr_p},
+    render_proc_addr{render_proc_addr_p}
+{}
+
 bool start_main_loop(
     GLFWwindow* glfw_window,
     const WindowCreationParams& window_params,
-    const LifetimeProcHolder& lifetime_procs
+    const LifetimeProcHolder& lifetime_procs,
+    const std::vector<
+       std::variant<
+            KeyCallbackHolder,
+            CursorPosCallbackHolder,
+            MouseButtonCallbackHolder>
+        >& eventCallbacks
 ) {
     HWND h_window;
     HDC h_dc;
@@ -34,9 +50,21 @@ bool start_main_loop(
     h_window = glfwGetWin32Window(glfw_window);
     h_dc = GetDC(h_window);
 
-    //glfwSetKeyCallback(glfw_window, nullptr); <- GLFWkeyfun
-    //glfwSetCursorPosCallback(glfw_window, nullptr); <- GLFWcursorposfun
-    //glfwSetMouseButtonCallback(glfw_window, &mouse_button_callback);
+    for(auto callback : eventCallbacks) {
+        std::visit([&](auto&& arg) {
+            using T = std::decay_t<decltype(arg)>;
+            #define IF_MATCH(x) if constexpr (std::is_same_v<T, x>)
+            #define EL_IF_MATCH(x) else IF_MATCH(x)
+
+            IF_MATCH(KeyCallbackHolder) glfwSetKeyCallback(glfw_window, arg.fun);
+            EL_IF_MATCH(CursorPosCallbackHolder) glfwSetCursorPosCallback(glfw_window, arg.fun);
+            EL_IF_MATCH(MouseButtonCallbackHolder) glfwSetMouseButtonCallback(glfw_window, arg.fun);
+            #undef EL_IF_MATCH
+            #undef IF_MATCH
+        },
+        callback);
+    }
+
     //glfwSetInputMode(glfw_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
     //glfwSetWindowIcon(glfw_window, 1, &icon_image);
 

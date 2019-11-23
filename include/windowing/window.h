@@ -6,6 +6,7 @@
 #include <chrono>
 #include <thread>
 #include <memory>
+#include <variant>
 #include <emmintrin.h>
 
 #include <GLFW/glfw3.h>
@@ -34,6 +35,21 @@ struct LifetimeProcHolder {
     init_proc   init_proc_addr;
     update_proc update_proc_addr;
     render_proc render_proc_addr;
+    LifetimeProcHolder(
+        init_proc   init_proc_addr_p,
+        update_proc update_proc_addr_p,
+        render_proc render_proc_addr_p
+    );
+};
+
+struct KeyCallbackHolder{
+    GLFWkeyfun fun;
+};
+struct CursorPosCallbackHolder{
+    GLFWcursorposfun fun;
+};
+struct MouseButtonCallbackHolder{
+    GLFWmousebuttonfun fun;
 };
 
 #define INIT_WINDOW(window_params)    \
@@ -50,6 +66,13 @@ struct LifetimeProcHolder {
 bool start_main_loop(
     GLFWwindow* glfw_window,
     const WindowCreationParams& window_params,
-    const LifetimeProcHolder& lifetime_procs);
+    const LifetimeProcHolder& lifetime_procs,
+    const std::vector<
+        std::variant<
+            KeyCallbackHolder,
+            CursorPosCallbackHolder,
+            MouseButtonCallbackHolder>
+        >& eventCallbacks
+    );
 
 #endif // WINDOW_H
