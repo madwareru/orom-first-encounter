@@ -87,7 +87,13 @@ int main() {
         1024,                 // width
         768,                  // height
         false,                // fullscreen
-        0x40, 0x40, 0x40      // clear color
+        0x07, 0x02, 0x13      // clear color
+    };
+
+    LifetimeProcHolder lifetime_procs {
+        init,
+        update,
+        render
     };
 
     if(!glfwInit()) {
@@ -105,11 +111,8 @@ int main() {
     if(!start_main_loop(
         glfw_window,
         window_params,
-        &init,
-        &update,
-        &render
+        lifetime_procs
     )) return 1;
-
 
     return 0;
 }

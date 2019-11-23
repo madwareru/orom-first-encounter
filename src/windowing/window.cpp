@@ -1,5 +1,6 @@
 #include <windowing/window.h>
 #include <util/macro_shared.h>
+#include <util/defer_action.h>
 
 #define FPS_60_MILLIS 0.0166
 #define VSYNC_ON
@@ -7,9 +8,7 @@
 bool start_main_loop(
     GLFWwindow* glfw_window,
     const WindowCreationParams& window_params,
-    init_proc   init_proc_addr,
-    update_proc update_proc_addr,
-    render_proc render_proc_addr
+    const LifetimeProcHolder& lifetime_procs
 ) {
     HWND h_window;
     HDC h_dc;
@@ -20,9 +19,9 @@ bool start_main_loop(
     auto clear_g = window_params.clear_color_g;
     auto clear_b = window_params.clear_color_b;
 
-    auto render = (render_proc_addr);
-    auto update = (update_proc_addr);
-    auto init   = (init_proc_addr);
+    auto render = lifetime_procs.render_proc_addr;
+    auto update = lifetime_procs.update_proc_addr;
+    auto init   = lifetime_procs.init_proc_addr;
 
     glfwSetWindowSizeLimits(
         glfw_window,
@@ -35,8 +34,8 @@ bool start_main_loop(
     h_window = glfwGetWin32Window(glfw_window);
     h_dc = GetDC(h_window);
 
-    //glfwSetKeyCallback(glfw_window, &key_callback);
-    //glfwSetCursorPosCallback(glfw_window, &cursor_position_callback);
+    //glfwSetKeyCallback(glfw_window, nullptr); <- GLFWkeyfun
+    //glfwSetCursorPosCallback(glfw_window, nullptr); <- GLFWcursorposfun
     //glfwSetMouseButtonCallback(glfw_window, &mouse_button_callback);
     //glfwSetInputMode(glfw_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
     //glfwSetWindowIcon(glfw_window, 1, &icon_image);

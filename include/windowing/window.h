@@ -30,6 +30,12 @@ struct WindowCreationParams {
     uint8_t clear_color_b;
 };
 
+struct LifetimeProcHolder {
+    init_proc   init_proc_addr;
+    update_proc update_proc_addr;
+    render_proc render_proc_addr;
+};
+
 #define INIT_WINDOW(window_params)    \
     glfwCreateWindow(                 \
         window_params.w_width,        \
@@ -44,8 +50,6 @@ struct WindowCreationParams {
 bool start_main_loop(
     GLFWwindow* glfw_window,
     const WindowCreationParams& window_params,
-    init_proc   init_proc_addr,
-    update_proc update_proc_addr,
-    render_proc render_proc_addr);
+    const LifetimeProcHolder& lifetime_procs);
 
 #endif // WINDOW_H
