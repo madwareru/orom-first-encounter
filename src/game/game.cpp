@@ -2,20 +2,19 @@
 
 void Game::init() {
     graphic_resources = std::make_shared<ResourceFile>("graphics.res");
-
-    { // here we should be able to safely retrieve resource file as a registry and read string value from it
-        auto [success, units_reg_file] = graphic_resources->read_registry_res("units/units.reg");
-        DEFER_CLEANUP(units_reg_file);
-        if(success) {
+    graphic_resources->with_registry_resource(
+        "units/units.reg",
+        [](auto units_reg_file) {
             LOG("registry succesfully loaded from resource");
             auto [files_found, files_value] = units_reg_file->get_string("Files/File0");
             if(files_found) {
                 LOG("Found Files/File0 entry of type string with a value of \"" << files_value << "\"");
             }
-        } else {
+        },
+        []() {
             LOG_ERROR("this is not a registry resource");
         }
-    }
+    );
 
     {
         char buf[32];

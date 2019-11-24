@@ -1,0 +1,7 @@
+[submodule "modules/promise.hpp"]
+	path = modules/promise.hpp
+	url = https://github.com/BlackMATov/promise.hpp.git
+
+[submodule "modules/glfw"]
+	path = modules/glfw
+	url = https://github.com/glfw/glfw.git

@@ -38,6 +38,17 @@ struct ResourceFile
     std::shared_ptr<RegistryFile> read_registry_res_shared(const char* path);
     std::tuple<bool, RegistryFile*> read_registry_res(const char* path);
 
+    template<typename FF, typename EF>
+    void with_registry_resource(const char* path, FF&& process, EF&& error) {
+        auto [success, reg_file] = read_registry_res(path);
+        DEFER_CLEANUP(reg_file);
+        if(success) {
+            process(reg_file);
+        } else {
+            error();
+        }
+    }
+
     ~ResourceFile();
 private:
     std::ifstream* in_file_stream_{nullptr};
