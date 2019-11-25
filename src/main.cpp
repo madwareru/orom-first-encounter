@@ -28,6 +28,8 @@ int main() {
 
     std::vector<callback_holder> event_callbacks;
     event_callbacks.emplace_back(KeyCallbackHolder{Game::key_callback});
+    event_callbacks.emplace_back(CursorPosCallbackHolder{Game::mouse_callback});
+    event_callbacks.emplace_back(MouseButtonCallbackHolder{Game::mouse_button_callback});
 
     if(!glfwInit()) {
         return 1;

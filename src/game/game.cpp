@@ -69,3 +69,23 @@ void Game::key_callback(
         glfwSetWindowShouldClose(window, true);
     }
 }
+
+void Game::mouse_button_callback(
+    GLFWwindow* window,
+    int button,
+    int action,
+    int mods
+) {
+    LOG("Got mouse event: "<<
+        "[button=" << button << "], " <<
+        "[action=" << action << "], " <<
+        "mods=" << mods << "]");
+}
+
+void Game::mouse_callback(
+    GLFWwindow* window,
+    double xpos,
+    double ypos
+) {
+    LOG("Mouse position: [" << xpos << ", " << ypos << "]");
+}
