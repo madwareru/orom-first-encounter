@@ -1,7 +1,7 @@
 #include <game/game.h>
 
 void Game::init() {
-    graphic_resources = std::make_shared<ResourceFile>("graphics.res");
+    graphic_resources = std::make_shared<ResourceFile>("GRAPHICS.res");
     {
         auto [success, units_reg_file] = graphic_resources->read_registry_res_unique("units/units.reg");
         if(success) {

@@ -24,7 +24,12 @@
 namespace Game {
     namespace  {
         std::shared_ptr<ResourceFile> graphic_resources;
-        std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4];
+        std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4] = {
+            std::vector<std::shared_ptr<SOASpriteRGB>>{},
+            std::vector<std::shared_ptr<SOASpriteRGB>>{},
+            std::vector<std::shared_ptr<SOASpriteRGB>>{},
+            std::vector<std::shared_ptr<SOASpriteRGB>>{}
+        };
     }
 
     void init();

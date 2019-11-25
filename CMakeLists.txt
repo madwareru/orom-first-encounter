@@ -14,6 +14,7 @@ file(GLOB_RECURSE THIRD_PARTY_SOURCES
 
 set (INCLUDE_DIRS
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/modules/promise.hpp/headers
 )
 
 find_package(OpenGL REQUIRED)
@@ -24,7 +25,6 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(modules/glfw)
 add_subdirectory(modules/kaitai_struct)
-add_subdirectory(modules/promise.hpp)
 
 add_executable(${PROJECT_NAME}
     ${SOURCES}
@@ -36,8 +36,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME}
     glfw
     kaitai_struct_cpp_stl_runtime
-    opengl32
-    promise.hpp)
+    opengl32)
 set_target_properties(${PROJECT_NAME} PROPERTIES
          CXX_STANDARD 17
          CXX_STANDARD_REQUIRED YES
