@@ -33,6 +33,7 @@ target_link_libraries(${PROJECT_NAME}
     glfw
     kaitai_struct_cpp_stl_runtime
     opengl32)
+
 set_target_properties(${PROJECT_NAME} PROPERTIES
          CXX_STANDARD 17
          CXX_STANDARD_REQUIRED YES

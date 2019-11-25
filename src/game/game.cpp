@@ -52,3 +52,20 @@ void Game::render(SOASpriteRGB &background_sprite) {
         }
     }
 }
+
+void Game::key_callback(
+    GLFWwindow* window,
+    int key,
+    int scancode,
+    int action,
+    int mods
+) {
+    LOG("Got key event: "<<
+        "[key=" << key << "], " <<
+        "[scancode=" << scancode << "], " <<
+        "[action=" << action << "], " <<
+        "mods=" << mods << "]");
+    if(key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
+        glfwSetWindowShouldClose(window, true);
+    }
+}

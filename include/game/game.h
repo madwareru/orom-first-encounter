@@ -35,6 +35,15 @@ namespace Game {
     void init();
     void update(double delta_time);
     void render(SOASpriteRGB& background_sprite);
+
+    void key_callback(
+        GLFWwindow* window,
+        int key,
+        int scancode,
+        int action,
+        int mods
+    );
 }
 
 #endif // GAME_H
+

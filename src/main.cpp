@@ -26,7 +26,8 @@ int main() {
         CursorPosCallbackHolder,
         MouseButtonCallbackHolder>;
 
-    std::vector<callback_holder> eventCallbacks;
+    std::vector<callback_holder> event_callbacks;
+    event_callbacks.emplace_back(KeyCallbackHolder{Game::key_callback});
 
     if(!glfwInit()) {
         return 1;
@@ -44,7 +45,7 @@ int main() {
         glfw_window,
         window_params,
         lifetime_procs,
-        eventCallbacks
+        event_callbacks
     )) return 1;
 
     return 0;
