@@ -15,7 +15,7 @@ RegistryFile::RegistryFile(const std::string& byte_buffer) {
     registry_file_nodes_ = new rage_of_mages_1_reg_t{kaitai_stream_};
 }
 
-rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(const char *path) {
+rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(const char *path) const {
     auto header_list = registry_file_nodes_->nodes()->header();
     char buffer[256];
     size_t buffer_offset = 0;
@@ -24,7 +24,7 @@ rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(cons
     for(;;) {
         while(path[i] != '\0' && path[i] != '/') {
             if(buffer_offset >= 256) {
-                std::cerr << "Too long filename occured. Not enough size of a buffer" LOCATION << std::endl;
+                LOG_ERROR("Too long filename occured. Not enough size of a buffer");
                 return nullptr;
             }
             buffer[buffer_offset++] = path[i++];
@@ -47,10 +47,11 @@ rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(cons
             if(entry->name() != buffer) {
                 continue;
             }
+            LOG("found subdir " << buffer);
             header_list = subdir_entry->value()->header();
             goto subdir_found;
         }
-        std::cerr << "Subdirectory with a name " << buffer << " not found" LOCATION  << std::endl;
+        LOG_ERROR("Subdirectory with a name " << buffer << " not found");
         return nullptr;
         subdir_found: ++i;
     }
@@ -63,36 +64,84 @@ rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(cons
         }
         return entry;
     }
-    std::cerr << "Registry header with a name " << buffer << " not found" LOCATION << std::endl;
+    LOG_ERROR("Registry header with a name " << buffer << " not found");
     return nullptr;
 }
 
-std::tuple<bool, int> RegistryFile::get_int(const char *path) {
-    auto header = get_registry_header(path);
-    return header == nullptr || header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_INT
-        ? std::make_tuple(false, 0)
-        : std::make_tuple(true, dynamic_cast<rage_of_mages_1_reg_t::int_entry_t*>(header->value())->value());
+std::tuple<bool, int> RegistryFile::get_int(const char *path) const {
+    try {
+        auto header = get_registry_header(path);
+        if(header == nullptr) {
+            LOG_ERROR("no such registry entry found");
+            return std::make_tuple(false, 0);
+        }
+        if(header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_INT) {
+            LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
+            return std::make_tuple(false, 0);
+        }
+        auto result = std::make_tuple(true, dynamic_cast<rage_of_mages_1_reg_t::int_entry_t*>(header->value())->value());
+        return result;
+    } catch (const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        return std::make_tuple(false, 0);
+    }
 }
 
-std::tuple<bool, double> RegistryFile::get_double(const char *path) {
-    auto header = get_registry_header(path);
-    return header == nullptr || header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_FLOAT
-        ? std::make_tuple(false, 0.0)
-        : std::make_tuple(true, dynamic_cast<rage_of_mages_1_reg_t::float_entry_t*>(header->value())->value());
+std::tuple<bool, double> RegistryFile::get_double(const char *path) const {
+    try {
+        auto header = get_registry_header(path);
+        if(header == nullptr) {
+            LOG_ERROR("no such registry entry found");
+            return std::make_tuple(false, 0.0);
+        }
+        if(header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_FLOAT) {
+            LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
+            return std::make_tuple(false, 0.0);
+        }
+        auto result = std::make_tuple(true, dynamic_cast<rage_of_mages_1_reg_t::float_entry_t*>(header->value())->value());
+        return result;
+    } catch (const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        return std::make_tuple(false, 0.0);
+    }
 }
 
-std::tuple<bool, std::string> RegistryFile::get_string(const char *path) {
-    auto header = get_registry_header(path);
-    return header == nullptr || header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_STRING
-        ? std::make_tuple(false, "")
-        : std::make_tuple(true, dynamic_cast<rage_of_mages_1_reg_t::string_entry_t*>(header->value())->value());
+std::tuple<bool, std::string> RegistryFile::get_string(const char *path) const {
+    try {
+        auto header = get_registry_header(path);
+        if(header == nullptr) {
+            LOG_ERROR("no such registry entry found");
+            return std::make_tuple(false, "");
+        }
+        if(header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_STRING) {
+            LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
+            return std::make_tuple(false, "0.0");
+        }
+        auto result = std::make_tuple(true, dynamic_cast<rage_of_mages_1_reg_t::string_entry_t*>(header->value())->value());
+        return result;
+    } catch (const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        return std::make_tuple(false, "");
+    }
 }
 
-std::tuple<bool, std::vector<int32_t>> RegistryFile::get_int_array(const char *path) {
-    auto header = get_registry_header(path);
-    return header == nullptr || header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_INT_ARRAY
-        ? std::make_tuple(false, std::vector<int32_t>{})
-        : std::make_tuple(true, *(dynamic_cast<rage_of_mages_1_reg_t::int_array_entry_t*>(header->value())->value()));
+std::tuple<bool, std::vector<int32_t>> RegistryFile::get_int_array(const char *path) const {
+    try {
+        auto header = get_registry_header(path);
+        if(header == nullptr) {
+            LOG_ERROR("no such registry entry found");
+            return std::make_tuple(false, std::vector<int32_t>{});
+        }
+        if(header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_INT_ARRAY) {
+            LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
+            return std::make_tuple(false, std::vector<int32_t>{});
+        }
+        auto result = std::make_tuple(true, *(dynamic_cast<rage_of_mages_1_reg_t::int_array_entry_t*>(header->value())->value()));
+        return result;
+    } catch (const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        return std::make_tuple(false, std::vector<int32_t>{});
+    }
 }
 
 RegistryFile::~RegistryFile() {

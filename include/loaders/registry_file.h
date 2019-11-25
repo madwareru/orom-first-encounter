@@ -16,14 +16,14 @@ struct RegistryFile
     RegistryFile(RegistryFile&&) = delete;
     RegistryFile& operator=(RegistryFile&&) = delete;
 
-    std::tuple<bool, int> get_int(const char* path);
-    std::tuple<bool, double> get_double(const char* path);
-    std::tuple<bool, std::string> get_string(const char* path);
-    std::tuple<bool, std::vector<int32_t>> get_int_array(const char* path);
+    std::tuple<bool, int> get_int(const char* path) const;
+    std::tuple<bool, double> get_double(const char* path) const;
+    std::tuple<bool, std::string> get_string(const char* path) const;
+    std::tuple<bool, std::vector<int32_t>> get_int_array(const char* path) const;
 
     ~RegistryFile();
 private:
-    rage_of_mages_1_reg_t::registry_header_t* get_registry_header(const char* path);
+    rage_of_mages_1_reg_t::registry_header_t* get_registry_header(const char* path) const;
 
     std::string byte_buffer_{""};
     std::ifstream* in_file_stream_{nullptr};

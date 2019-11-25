@@ -8,6 +8,8 @@
 #include <tuple>
 #include <memory>
 #include <graphics/soaspritergb.h>
+#include <util/defer_action.h>
+#include <promise.hpp/promise.hpp>
 
 struct ResourceFile
 {
@@ -20,34 +22,13 @@ struct ResourceFile
 
     rage_of_mages_1_res_t::file_resource_t* get_resource(const char* path);
 
-    //
-    // This may throw an exception when resource user have read
-    // wasn't exist or didn't contained an actual registy file
-    //
-    std::shared_ptr<SOASpriteRGB> read_bmp_shared(const char* path);
+    std::tuple<bool, std::shared_ptr<SOASpriteRGB>> read_bmp_shared(const char* path);
 
-    //
-    // This may throw an exception when resource user have read
-    // wasn't exist or didn't contained an actual registy file
-    //
-    std::unique_ptr<RegistryFile> read_registry_res_unique(const char* path);
-    //
-    // This may throw an exception when resource user have read
-    // wasn't exist or didn't contained an actual registy file
-    //
-    std::shared_ptr<RegistryFile> read_registry_res_shared(const char* path);
-    std::tuple<bool, RegistryFile*> read_registry_res(const char* path);
+    std::tuple<bool, std::unique_ptr<RegistryFile>> read_registry_res_unique(const char* path);
+    std::tuple<bool, std::shared_ptr<RegistryFile>> read_registry_res_shared(const char* path);
 
-    template<typename FF, typename EF>
-    void with_registry_resource(const char* path, FF&& process, EF&& error) {
-        auto [success, reg_file] = read_registry_res(path);
-        DEFER_CLEANUP(reg_file);
-        if(success) {
-            process(reg_file);
-        } else {
-            error();
-        }
-    }
+    promise_hpp::promise<std::shared_ptr<RegistryFile>> borrow_registry_resource(const char* path);
+
 
     ~ResourceFile();
 private:
