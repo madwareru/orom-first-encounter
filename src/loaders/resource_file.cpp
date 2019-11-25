@@ -127,6 +127,7 @@ std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_bmp_shared(co
         }
 
         auto result = std::make_shared<SOASpriteRGB>(bmp_file.data()->width(), bmp_file.data()->height());
+        auto mutate_is_ok = true;
         result->mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
             size_t d_offset = h * w - w;
             auto bit_count = bmp_file.data()->bi_bitcount();
@@ -170,37 +171,19 @@ std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_bmp_shared(co
                     } break;
                     default:
                         LOG_ERROR("unsupported bitcount detected");
-                        return std::make_tuple(false, std::make_shared<SOASpriteRGB>(1,1));
+                        mutate_is_ok = false;
                         break;
                 }
                 d_offset -= slide_back;
             }
         });
+        if(!mutate_is_ok) return std::make_tuple(false, std::make_shared<SOASpriteRGB>(1,1));
         return std::make_tuple(true, result);
     } catch (const std::exception& ex) {
         LOG_ERROR(ex.what());
         return std::make_tuple(false, std::make_shared<SOASpriteRGB>(1,1));
     }
 }
-
-promise_hpp::promise<std::shared_ptr<RegistryFile>> ResourceFile::borrow_registry_resource(const char *path) {
-    return promise_hpp::make_promise<std::shared_ptr<RegistryFile>>(
-        [&](auto&& resolver, auto&& rejector)
-        {
-            auto reg_resource = get_resource(path);
-            if(reg_resource == nullptr) {
-                rejector(std::runtime_error("Resource doesn't exist"));
-            }
-            try {
-                auto result = std::make_shared<RegistryFile>(reg_resource->bytes());
-                resolver(result);
-            } catch (const std::exception& ex) {
-                LOG_ERROR(ex.what());
-                rejector(ex);
-            }
-        });
-}
-
 
 ResourceFile::~ResourceFile() {
     if(resource_file_nodes_ != nullptr) delete resource_file_nodes_;

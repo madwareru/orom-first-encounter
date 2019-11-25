@@ -7,6 +7,7 @@
 #include <thread>
 #include <memory>
 #include <variant>
+#include <vector>
 #include <emmintrin.h>
 
 #include <GLFW/glfw3.h>

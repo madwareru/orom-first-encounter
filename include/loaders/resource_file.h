@@ -9,7 +9,6 @@
 #include <memory>
 #include <graphics/soaspritergb.h>
 #include <util/defer_action.h>
-#include <promise.hpp/promise.hpp>
 
 struct ResourceFile
 {
@@ -26,9 +25,6 @@ struct ResourceFile
 
     std::tuple<bool, std::unique_ptr<RegistryFile>> read_registry_res_unique(const char* path);
     std::tuple<bool, std::shared_ptr<RegistryFile>> read_registry_res_shared(const char* path);
-
-    promise_hpp::promise<std::shared_ptr<RegistryFile>> borrow_registry_resource(const char* path);
-
 
     ~ResourceFile();
 private:
