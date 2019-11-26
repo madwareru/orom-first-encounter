@@ -27,7 +27,9 @@ add_subdirectory(modules/kaitai_struct)
 add_executable(${PROJECT_NAME}
     ${SOURCES}
     ${THIRD_PARTY_SOURCES})
-target_include_directories(${PROJECT_NAME} PUBLIC include)
+target_include_directories(${PROJECT_NAME} PUBLIC
+    include
+    modules/promise.hpp/headers)
 
 target_link_libraries(${PROJECT_NAME}
     glfw
