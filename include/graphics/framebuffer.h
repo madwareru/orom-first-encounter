@@ -2,6 +2,7 @@
 #define FRAMEBUFFER_H
 
 #include <cinttypes>
+#define NOMINMAX
 #include <Windows.h>
 #include <wingdi.h>
 

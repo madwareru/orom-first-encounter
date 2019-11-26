@@ -1,5 +1,3 @@
-#include <Windows.h>
-#include <wingdi.h>
 #include <graphics/framebuffer.h>
 #include <intrin.h>
 

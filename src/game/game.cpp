@@ -5,10 +5,7 @@ namespace Game {
     namespace GameStage {
         ecs_hpp::registry world;
         uint8_t*          terrain_cache;
-        uint8_t*          terrain_tile_x_cache;
-        uint8_t*          terrain_tile_y_cache;
-        uint8_t*          terrain_tile_u_cache;
-        uint8_t*          terrain_tile_v_cache;
+        GameStageShared   shared;
     }
 
     namespace MainMenuStage {
@@ -27,6 +24,18 @@ namespace Game {
 
     void init() {
         try {
+            size_t offset = 0;
+
+            GameStage::shared.terrain_tile_x_cache = &GameStage::terrain_cache[offset];
+            offset += window_width * window_height;
+            GameStage::shared.terrain_tile_y_cache = &GameStage::terrain_cache[offset];
+            offset += window_width * window_height;
+            GameStage::shared.terrain_tile_u_cache = &GameStage::terrain_cache[offset];
+            offset += window_width * window_height;
+            GameStage::shared.terrain_tile_v_cache = &GameStage::terrain_cache[offset];
+            GameStage::shared.camera_x = 0;
+            GameStage::shared.camera_y = 0;
+
             graphic_resources = std::make_shared<ResourceFile>("GRAPHICS.res");
             {
                 auto [success, units_reg_file] = graphic_resources->read_registry_res_unique("units/units.reg");
