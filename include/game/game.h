@@ -23,6 +23,10 @@
 #include <loaders/resource_file.h>
 #include <loaders/registry_file.h>
 
+#include <game/systems/systems.h>
+#include <game/components/components.h>
+#include <ecs.hpp/ecs.hpp>
+
 namespace Game {
     namespace  {
         std::shared_ptr<ResourceFile> graphic_resources;
@@ -35,6 +39,12 @@ namespace Game {
 
         uint32_t mouse_x;
         uint32_t mouse_y;
+
+        ecs_hpp::registry world;
+
+        struct update_feature{};
+        struct rendering_feature{};
+
     }
 
     extern GLFWwindow* glfw_window;
