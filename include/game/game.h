@@ -25,6 +25,12 @@
 
 #include <game/systems/systems.h>
 #include <game/components/components.h>
+
+#ifdef max
+    #undef max
+    #undef min
+    #define max_min_undef
+#endif
 #include <ecs.hpp/ecs.hpp>
 
 namespace Game {
