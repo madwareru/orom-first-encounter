@@ -27,19 +27,6 @@
 #include <ecs.hpp/ecs.hpp>
 
 namespace Game {
-    namespace  {
-        std::shared_ptr<ResourceFile> graphic_resources;
-        std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4] = {
-            std::vector<std::shared_ptr<SOASpriteRGB>>{},
-            std::vector<std::shared_ptr<SOASpriteRGB>>{},
-            std::vector<std::shared_ptr<SOASpriteRGB>>{},
-            std::vector<std::shared_ptr<SOASpriteRGB>>{}
-        };
-
-        uint32_t mouse_x;
-        uint32_t mouse_y;
-    }
-
     namespace MainMenuStage {
         extern ecs_hpp::registry world;
         struct update_feature{};

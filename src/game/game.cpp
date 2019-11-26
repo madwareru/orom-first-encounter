@@ -1,6 +1,19 @@
 #include <emmintrin.h>
 #include <game/game.h>
 
+namespace  {
+    std::shared_ptr<ResourceFile> graphic_resources;
+    std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4] = {
+        std::vector<std::shared_ptr<SOASpriteRGB>>{},
+        std::vector<std::shared_ptr<SOASpriteRGB>>{},
+        std::vector<std::shared_ptr<SOASpriteRGB>>{},
+        std::vector<std::shared_ptr<SOASpriteRGB>>{}
+    };
+
+    uint32_t mouse_x;
+    uint32_t mouse_y;
+}
+
 namespace Game {
     namespace GameStage {
         ecs_hpp::registry world;
@@ -44,6 +57,22 @@ namespace Game {
                     auto [files_found, files_value] = units_reg_file->get_string("Files/File0");
                     if(files_found) {
                         LOG("Found Files/File0 entry of type string with a value of \"" << files_value << "\"");
+                    }
+
+                    auto [desc_text, id] = units_reg_file->read_record(
+                        "Unit14/",
+                        StringField{"DescText"}, IntField{"ID"});
+                    LOG("variadic template read returned [desc_text = " << desc_text << ", ID = " << id << "]");
+
+                    auto reg_entry = units_reg_file->read_record2(
+                        "Unit14/",
+                        StringField{"DescText"},
+                        IntField{"ID"}
+                    );
+                    LOG("count of names: " << reg_entry.field_count);
+                    LOG("names:");
+                    for(size_t i = 0; i < reg_entry.field_count; ++i) {
+                        LOG("    " << reg_entry.field_names[i]);
                     }
                 }
             }

@@ -68,7 +68,7 @@ rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(cons
     return nullptr;
 }
 
-std::tuple<bool, int> RegistryFile::get_int(const char *path) const {
+std::tuple<bool, int32_t> RegistryFile::get_int(const char *path) const {
     try {
         auto header = get_registry_header(path);
         if(header == nullptr) {
