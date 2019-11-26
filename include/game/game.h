@@ -6,6 +6,8 @@
 #include <emmintrin.h>
 #include <vector>
 
+#include <GLFW/glfw3.h>
+
 #include <globals/globals.h>
 
 #include <windowing/window.h>
@@ -30,7 +32,15 @@ namespace Game {
             std::vector<std::shared_ptr<SOASpriteRGB>>{},
             std::vector<std::shared_ptr<SOASpriteRGB>>{}
         };
+
+        uint32_t mouse_x;
+        uint32_t mouse_y;
     }
+
+    extern GLFWwindow* glfw_window;
+    extern uint16_t window_width;
+    extern uint16_t window_height;
+    extern bool windowed;
 
     void init();
     void update(double delta_time);
