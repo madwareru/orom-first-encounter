@@ -114,27 +114,6 @@ bool start_main_loop(
         double point_a = glfwGetTime();
 #endif
         (*update)(delta_time);
-        // clear
-        background_sprite.mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
-            const size_t size = w * h;
-            __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(clear_r));
-            __m128i clrg = _mm_set1_epi8(static_cast<int8_t>(clear_g));
-            __m128i clrb = _mm_set1_epi8(static_cast<int8_t>(clear_b));
-
-            uint8_t *rb = rbuf;
-            uint8_t *gb = gbuf;
-            uint8_t *bb = bbuf;
-
-            for(size_t i = size / 16; i; --i) {
-                _mm_stream_si128(reinterpret_cast<__m128i*>(bb), clrb);
-                _mm_stream_si128(reinterpret_cast<__m128i*>(gb), clrg);
-                _mm_stream_si128(reinterpret_cast<__m128i*>(rb), clrr);
-                rb += 16;
-                gb += 16;
-                bb += 16;
-            }
-        });
-
         (*render)(background_sprite);
 
         background_sprite.blit_on_frame_buffer(frame_buffer, 0, 0);
