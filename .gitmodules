@@ -5,3 +5,6 @@
 [submodule "modules/glfw"]
 	path = modules/glfw
 	url = https://github.com/glfw/glfw.git
+[submodule "modules/ecs.hpp"]
+	path = modules/ecs.hpp
+	url = https://github.com/BlackMATov/ecs.hpp.git
