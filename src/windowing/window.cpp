@@ -1,6 +1,17 @@
+#include <iostream>
+#include <fstream>
+#include <memory>
+#include <emmintrin.h>
+#include <graphics/soaspritergb.h>
+#include <graphics/framebuffer.h>
 #include <windowing/window.h>
+
 #include <util/macro_shared.h>
 #include <util/defer_action.h>
+
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
 
 #define FPS_60_MILLIS 0.0166
 #define VSYNC_ON

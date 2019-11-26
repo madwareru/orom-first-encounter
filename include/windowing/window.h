@@ -1,21 +1,15 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include <iostream>
-#include <fstream>
-#include <chrono>
-#include <thread>
-#include <memory>
 #include <variant>
 #include <vector>
-#include <emmintrin.h>
 
-#include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
+struct GLFWwindow;
+typedef void (* GLFWkeyfun)(GLFWwindow*,int,int,int,int);
+typedef void (* GLFWcursorposfun)(GLFWwindow*,double,double);
+typedef void (* GLFWmousebuttonfun)(GLFWwindow*,int,int,int);
 
-#include <graphics/framebuffer.h>
-#include <graphics/soaspritergb.h>
+struct SOASpriteRGB;
 
 typedef void (*render_proc)(SOASpriteRGB& back_buffer);
 typedef void (*update_proc)(double delta_time);

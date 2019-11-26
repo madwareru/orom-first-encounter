@@ -2,9 +2,8 @@
 #define SOASPRITERGBA_H
 
 #include <cinttypes>
-#include <Windows.h>
-#include <wingdi.h>
-#include <graphics/soaspritergb.h>
+
+struct SOASpriteRGB;
 
 struct SOASpriteRGBA
 {

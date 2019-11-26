@@ -1,5 +1,5 @@
-#include <graphics/framebuffer.h>
 #include <graphics/soaspritergb.h>
+#include <graphics/framebuffer.h>
 #include <emmintrin.h>
 #include <iostream>
 

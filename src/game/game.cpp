@@ -1,3 +1,4 @@
+#include <emmintrin.h>
 #include <game/game.h>
 
 namespace Game {
@@ -25,36 +26,40 @@ namespace Game {
     bool windowed = false;
 
     void init() {
-        graphic_resources = std::make_shared<ResourceFile>("GRAPHICS.res");
-        {
-            auto [success, units_reg_file] = graphic_resources->read_registry_res_unique("units/units.reg");
-            if(success) {
-                LOG("registry succesfully loaded from resource");
-                auto [files_found, files_value] = units_reg_file->get_string("Files/File0");
-                if(files_found) {
-                    LOG("Found Files/File0 entry of type string with a value of \"" << files_value << "\"");
+        try {
+            graphic_resources = std::make_shared<ResourceFile>("GRAPHICS.res");
+            {
+                auto [success, units_reg_file] = graphic_resources->read_registry_res_unique("units/units.reg");
+                if(success) {
+                    LOG("registry succesfully loaded from resource");
+                    auto [files_found, files_value] = units_reg_file->get_string("Files/File0");
+                    if(files_found) {
+                        LOG("Found Files/File0 entry of type string with a value of \"" << files_value << "\"");
+                    }
                 }
             }
-        }
 
-        {
-            char buf[32];
-            for(size_t i = 1; i <= 4; ++i) {
-                const size_t capacity = (i < 4) ? 16 : 4;
-                tiles[i-1].reserve(capacity);
-                for(size_t j = 0; j < capacity; ++j)
-                {
-                    if(j < 10) {
-                        sprintf(buf, "terrain/tile%d-0%d.bmp", (int)i, (int)j);
-                    } else {
-                        sprintf(buf, "terrain/tile%d-%d.bmp", (int)i, (int)j);
-                    }
-                    auto[success, next_bmp] = graphic_resources->read_bmp_shared(buf);
-                    if(success) {
-                        tiles[i-1].emplace_back(next_bmp);
+            {
+                char buf[32];
+                for(size_t i = 1; i <= 4; ++i) {
+                    const size_t capacity = (i < 4) ? 16 : 4;
+                    tiles[i-1].reserve(capacity);
+                    for(size_t j = 0; j < capacity; ++j)
+                    {
+                        if(j < 10) {
+                            sprintf(buf, "terrain/tile%d-0%d.bmp", (int)i, (int)j);
+                        } else {
+                            sprintf(buf, "terrain/tile%d-%d.bmp", (int)i, (int)j);
+                        }
+                        auto[success, next_bmp] = graphic_resources->read_bmp_shared(buf);
+                        if(success) {
+                            tiles[i-1].emplace_back(next_bmp);
+                        }
                     }
                 }
             }
+        } catch (const std::exception& ex) {
+            LOG_ERROR(ex.what());
         }
     }
 
@@ -90,7 +95,7 @@ namespace Game {
 //            "[action=" << action << "], " <<
 //            "mods=" << mods << "]");
         if(key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-            glfwSetWindowShouldClose(window, true);
+            initiate_game_closing();
         }
     }
 
@@ -114,6 +119,10 @@ namespace Game {
 //        LOG("Mouse position: [" << xpos << ", " << ypos << "]");
         mouse_x = static_cast<uint32_t>(xpos);
         mouse_y = static_cast<uint32_t>(ypos);
+    }
+
+    void initiate_game_closing() {
+        glfwSetWindowShouldClose(glfw_window, true);
     }
 }
 

@@ -5,9 +5,6 @@
 #include <Windows.h>
 #include <wingdi.h>
 
-struct FrameBuffer;
-struct SOASpriteRGB;
-
 struct FrameBuffer {
     FrameBuffer(size_t w, size_t h);
     FrameBuffer(const FrameBuffer& other) = delete;

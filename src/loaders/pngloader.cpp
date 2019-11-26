@@ -1,3 +1,5 @@
+#include <graphics/soaspritergb.h>
+#include <graphics/soaspritergba.h>
 #include <loaders/pngloader.h>
 #include <util/defer_action.h>
 #include "../../third_party/lodepng.h"

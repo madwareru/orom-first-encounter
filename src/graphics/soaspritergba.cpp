@@ -1,3 +1,4 @@
+#include <graphics/soaspritergb.h>
 #include <graphics/soaspritergba.h>
 #include <emmintrin.h>
 #include <iostream>

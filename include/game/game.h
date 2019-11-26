@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <fstream>
-#include <emmintrin.h>
 #include <vector>
 
 #include <GLFW/glfw3.h>
@@ -26,11 +25,6 @@
 #include <game/systems/systems.h>
 #include <game/components/components.h>
 
-#ifdef max
-    #undef max
-    #undef min
-    #define max_min_undef
-#endif
 #include <ecs.hpp/ecs.hpp>
 
 namespace Game {
@@ -80,6 +74,8 @@ namespace Game {
     void init();
     void update(double delta_time);
     void render(SOASpriteRGB& background_sprite);
+
+    void initiate_game_closing();
 
     void key_callback(
         GLFWwindow* window,
