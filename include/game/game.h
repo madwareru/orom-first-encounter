@@ -45,25 +45,31 @@ namespace Game {
 
         uint32_t mouse_x;
         uint32_t mouse_y;
+    }
 
-        namespace MainMenuStage {
-            ecs_hpp::registry world;
-            struct update_feature;
-            struct rendering_feature;
-        }
+    namespace MainMenuStage {
+        extern ecs_hpp::registry world;
+        struct update_feature;
+        struct rendering_feature;
+    }
 
-        namespace CityStage {
-            ecs_hpp::registry world;
-            struct update_feature;
-            struct rendering_feature;
-        }
+    namespace CityStage {
+        extern ecs_hpp::registry world;
+        struct update_feature;
+        struct rendering_feature;
+    }
 
-        namespace GameStage {
-            ecs_hpp::registry world;
-            struct terrain_feature;
-            struct update_feature;
-            struct rendering_feature;
-        }
+    namespace GameStage {
+        extern ecs_hpp::registry world;
+        extern uint8_t* terrain_cache;
+        extern uint8_t* terrain_tile_x_cache;
+        extern uint8_t* terrain_tile_y_cache;
+        extern uint8_t* terrain_tile_u_cache;
+        extern uint8_t* terrain_tile_v_cache;
+
+        struct terrain_feature;
+        struct update_feature;
+        struct rendering_feature;
     }
 
     extern GLFWwindow* glfw_window;

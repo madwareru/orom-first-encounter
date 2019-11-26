@@ -1,6 +1,23 @@
 #include <game/game.h>
 
 namespace Game {
+    namespace GameStage {
+        ecs_hpp::registry world;
+        uint8_t*          terrain_cache;
+        uint8_t*          terrain_tile_x_cache;
+        uint8_t*          terrain_tile_y_cache;
+        uint8_t*          terrain_tile_u_cache;
+        uint8_t*          terrain_tile_v_cache;
+    }
+
+    namespace MainMenuStage {
+        ecs_hpp::registry world;
+    }
+
+    namespace CityStage {
+        ecs_hpp::registry world;
+    }
+
     GLFWwindow* glfw_window;
 
     uint16_t window_width = 1024;
