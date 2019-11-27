@@ -42,10 +42,6 @@ bool start_main_loop(
     char title_buf[255];
     FrameBuffer frame_buffer{window_params.w_width, window_params.w_height};
 
-    auto clear_r = window_params.clear_color_r;
-    auto clear_g = window_params.clear_color_g;
-    auto clear_b = window_params.clear_color_b;
-
     auto render = lifetime_procs.render_proc_addr;
     auto update = lifetime_procs.update_proc_addr;
     auto init   = lifetime_procs.init_proc_addr;
@@ -76,7 +72,7 @@ bool start_main_loop(
         callback);
     }
 
-    glfwSetInputMode(glfw_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    //glfwSetInputMode(glfw_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
     //glfwSetWindowIcon(glfw_window, 1, &icon_image);
 
     double prev_time = glfwGetTime();
@@ -84,28 +80,6 @@ bool start_main_loop(
     int32_t fps = 0;
 
     SOASpriteRGB background_sprite{window_params.w_width, window_params.w_height};
-
-    background_sprite.mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
-        const size_t size = w * h;
-        __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(clear_r));
-        __m128i clrg = _mm_set1_epi8(static_cast<int8_t>(clear_g));
-        __m128i clrb = _mm_set1_epi8(static_cast<int8_t>(clear_b));
-
-        uint8_t *rb = rbuf;
-        uint8_t *gb = gbuf;
-        uint8_t *bb = bbuf;
-
-        for(size_t i = size / 16; i; --i) {
-            _mm_stream_si128(reinterpret_cast<__m128i*>(bb), clrb);
-            _mm_stream_si128(reinterpret_cast<__m128i*>(gb), clrg);
-            _mm_stream_si128(reinterpret_cast<__m128i*>(rb), clrr);
-            rb += 16;
-            gb += 16;
-            bb += 16;
-        }
-    });
-    background_sprite.blit_on_frame_buffer(frame_buffer, 0, 0);
-    frame_buffer.blit_on_dc(h_dc);
 
     (*init)();
 

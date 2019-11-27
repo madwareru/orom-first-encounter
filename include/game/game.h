@@ -27,12 +27,6 @@
 #include <ecs.hpp/ecs.hpp>
 
 namespace Game {
-    namespace MainMenuStage {
-        extern ecs_hpp::registry world;
-        struct update_feature{};
-        struct rendering_feature{};
-    }
-
     namespace CityStage {
         extern ecs_hpp::registry world;
         struct update_feature{};
@@ -67,6 +61,13 @@ namespace Game {
     extern uint16_t window_width;
     extern uint16_t window_height;
     extern bool windowed;
+
+    extern bool clear_made;
+    extern uint8_t clear_r;
+    extern uint8_t clear_g;
+    extern uint8_t clear_b;
+
+    void request_clear();
 
     void init();
     void update(double delta_time);

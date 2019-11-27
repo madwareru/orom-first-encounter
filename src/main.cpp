@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
         }
     }
 
+    Game::clear_made = false;
     Game::GameStage::terrain_cache = new uint8_t[4 * Game::window_width * Game::window_height];
     DEFER([&]() {delete [] Game::GameStage::terrain_cache; })
 
@@ -38,6 +39,10 @@ int main(int argc, char** argv) {
         !Game::windowed,      // fullscreen
         0x07, 0x02, 0x13      // clear color
     };
+
+    Game::clear_r = window_params.clear_color_r;
+    Game::clear_g = window_params.clear_color_g;
+    Game::clear_b = window_params.clear_color_b;
 
     LifetimeProcHolder lifetime_procs {
         Game::init,

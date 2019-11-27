@@ -22,6 +22,7 @@ struct ResourceFile
     rage_of_mages_1_res_t::file_resource_t* get_resource(const char* path);
 
     std::tuple<bool, std::shared_ptr<SOASpriteRGB>> read_bmp_shared(const char* path);
+    std::tuple<bool, std::shared_ptr<SOASpriteRGB>> read_mask_shared(const char* path);
 
     std::tuple<bool, std::unique_ptr<RegistryFile>> read_registry_res_unique(const char* path);
     std::tuple<bool, std::shared_ptr<RegistryFile>> read_registry_res_shared(const char* path);
