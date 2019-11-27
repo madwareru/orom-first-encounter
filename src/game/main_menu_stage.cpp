@@ -165,7 +165,7 @@ namespace Game {
         void Stage::handle_button_click(uint8_t button_id) {
             switch (button_id) {
             case EXIT_BUTTON_ID:
-                Game::initiate_game_closing();
+                Game::dispatch_message(Game::event::close_game);
                 break;
             default:
                 break;

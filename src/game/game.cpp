@@ -229,7 +229,7 @@ namespace Game {
 //            "[action=" << action << "], " <<
 //            "mods=" << mods << "]");
         if(key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
-            initiate_game_closing();
+            Game::dispatch_message(Game::event::close_game);
         }
     }
 
@@ -270,5 +270,13 @@ namespace Game {
 
     void initiate_game_closing() {
         glfwSetWindowShouldClose(glfw_window, true);
+    }
+
+    void dispatch_message(const event& message) {
+        switch (message) {
+            case event::close_game:
+                initiate_game_closing();
+                break;
+        }
     }
 }

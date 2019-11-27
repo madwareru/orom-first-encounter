@@ -27,6 +27,12 @@
 #include <ecs.hpp/ecs.hpp>
 
 namespace Game {
+    enum class event {
+        close_game
+    };
+
+    struct CloseGameEvent{};
+
     struct MouseState {
         uint16_t mouse_x{0};
         uint16_t mouse_y{0};
@@ -81,7 +87,7 @@ namespace Game {
     void update(double delta_time);
     void render(SOASpriteRGB& background_sprite);
 
-    void initiate_game_closing();
+    void dispatch_message(const event& message);
 
     void key_callback(
         GLFWwindow* window,
