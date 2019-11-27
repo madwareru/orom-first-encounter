@@ -109,12 +109,6 @@ namespace Game {
             auto coord_y = main_menu_top + BUTTON_COORDS[current_button_order][1];
             if(mouse_down_) {
                 switch (current_button_order) {
-                    case OLD_GAME_BUTTON_ORDER:
-                        coord_y += 4;
-                        break;
-                    case NEW_GAME_BUTTON_ORDER:
-                        coord_y += 4;
-                        coord_x += 8;
                     case EXIT_BUTTON_ORDER:
                         coord_x -= 4;
                         coord_y -= 4;
@@ -123,8 +117,12 @@ namespace Game {
                         coord_x += 4;
                         coord_y -= 4;
                         break;
+                    case OLD_GAME_BUTTON_ORDER:
+                        coord_y += 4;
+                        break;
                     case VIDEO_BUTTON_ORDER:
                     case NETWORK_GAME_BUTTON_ORDER:
+                    case NEW_GAME_BUTTON_ORDER:
                         coord_x += 4;
                         break;
                 }
