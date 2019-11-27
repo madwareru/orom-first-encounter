@@ -1,4 +1,5 @@
 #include <game/main_menu_stage.h>
+#include <game/game.h>
 
 #include <graphics/soaspritergb.h>
 #include <loaders/resource_file.h>
@@ -62,7 +63,8 @@ namespace Game {
         ) :
             main_resources_{main_resources},
             last_main_menu_selection {0},
-            current_button_order{NONE_BUTTON_ORDER}
+            current_button_order{NONE_BUTTON_ORDER},
+            last_frame_lmb_down{false}
         {
             auto[backgound_success, backgound_bmp] = main_resources->read_bmp_shared("graphics/mainmenu/menu_.bmp");
             if(backgound_success) {
@@ -105,54 +107,75 @@ namespace Game {
             main_menu_bottom = main_menu_top + OFF_GAME_SCREEN_HEIGHT;
         }
 
-        void Stage::update(double delta_time, uint32_t mouse_x, uint32_t mouse_y, bool mouse_down) {
-            if(mouse_x < main_menu_left || mouse_x >= main_menu_right) return;
-            if(mouse_y < main_menu_top || mouse_y >= main_menu_bottom) return;
+        void Stage::update(double deltatime, const MouseState& mouse_state) {
+            if(mouse_state.mouse_x < main_menu_left || mouse_state.mouse_x >= main_menu_right) return;
+            if(mouse_state.mouse_y < main_menu_top || mouse_state.mouse_y >= main_menu_bottom) return;
             auto selection_changed = false;
-            main_menu_mask->mutate([&](auto w, auto h, auto b, auto g, auto r){
-                auto pixel = r[w * (mouse_y - main_menu_top) + mouse_x - main_menu_left];
-                if(last_main_menu_selection != pixel) {
-                    last_main_menu_selection = pixel;
-                    selection_changed = true;
+            auto pixel = main_menu_mask->get_mask_pixel(
+                mouse_state.mouse_x - main_menu_left,
+                mouse_state.mouse_y - main_menu_top
+            );
+            if(last_main_menu_selection != pixel) {
+                last_main_menu_selection = pixel;
+                selection_changed = true;
+            }
+            mouse_down_ = mouse_state.left_button_down;
+            if(mouse_down_) {
+                last_frame_lmb_down = true;
+            } else {
+                if(last_frame_lmb_down) {
+                    handle_button_click(last_main_menu_selection);
+                    last_frame_lmb_down = false;
                 }
-            });
-            mouse_down_ = mouse_down;
-            if(selection_changed) {
-                switch (last_main_menu_selection) {
-                    case EXIT_BUTTON_ID:
-                        current_button_order = EXIT_BUTTON_ORDER;
-                        break;
-                    case FAME_HALL_BUTTON_ID:
-                        current_button_order = FAME_HALL_BUTTON_ORDER;
-                        break;
-                    case SERVER_BUTTON_ID:
-                        current_button_order = SERVER_BUTTON_ORDER;
-                        break;
-                    case OLD_GAME_BUTTON_ID:
-                        current_button_order = OLD_GAME_BUTTON_ORDER;
-                        break;
-                    case NEW_GAME_BUTTON_ID:
-                        current_button_order = NEW_GAME_BUTTON_ORDER;
-                        break;
-                    case NETWORK_GAME_BUTTON_ID:
-                        current_button_order = NETWORK_GAME_BUTTON_ORDER;
-                        break;
-                    case VIDEO_BUTTON_ID:
-                        current_button_order = VIDEO_BUTTON_ORDER;
-                        break;
-                    case AUTHORS_BUTTON_ID:
-                        current_button_order = AUTHORS_BUTTON_ORDER;
-                        break;
-                    case 0:
-                        current_button_order = NONE_BUTTON_ORDER;
-                        break;
-                }
+            }
+
+            if(!selection_changed) return;
+
+            switch (last_main_menu_selection) {
+                case EXIT_BUTTON_ID:
+                    current_button_order = EXIT_BUTTON_ORDER;
+                    break;
+                case FAME_HALL_BUTTON_ID:
+                    current_button_order = FAME_HALL_BUTTON_ORDER;
+                    break;
+                case SERVER_BUTTON_ID:
+                    current_button_order = SERVER_BUTTON_ORDER;
+                    break;
+                case OLD_GAME_BUTTON_ID:
+                    current_button_order = OLD_GAME_BUTTON_ORDER;
+                    break;
+                case NEW_GAME_BUTTON_ID:
+                    current_button_order = NEW_GAME_BUTTON_ORDER;
+                    break;
+                case NETWORK_GAME_BUTTON_ID:
+                    current_button_order = NETWORK_GAME_BUTTON_ORDER;
+                    break;
+                case VIDEO_BUTTON_ID:
+                    current_button_order = VIDEO_BUTTON_ORDER;
+                    break;
+                case AUTHORS_BUTTON_ID:
+                    current_button_order = AUTHORS_BUTTON_ORDER;
+                    break;
+                case 0:
+                    current_button_order = NONE_BUTTON_ORDER;
+                    break;
+            }
+        }
+
+        void Stage::handle_button_click(uint8_t button_id) {
+            switch (button_id) {
+            case EXIT_BUTTON_ID:
+                Game::initiate_game_closing();
+                break;
+            default:
+                break;
             }
         }
 
         void Stage::on_enter() {
             last_main_menu_selection = 0;
             current_button_order = NONE_BUTTON_ORDER;
+            last_frame_lmb_down = false;
         }
 
         void Stage::render(SOASpriteRGB &background_sprite) {

@@ -27,6 +27,14 @@
 #include <ecs.hpp/ecs.hpp>
 
 namespace Game {
+    struct MouseState {
+        uint16_t mouse_x{0};
+        uint16_t mouse_y{0};
+        bool left_button_down{false};
+        bool middle_button_down{false};
+        bool right_button_down{false};
+    };
+
     namespace CityStage {
         extern ecs_hpp::registry world;
         struct update_feature{};
@@ -98,4 +106,3 @@ namespace Game {
 }
 
 #endif // GAME_H
-

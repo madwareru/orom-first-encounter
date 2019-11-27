@@ -27,6 +27,10 @@ SOASpriteRGB::~SOASpriteRGB() {
     delete [] r_buffer_raw_;
 }
 
+uint8_t SOASpriteRGB::get_mask_pixel(size_t x, size_t y) const {
+    return r_buffer_[x + y * width_];
+}
+
 void SOASpriteRGB::blit_on_frame_buffer(FrameBuffer& fbuffer, size_t x, size_t y) {
     const size_t sw = width_;
     const size_t sh = height_;

@@ -37,8 +37,7 @@ namespace  {
 
     game_state current_game_state;
 
-    uint32_t mouse_x;
-    uint32_t mouse_y;
+    Game::MouseState mouse_state;
     bool mouse_down = false;
 }
 
@@ -154,7 +153,7 @@ namespace Game {
     void update(double delta_time) {
         switch (current_game_state) {
             case game_state::main_menu:
-                MainMenuStage::stage->update(delta_time, mouse_x, mouse_y, mouse_down);
+                MainMenuStage::stage->update(delta_time, mouse_state);
                 break;
             default:
                 break;
@@ -241,10 +240,22 @@ namespace Game {
         int mods
     ) {
         if(button == 0 && action == GLFW_PRESS) {
-            mouse_down = true;
+            mouse_state.left_button_down = true;
         }
         else if(button == 0 && action == GLFW_RELEASE) {
-            mouse_down = false;
+            mouse_state.left_button_down = false;
+        }
+        else if(button == 1 && action == GLFW_PRESS) {
+            mouse_state.middle_button_down = true;
+        }
+        else if(button == 1 && action == GLFW_RELEASE) {
+            mouse_state.middle_button_down = false;
+        }
+        else if(button == 2 && action == GLFW_PRESS) {
+            mouse_state.right_button_down = true;
+        }
+        else if(button == 2 && action == GLFW_RELEASE) {
+            mouse_state.right_button_down = false;
         }
     }
 
@@ -253,14 +264,11 @@ namespace Game {
         double xpos,
         double ypos
     ) {
-        mouse_x = static_cast<uint32_t>(xpos);
-        mouse_y = static_cast<uint32_t>(ypos);
+        mouse_state.mouse_x = static_cast<uint16_t>(xpos);
+        mouse_state.mouse_y = static_cast<uint16_t>(ypos);
     }
 
     void initiate_game_closing() {
         glfwSetWindowShouldClose(glfw_window, true);
     }
 }
-
-
-

@@ -17,6 +17,9 @@ struct SOASpriteRGB {
     void blit_on_sprite_colorkeyed16(SOASpriteRGB& other, size_t x, size_t y, uint8_t key_red, uint8_t key_green, uint8_t key_blue);
     void blit_on_sprite_semitransparent(SOASpriteRGB& other, size_t x, size_t y);
     void blit_on_frame_buffer(FrameBuffer& other, size_t x, size_t y);
+
+    uint8_t get_mask_pixel(size_t x, size_t y) const;
+
     template<typename FF>
     void mutate(FF&& predicate) {
         predicate(width_, height_, r_buffer_, g_buffer_, b_buffer_);
