@@ -3,6 +3,21 @@
 
 namespace  {
     std::shared_ptr<ResourceFile> graphic_resources;
+    std::shared_ptr<ResourceFile> main_resources;
+    std::shared_ptr<ResourceFile> movie_resources;
+    std::shared_ptr<ResourceFile> scenario_resources;
+    std::shared_ptr<ResourceFile> sfx_resources;
+    std::shared_ptr<ResourceFile> speech_resources;
+    std::shared_ptr<ResourceFile> world_resources;
+
+    const char* GRAPHICS_RES_FILENAME = "GRAPHICS.res";
+    const char* MAIN_RES_FILENAME     = "MAIN.res";
+    const char* MOVIES_RES_FILENAME   = "MOVIES.res";
+    const char* SCENARIO_RES_FILENAME = "SCENARIO.res";
+    const char* SFX_RES_FILENAME      = "SFX.res";
+    const char* SPEECH_RES_FILENAME   = "SPEECH.res";
+    const char* WORLD_RES_FILENAME    = "WORLD.res";
+
     std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4] = {
         std::vector<std::shared_ptr<SOASpriteRGB>>{},
         std::vector<std::shared_ptr<SOASpriteRGB>>{},
@@ -49,31 +64,26 @@ namespace Game {
             GameStage::shared.camera_x = 0;
             GameStage::shared.camera_y = 0;
 
-            graphic_resources = std::make_shared<ResourceFile>("GRAPHICS.res");
+            graphic_resources  = std::make_shared<ResourceFile>(GRAPHICS_RES_FILENAME);
+            main_resources     = std::make_shared<ResourceFile>(MAIN_RES_FILENAME);
+            movie_resources    = std::make_shared<ResourceFile>(MOVIES_RES_FILENAME);
+            scenario_resources = std::make_shared<ResourceFile>(SCENARIO_RES_FILENAME);
+            sfx_resources      = std::make_shared<ResourceFile>(SFX_RES_FILENAME);
+            speech_resources   = std::make_shared<ResourceFile>(SPEECH_RES_FILENAME);
+            world_resources    = std::make_shared<ResourceFile>(WORLD_RES_FILENAME);
+
             {
                 auto [success, units_reg_file] = graphic_resources->read_registry_res_unique("units/units.reg");
                 if(success) {
-                    LOG("registry succesfully loaded from resource");
-                    auto [files_found, files_value] = units_reg_file->get_string("Files/File0");
-                    if(files_found) {
-                        LOG("Found Files/File0 entry of type string with a value of \"" << files_value << "\"");
-                    }
-
                     auto [desc_text, id] = units_reg_file->read_record(
                         "Unit14/",
                         StringField{"DescText"}, IntField{"ID"});
-                    LOG("variadic template read returned [desc_text = " << desc_text << ", ID = " << id << "]");
 
-                    auto reg_entry = units_reg_file->read_record2(
-                        "Unit14/",
-                        StringField{"DescText"},
-                        IntField{"ID"}
-                    );
-                    LOG("count of names: " << reg_entry.field_count);
-                    LOG("names:");
-                    for(size_t i = 0; i < reg_entry.field_count; ++i) {
-                        LOG("    " << reg_entry.field_names[i]);
-                    }
+                    LOG("desc_text exists? " << desc_text.exists <<
+                        "\nID exists? " << id.exists);
+
+                    LOG("[desc_text = " << desc_text.content <<
+                        ", ID = " << id.content << "]");
                 }
             }
 

@@ -47,7 +47,6 @@ rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(cons
             if(entry->name() != buffer) {
                 continue;
             }
-            LOG("found subdir " << buffer);
             header_list = subdir_entry->value()->header();
             goto subdir_found;
         }
