@@ -13,7 +13,7 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
-#define FPS_60_MILLIS 0.0166
+#define FPS_60_MILLIS 0.014
 #define VSYNC_ON
 
 LifetimeProcHolder::LifetimeProcHolder(

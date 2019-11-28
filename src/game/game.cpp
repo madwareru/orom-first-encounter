@@ -1,10 +1,14 @@
 #include <emmintrin.h>
 #include <game/game.h>
 #include <game/main_menu_stage.h>
+#include <game/character_generation_stage.h>
+
+const double GAME_SPEED_MS[9] = {0.180, 0.130, 0.090, 0.060, 0.040, 0.035, 0.030, 0.025, 0.020};
 
 namespace  {
     enum class game_state {
         main_menu,
+        character_generation,
         city,
         game
     };
@@ -25,9 +29,6 @@ namespace  {
     const char* SPEECH_RES_FILENAME   = "SPEECH.res";
     const char* WORLD_RES_FILENAME    = "WORLD.res";
 
-    const uint16_t OFF_GAME_SCREEN_WIDTH = 640;
-    const uint16_t OFF_GAME_SCREEN_HEIGHT = 480;
-
     std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4] = {
         std::vector<std::shared_ptr<SOASpriteRGB>>{},
         std::vector<std::shared_ptr<SOASpriteRGB>>{},
@@ -35,10 +36,12 @@ namespace  {
         std::vector<std::shared_ptr<SOASpriteRGB>>{}
     };
 
+    double tick_accumulator;
+    uint8_t game_speed;
+
     game_state current_game_state;
 
     Game::MouseState mouse_state;
-    bool mouse_down = false;
 }
 
 namespace Game {
@@ -50,7 +53,12 @@ namespace Game {
     }
 
     namespace MainMenuStage {
-        std::unique_ptr<Stage> stage;
+        static std::unique_ptr<Stage> stage;
+    }
+
+    namespace CharacterGenerationStage {
+        static std::unique_ptr<Stage> stage;
+        static bool assets_loaded;
     }
 
     namespace CityStage {
@@ -72,16 +80,14 @@ namespace Game {
         clear_made = false;
     }
 
-    void set_main_menu_state() {
-        using namespace MainMenuStage;
-        stage->on_enter();
-        current_game_state = game_state::main_menu;
-        request_clear();
-    }
-
     void load_main_menu_assets() {
         using namespace MainMenuStage;
         stage = std::make_unique<Stage>(main_resources, window_width, window_height);
+    }
+
+    void load_character_generation_assets() {
+        using namespace CharacterGenerationStage;
+        stage = std::make_unique<Stage>(graphic_resources, window_width, window_height);
     }
 
     void load_terrain_tiles() {
@@ -104,8 +110,29 @@ namespace Game {
         }
     }
 
+    void set_main_menu_state() {
+        using namespace MainMenuStage;
+        stage->on_enter();
+        current_game_state = game_state::main_menu;
+        request_clear();
+    }
+
+    void set_char_gen_state() {
+        using namespace CharacterGenerationStage;
+        if(!assets_loaded) {
+            load_character_generation_assets();
+            assets_loaded = true;
+        }
+        stage->on_enter();
+        current_game_state = game_state::character_generation;
+        request_clear();
+    }
+
     void init() {
         try {
+            tick_accumulator = 0.0;
+            game_speed = 4;
+
             size_t offset = 0;
 
             GameStage::shared.terrain_tile_x_cache = &GameStage::terrain_cache[offset];
@@ -125,6 +152,8 @@ namespace Game {
             sfx_resources      = std::make_shared<ResourceFile>(SFX_RES_FILENAME);
             speech_resources   = std::make_shared<ResourceFile>(SPEECH_RES_FILENAME);
             world_resources    = std::make_shared<ResourceFile>(WORLD_RES_FILENAME);
+
+            CharacterGenerationStage::assets_loaded = false;
 
             load_main_menu_assets();
             load_terrain_tiles();
@@ -147,16 +176,24 @@ namespace Game {
 
         } catch (const std::exception& ex) {
             LOG_ERROR(ex.what());
+            abort();
         }
     }
 
     void update(double delta_time) {
-        switch (current_game_state) {
-            case game_state::main_menu:
-                MainMenuStage::stage->update(delta_time, mouse_state);
-                break;
-            default:
-                break;
+        tick_accumulator += delta_time;
+        while (tick_accumulator > GAME_SPEED_MS[game_speed]) {
+            tick_accumulator -= GAME_SPEED_MS[game_speed];
+            switch (current_game_state) {
+                case game_state::main_menu:
+                    MainMenuStage::stage->update(mouse_state);
+                    break;
+                case game_state::character_generation:
+                    CharacterGenerationStage::stage->update(mouse_state);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
@@ -206,6 +243,9 @@ namespace Game {
         switch (current_game_state) {
             case game_state::main_menu:
                 MainMenuStage::stage->render(background_sprite);
+                break;
+            case game_state::character_generation:
+                CharacterGenerationStage::stage->render(background_sprite);
                 break;
             case game_state::city:
                 render_city(background_sprite);
@@ -277,6 +317,21 @@ namespace Game {
             case event::close_game:
                 initiate_game_closing();
                 break;
+            case event::start_new_game:
+                set_char_gen_state();
+                break;
+            case event::goto_main_menu:
+                set_main_menu_state();
+                break;
         }
+    }
+
+    void dispatch_message(const event& message, uint8_t param) {
+
+    }
+
+
+    void dispatch_message(const event& message, uint8_t param0, uint8_t param1) {
+
     }
 }

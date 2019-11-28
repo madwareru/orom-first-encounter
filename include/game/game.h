@@ -28,7 +28,10 @@
 
 namespace Game {
     enum class event {
-        close_game
+        start_new_game,
+        close_game,
+        goto_main_menu,
+        start_adventure
     };
 
     struct CloseGameEvent{};
@@ -88,6 +91,8 @@ namespace Game {
     void render(SOASpriteRGB& background_sprite);
 
     void dispatch_message(const event& message);
+    void dispatch_message(const event& message, uint8_t param);
+    void dispatch_message(const event& message, uint8_t param0, uint8_t param1);
 
     void key_callback(
         GLFWwindow* window,

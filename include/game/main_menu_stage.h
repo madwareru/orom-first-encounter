@@ -15,7 +15,7 @@ namespace Game {
         struct Stage {
             Stage(std::shared_ptr<ResourceFile> main_resources, uint16_t window_width, uint16_t window_height);
             void on_enter();
-            void update(double deltatime, const MouseState& mouse_state);
+            void update(const MouseState& mouse_state);
             void render(SOASpriteRGB &background_sprite);
         private:
             void handle_button_click(uint8_t button_id);

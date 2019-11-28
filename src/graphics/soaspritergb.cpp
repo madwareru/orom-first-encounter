@@ -450,7 +450,7 @@ void SOASpriteRGB::blit_on_sprite_colorkeyed16(SOASpriteRGB& dsprite, size_t x, 
             }
 
             for(size_t i = span_width; i; --i) {
-                auto ckeyed = ((*b_data & key_blue) & (*g_data & key_green) & (*r_data & key_red)) == 0;
+                auto ckeyed = (((*b_data & 0xF0) == key_blue) && ((*g_data & 0xF0) == key_green) && ((*r_data & 0xF0) == key_red));
 
                 if(!ckeyed) {
                     *db_data = *b_data;

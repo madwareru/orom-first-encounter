@@ -2,6 +2,7 @@
 #include <iostream>
 #include <util/macro_shared.h>
 #include <loaders/ksy/rage_of_mages_1_bmp.h>
+#include <loaders/ksy/rage_of_mages_1_16a.h>
 
 ResourceFile::ResourceFile(const char* fileName)
 {
@@ -159,6 +160,27 @@ std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_mask_shared(c
     } catch (const std::exception& ex) {
         LOG_ERROR(ex.what());
         return std::make_tuple(false, std::make_shared<SOASpriteRGB>(1,1));
+    }
+}
+
+std::tuple<bool, std::shared_ptr<Sprite16a>> ResourceFile::read_16a_shared(const char* path) {
+    try {
+        auto sprite_resource = get_resource(path);
+        if(sprite_resource == nullptr) {
+            LOG_ERROR("Resource not found");
+            std::shared_ptr<Sprite16a> result{nullptr};
+            return std::make_tuple(false, result);
+        }
+        auto bytes = sprite_resource->bytes();
+        kaitai::kstream ks{bytes};
+        rage_of_mages_1_16a_t sprite_file{&ks};
+        auto result = std::make_shared<Sprite16a>(&sprite_file);
+        return std::make_tuple(true, result);
+
+    } catch (const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        std::shared_ptr<Sprite16a> result{nullptr};
+        return std::make_tuple(false, result);
     }
 }
 

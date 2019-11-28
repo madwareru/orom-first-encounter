@@ -8,6 +8,7 @@
 #include <tuple>
 #include <memory>
 #include <graphics/soaspritergb.h>
+#include <graphics/Sprite16a.h>
 #include <util/defer_action.h>
 
 struct ResourceFile
@@ -20,6 +21,8 @@ struct ResourceFile
     ResourceFile& operator=(ResourceFile&&) = delete;
 
     rage_of_mages_1_res_t::file_resource_t* get_resource(const char* path);
+
+    std::tuple<bool, std::shared_ptr<Sprite16a>> read_16a_shared(const char* path);
 
     std::tuple<bool, std::shared_ptr<SOASpriteRGB>> read_bmp_shared(const char* path);
     std::tuple<bool, std::shared_ptr<SOASpriteRGB>> read_mask_shared(const char* path);
