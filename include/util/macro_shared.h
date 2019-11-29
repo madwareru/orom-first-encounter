@@ -27,6 +27,9 @@
 
 #define COORDS_OF_OFFSETTED(btn_name, dx, dy) {btn_name##_LEFT + (dx), btn_name##_TOP + (dy)}
 
+#define MEMBER_DEF(t, rec_type, member_name, entry_name)\
+    MemberDefinition<t>{offsetof(rec_type, member_name), FieldDefinition<t>{#entry_name}}
+
 #define LOG(message_sequence) std::cout << message_sequence << LOCATION << std::endl
 #define LOG_ERROR(message_sequence) std::cerr << message_sequence << LOCATION << std::endl
 

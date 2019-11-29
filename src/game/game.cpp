@@ -2,6 +2,7 @@
 #include <game/game.h>
 #include <game/main_menu_stage.h>
 #include <game/character_generation_stage.h>
+#include <queue>
 
 const double GAME_SPEED_MS[9] = {0.180, 0.130, 0.090, 0.060, 0.040, 0.035, 0.030, 0.025, 0.020};
 
@@ -10,6 +11,9 @@ namespace  {
         main_menu,
         character_generation,
         city,
+        shop,
+        inn,
+        training_center,
         game
     };
 
@@ -155,24 +159,127 @@ namespace Game {
 
             CharacterGenerationStage::assets_loaded = false;
 
+            {
+                auto [success, scenario_reg_file] = scenario_resources->read_registry_res_unique("scenario.reg");
+                if(!success) {
+                    LOG_ERROR("scenario.reg not found");
+                }
+
+                auto [total_missions, scenario_mission, mercenary_count] =
+                    scenario_reg_file->read_record(
+                        "General/",
+                        IntField{"TotalMissions"},
+                        IntField{"ScenarioMission"},
+                        IntArrayField{"MercenaryCount"}
+                    );
+                if(scenario_mission.exists) {
+                    LOG("game considered finish if mission " << scenario_mission.content << " complete");
+                }
+
+                if(total_missions.exists) {
+                    char buf[16];
+
+                    LOG("game has " << total_missions.content << " main missions");
+
+                    std::queue<uint8_t> missions;
+                    for(uint8_t i = 1; i <= total_missions.content; ++i ) {
+                        missions.push(i * 10);
+                    }
+
+                    while(!missions.empty()) {
+                        auto next_mission = missions.front();
+                        missions.pop();
+                        sprintf(buf, "Mission%u/", next_mission);
+                        std::cout << buf << std::endl;
+                        auto [
+                            mercenaries,
+                            inn_npcs,
+                            inn_missions,
+                            add_text_documents,
+                            shop_min_price,
+                            shop_max_price,
+                            enable_mercenaries,
+                            payment,
+                            tc_mission,
+                            add_picture_docums,
+                            auto_get_mission,
+                            shop_mission
+                        ] = scenario_reg_file ->read_record(buf,
+                            IntArrayField{"Mercenaries"},
+                            IntArrayField{"InnNPC"},
+                            IntArrayField{"InnMission"},
+                            IntArrayField{"AddTextDocument"},
+                            IntField{"ShopMinPrice"},
+                            IntField{"ShopMaxPrice"},
+                            IntArrayField{"EnableMercenary"},
+                            IntField{"Payment"},
+                            IntField{"TCMission"},
+                            IntArrayField{"AddPictureDocum"},
+                            IntField{"AutoGetMission"},
+                            IntField{"ShopMission"}
+                        );
+                        if(auto_get_mission.exists) std::cout << "    auto get mission: " << auto_get_mission.content << std::endl;
+                        if(shop_mission.exists){
+                            if(shop_mission.content != 0 && shop_mission.content != next_mission) {
+                                missions.push(static_cast<uint8_t>(shop_mission.content));
+                            }
+                            std::cout << "    shop mission: " << shop_mission.content << std::endl;
+                        }
+                        if(tc_mission.exists){
+                            if(tc_mission.content != 0 && tc_mission.content != next_mission) {
+                                missions.push(static_cast<uint8_t>(tc_mission.content));
+                            }
+                            std::cout << "    training center mission: " << tc_mission.content << std::endl;
+                        }
+                        if(shop_min_price.exists) std::cout << "    shop min price: " << shop_min_price.content << std::endl;
+                        if(shop_max_price.exists) std::cout << "    shop max price: " << shop_max_price.content << std::endl;
+                        if(payment.exists) std::cout << "    payment: " << payment.content << std::endl;
+                        if(inn_missions.exists) {
+                            std::cout << "    inn missions:" << std::endl;
+                            for(auto mission_entry : inn_missions.content) {
+                                if(mission_entry != 0 && mission_entry != next_mission) {
+                                    missions.push(static_cast<uint8_t>(mission_entry));
+                                }
+                                std::cout << "        " << mission_entry << std::endl;
+                            }
+                        }
+                        if(inn_npcs.exists) {
+                            std::cout << "    inn npcs:" << std::endl;
+                            for(auto npc_entry : inn_npcs.content) {
+                                std::cout << "        " << npc_entry << std::endl;
+                            }
+                        }
+                        if(add_text_documents.exists) {
+                            std::cout << "    add text documents:" << std::endl;
+                            for(auto entry : add_text_documents.content) {
+                                std::cout << "        " << entry << std::endl;
+                            }
+                        }
+                        if(add_picture_docums.exists) {
+                            std::cout << "    add picture documents:" << std::endl;
+                            for(auto entry : add_picture_docums.content) {
+                                std::cout << "        " << entry << std::endl;
+                            }
+                        }
+                        if(mercenaries.exists) {
+                            std::cout << "    mercenaries:" << std::endl;
+                            for(auto entry : mercenaries.content) {
+                                std::cout << "        " << entry << std::endl;
+                            }
+                        }
+                        if(enable_mercenaries.exists) {
+                            std::cout << "    enable mercenaries:" << std::endl;
+                            for(auto entry : enable_mercenaries.content) {
+                                std::cout << "        " << entry << std::endl;
+                            }
+                        }
+                    }
+                }
+            }
+
             load_main_menu_assets();
             load_terrain_tiles();
             set_main_menu_state();
-
-            {
-                auto [success, units_reg_file] = graphic_resources->read_registry_res_unique("units/units.reg");
-                if(success) {
-                    auto [desc_text, id] = units_reg_file->read_record(
-                        "Unit14/",
-                        StringField{"DescText"}, IntField{"ID"});
-
-                    LOG("desc_text exists? " << desc_text.exists <<
-                        "\nID exists? " << id.exists);
-
-                    LOG("[desc_text = " << desc_text.content <<
-                        ", ID = " << id.content << "]");
-                }
-            }
 
         } catch (const std::exception& ex) {
             LOG_ERROR(ex.what());
@@ -279,23 +386,23 @@ namespace Game {
         int action,
         int mods
     ) {
-        if(button == 0 && action == GLFW_PRESS) {
-            mouse_state.left_button_down = true;
-        }
-        else if(button == 0 && action == GLFW_RELEASE) {
-            mouse_state.left_button_down = false;
-        }
-        else if(button == 1 && action == GLFW_PRESS) {
-            mouse_state.middle_button_down = true;
-        }
-        else if(button == 1 && action == GLFW_RELEASE) {
-            mouse_state.middle_button_down = false;
-        }
-        else if(button == 2 && action == GLFW_PRESS) {
-            mouse_state.right_button_down = true;
-        }
-        else if(button == 2 && action == GLFW_RELEASE) {
-            mouse_state.right_button_down = false;
+        switch (action) {
+            case GLFW_PRESS:{
+                    switch (button) {
+                        case 0: mouse_state.left_button_down = true; break;
+                        case 1: mouse_state.middle_button_down = true; break;
+                        case 2: mouse_state.right_button_down = true; break;
+                    }
+                }
+                break;
+            case GLFW_RELEASE:{
+                    switch (button) {
+                        case 0: mouse_state.left_button_down = false; break;
+                        case 1: mouse_state.middle_button_down = false; break;
+                        case 2: mouse_state.right_button_down = false; break;
+                    }
+                }
+                break;
         }
     }
 
@@ -329,7 +436,6 @@ namespace Game {
     void dispatch_message(const event& message, uint8_t param) {
 
     }
-
 
     void dispatch_message(const event& message, uint8_t param0, uint8_t param1) {
 

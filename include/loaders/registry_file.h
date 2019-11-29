@@ -19,6 +19,12 @@ using StringField = FieldDefinition<std::string>;
 using i32_array = std::vector<int32_t>;
 using IntArrayField = FieldDefinition<i32_array>;
 
+template<typename T>
+struct MemberDefinition {
+    size_t obj_offset;
+    FieldDefinition<T> field_def;
+};
+
 struct RegistryFile
 {
     template<typename T>
@@ -43,6 +49,21 @@ struct RegistryFile
     template<typename... Args>
     auto read_record(const char* prefix, FieldDefinition<Args>... args){
         return std::make_tuple(read(prefix, args)...);
+    }
+
+    template<typename T>
+    bool read_into_buffer(void* buffer, const char* prefix,  MemberDefinition<T> arg) {
+        auto v = read(prefix, arg.field_def);
+        if(!v.exists) {
+            return false;
+        }
+        *((T*)(((uint8_t*)buffer) + arg.obj_offset)) = v.content;
+        return true;
+    }
+
+    template<typename T, typename... Args>
+    bool read_into_buffer(void* buffer, const char* prefix, MemberDefinition<T> arg, MemberDefinition<Args>... args) {
+        return read_into_buffer(buffer, prefix, arg) && read_into_buffer(buffer, prefix, args...);
     }
 
     ~RegistryFile();
@@ -71,6 +92,12 @@ private:
         char buffer[256];
         sprintf(buffer, "%s%s", prefix, field.reg_name);
         auto [success, ia_entry] = get_int_array(buffer);
+        if(!success) {
+            auto [int_fallback_cuccess, i_entry] = get_int(buffer);
+            if(int_fallback_cuccess) {
+                return RecordEntry<i32_array>{true, i32_array{i_entry}};
+            }
+        }
         return RecordEntry<i32_array>{ success, ia_entry};
     }
 
@@ -89,5 +116,10 @@ private:
     kaitai::kstream* kaitai_stream_{nullptr};
     rage_of_mages_1_reg_t* registry_file_nodes_{nullptr};
 };
+
+template<typename T>
+MemberDefinition<T> make_member_def(size_t offset, const char* reg_name) {
+    return MemberDefinition{offset, FieldDefinition<T>{reg_name}};
+}
 
 #endif // REGISTRY_FILE_H

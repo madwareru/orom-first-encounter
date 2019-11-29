@@ -50,7 +50,7 @@ rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(cons
             header_list = subdir_entry->value()->header();
             goto subdir_found;
         }
-        LOG_ERROR("Subdirectory with a name " << buffer << " not found");
+        //LOG_ERROR("Subdirectory with a name " << buffer << " not found");
         return nullptr;
         subdir_found: ++i;
     }
@@ -63,7 +63,7 @@ rage_of_mages_1_reg_t::registry_header_t* RegistryFile::get_registry_header(cons
         }
         return entry;
     }
-    LOG_ERROR("Registry header with a name " << buffer << " not found");
+    //LOG_ERROR("Registry header with a name " << buffer << " not found");
     return nullptr;
 }
 
@@ -71,11 +71,11 @@ std::tuple<bool, int32_t> RegistryFile::get_int(const char *path) const {
     try {
         auto header = get_registry_header(path);
         if(header == nullptr) {
-            LOG_ERROR("no such registry entry found");
+            //LOG_ERROR("no such registry entry found");
             return std::make_tuple(false, 0);
         }
         if(header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_INT) {
-            LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
+            //LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
             return std::make_tuple(false, 0);
         }
         auto result = std::make_tuple(true, dynamic_cast<rage_of_mages_1_reg_t::int_entry_t*>(header->value())->value());
@@ -90,11 +90,11 @@ std::tuple<bool, double> RegistryFile::get_double(const char *path) const {
     try {
         auto header = get_registry_header(path);
         if(header == nullptr) {
-            LOG_ERROR("no such registry entry found");
+            //LOG_ERROR("no such registry entry found");
             return std::make_tuple(false, 0.0);
         }
         if(header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_FLOAT) {
-            LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
+            //LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
             return std::make_tuple(false, 0.0);
         }
         auto result = std::make_tuple(true, dynamic_cast<rage_of_mages_1_reg_t::float_entry_t*>(header->value())->value());
@@ -109,11 +109,11 @@ std::tuple<bool, std::string> RegistryFile::get_string(const char *path) const {
     try {
         auto header = get_registry_header(path);
         if(header == nullptr) {
-            LOG_ERROR("no such registry entry found");
+            //LOG_ERROR("no such registry entry found");
             return std::make_tuple(false, "");
         }
         if(header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_STRING) {
-            LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
+            //LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
             return std::make_tuple(false, "0.0");
         }
         auto result = std::make_tuple(true, dynamic_cast<rage_of_mages_1_reg_t::string_entry_t*>(header->value())->value());
@@ -128,11 +128,11 @@ std::tuple<bool, std::vector<int32_t>> RegistryFile::get_int_array(const char *p
     try {
         auto header = get_registry_header(path);
         if(header == nullptr) {
-            LOG_ERROR("no such registry entry found");
+            //LOG_ERROR("no such registry entry found");
             return std::make_tuple(false, std::vector<int32_t>{});
         }
         if(header->e_type() != rage_of_mages_1_reg_t::REGISTRY_TYPE_E_INT_ARRAY) {
-            LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
+            //LOG_ERROR("registry entry has unexpected type. Make sure you are correct");
             return std::make_tuple(false, std::vector<int32_t>{});
         }
         auto result = std::make_tuple(true, *(dynamic_cast<rage_of_mages_1_reg_t::int_array_entry_t*>(header->value())->value()));
