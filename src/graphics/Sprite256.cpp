@@ -1,9 +1,9 @@
-#include <graphics/Sprite16a.h>
+#include <graphics/Sprite256.h>
 #include <graphics/soaspritergb.h>
 
 #include <util/macro_shared.h>
 
-Sprite16a::Sprite16a(rage_of_mages_1_16a_t* data) {
+Sprite256::Sprite256(rage_of_mages_1_256_t* data) {
     frame_count_ = static_cast<uint16_t>(data->sprite_count());
     if(data->has_palette()) {
         auto pal = (data->inner_palette());
@@ -44,15 +44,15 @@ Sprite16a::Sprite16a(rage_of_mages_1_16a_t* data) {
     }
 }
 
-Sprite16a::~Sprite16a() {
+Sprite256::~Sprite256() {
     delete [] buffer_raw_;
 }
 
-uint16_t Sprite16a::frame_count() const {
+uint16_t Sprite256::frame_count() const {
     return frame_count_;
 }
 
-void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number, uint8_t boost_alpha) {
+void Sprite256::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number, uint8_t boost_alpha) {
     const uint8_t BLANK_LINE = 0x40;
     const uint8_t EMPTY_AREA_BITS = 0xC0;
     const uint8_t CHUNK_SIZE_BITS = 0x3F;
@@ -93,36 +93,21 @@ void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
                 i += 2;
 
                 for(uint8_t j = 0; j < chunk_size; ++j) {
-                    uint16_t psh = *buf++;
-                    psh |= *buf++ * 0x100;
-
-                    uint8_t palette_id = (psh / 0x002) & 0xFF;
-                    uint16_t alpha_boosted = static_cast<uint16_t>((psh / 0x200) << boost_alpha);
-                    uint8_t alpha = alpha_boosted > 0xFF ? 0xFF : alpha_boosted & 0xFF;
+                    uint8_t palette_id = *buf++;
 
                     if(w_drawn >= sw) {
                         offset += w - sw;
                         w_drawn -= sw;
                     }
 
-                    uint8_t dest_r = palette_r_[palette_id];
-                    uint8_t dest_g = palette_g_[palette_id];
-                    uint8_t dest_b = palette_b_[palette_id];
-
-                    uint8_t one_minus_alpha = 0xFF - alpha;
-
-                    rbuf[offset] = (rbuf[offset] * one_minus_alpha + dest_r * alpha) / 0x100;
-                    gbuf[offset] = (gbuf[offset] * one_minus_alpha + dest_g * alpha) / 0x100;
-                    bbuf[offset] = (bbuf[offset] * one_minus_alpha + dest_b * alpha) / 0x100;
-
-//                    rbuf[offset] = (rbuf[offset] * 256 + (palette_r_[palette_id] - rbuf[offset]) * alpha) / 256;
-//                    gbuf[offset] = (gbuf[offset] * 256 + (palette_g_[palette_id] - gbuf[offset]) * alpha) / 256;
-//                    bbuf[offset] = (bbuf[offset] * 256 + (palette_b_[palette_id] - bbuf[offset]) * alpha) / 256;
+                    rbuf[offset] = palette_r_[palette_id];
+                    gbuf[offset] = palette_g_[palette_id];
+                    bbuf[offset] = palette_b_[palette_id];
 
                     offset++;
                     w_drawn++;
                 }
-                i += chunk_size * 2;
+                i += chunk_size;
             }
             return;
         }
@@ -153,12 +138,7 @@ void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
             i += 2;
 
             for(uint8_t j = 0; j < chunk_size; ++j) {
-                uint16_t psh = *buf++;
-                psh |= *buf++ * 0x100;
-
-                uint8_t palette_id = (psh / 0x002) & 0xFF;
-                uint16_t alpha_boosted = static_cast<uint16_t>((psh / 0x200) << boost_alpha);
-                uint8_t alpha = alpha_boosted > 0xFF ? 0xFF : alpha_boosted & 0xFF;
+                uint8_t palette_id = *buf++;
 
                 if(w_drawn >= sw) {
                     yy++;
@@ -166,22 +146,16 @@ void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
                     w_drawn -= sw;
                 }
 
-                uint8_t dest_r = palette_r_[palette_id];
-                uint8_t dest_g = palette_g_[palette_id];
-                uint8_t dest_b = palette_b_[palette_id];
-
-                uint8_t one_minus_alpha = 0xFF - alpha;
-
                 if(xx >= 0 && yy >= 0 && static_cast<size_t>(xx) < w && static_cast<size_t>(yy) < h) {
                     size_t offset = static_cast<size_t>(yy) * w + static_cast<size_t>(xx);
-                    rbuf[offset] = (rbuf[offset] * one_minus_alpha + dest_r * alpha) / 0x100;
-                    gbuf[offset] = (gbuf[offset] * one_minus_alpha + dest_g * alpha) / 0x100;
-                    bbuf[offset] = (bbuf[offset] * one_minus_alpha + dest_b * alpha) / 0x100;
+                    rbuf[offset] = palette_r_[palette_id];
+                    gbuf[offset] = palette_g_[palette_id];
+                    bbuf[offset] = palette_b_[palette_id];
                 }
                 xx++;
                 w_drawn++;
             }
-            i += chunk_size * 2;
+            i += chunk_size;
         }
     });
 }

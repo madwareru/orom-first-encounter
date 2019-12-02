@@ -6,9 +6,12 @@
 #include <loaders/ksy/rage_of_mages_1_reg.h>
 #include <tuple>
 #include <cstdint>
+#include <type_traits>
+#include <array>
 
 template<typename T>
 struct FieldDefinition {
+    typedef T type;
     const char* reg_name;
 };
 
@@ -33,6 +36,36 @@ struct RegistryFile
         T content;
     };
 
+    template<typename... Args>
+    struct some_struct {
+        std::array<std::string, sizeof...(Args)> record_names;
+        std::array<bool, sizeof...(Args)> record_existing;
+        std::tuple<typename Args::type...> records;
+        bool exists(const std::string& rec_name) {
+            for(size_t i = 0; i < record_names.size(); ++i) {
+                if(record_names.at(i).compare(rec_name) == 0) {
+                    return record_existing.at(i);
+                }
+            }
+            return false;
+        }
+        template<typename T>
+        T get(const std::string& rec_name) {
+            for(size_t i = 0; i < record_names.size(); ++i) {
+                if(record_names.at(i).compare(rec_name) == 0) {
+                    auto v = std::get<i>(records);
+                    using TT = std::decay_t<decltype(v)>;
+                    if constexpr(std::is_same_v<TT, T>) {
+                        return v;
+                    } else {
+                        throw std::runtime_error("wrong type :(");
+                    }
+                }
+            }
+            throw std::runtime_error("no such entry");
+        }
+    };
+
     RegistryFile(const char* file_name);
     RegistryFile(const std::string& byte_buffer);
 
@@ -51,19 +84,27 @@ struct RegistryFile
         return std::make_tuple(read(prefix, args)...);
     }
 
-    template<typename T>
-    bool read_into_buffer(void* buffer, const char* prefix,  MemberDefinition<T> arg) {
-        auto v = read(prefix, arg.field_def);
-        if(!v.exists) {
+    template<typename TBuffer, typename T>
+    bool read_into_buffer(TBuffer* buffer, const char* prefix, MemberDefinition<T> arg) {
+        if constexpr(std::is_standard_layout_v<TBuffer>) {
+            auto v = read(prefix, arg.field_def);
+            if(!v.exists) {
+                return false;
+            }
+            *((T*)(((uint8_t*)buffer) + arg.obj_offset)) = v.content;
+            return true;
+        } else {
             return false;
         }
-        *((T*)(((uint8_t*)buffer) + arg.obj_offset)) = v.content;
-        return true;
     }
 
-    template<typename T, typename... Args>
-    bool read_into_buffer(void* buffer, const char* prefix, MemberDefinition<T> arg, MemberDefinition<Args>... args) {
-        return read_into_buffer(buffer, prefix, arg) && read_into_buffer(buffer, prefix, args...);
+    template<typename TBuffer, typename T, typename... Args>
+    bool read_into_buffer(TBuffer* buffer, const char* prefix, MemberDefinition<T> arg, MemberDefinition<Args>... args) {
+        if constexpr(std::is_standard_layout_v<TBuffer>) {
+            return read_into_buffer(buffer, prefix, arg) && read_into_buffer(buffer, prefix, args...);
+        } else {
+            return false;
+        }
     }
 
     ~RegistryFile();

@@ -40,8 +40,13 @@ namespace  {
         std::vector<std::shared_ptr<SOASpriteRGB>>{}
     };
 
+    std::shared_ptr<Sprite16a> default_cursor;
+
     double tick_accumulator;
+    double cursor_tick_accumulator;
+    const uint8_t cursor_speed = 4;
     uint8_t game_speed;
+    uint16_t cursor_frame;
 
     game_state current_game_state;
 
@@ -135,6 +140,8 @@ namespace Game {
     void init() {
         try {
             tick_accumulator = 0.0;
+            cursor_tick_accumulator = 0.0;
+            cursor_frame = 0;
             game_speed = 4;
 
             size_t offset = 0;
@@ -277,6 +284,11 @@ namespace Game {
                 }
             }
 
+            auto [success, cursor] = graphic_resources->read_16a_shared("cursors/wait/sprites.16a");
+            if(success) {
+                default_cursor = cursor;
+            }
+
             load_main_menu_assets();
             load_terrain_tiles();
             set_main_menu_state();
@@ -289,6 +301,11 @@ namespace Game {
 
     void update(double delta_time) {
         tick_accumulator += delta_time;
+        cursor_tick_accumulator += delta_time / 4.0;
+        while(cursor_tick_accumulator > GAME_SPEED_MS[cursor_speed]) {
+            cursor_tick_accumulator -= GAME_SPEED_MS[cursor_speed];
+            cursor_frame = (cursor_frame + 1) % default_cursor->frame_count();
+        }
         while (tick_accumulator > GAME_SPEED_MS[game_speed]) {
             tick_accumulator -= GAME_SPEED_MS[game_speed];
             switch (current_game_state) {
@@ -324,7 +341,7 @@ namespace Game {
     }
 
     void render(SOASpriteRGB &background_sprite) {
-        if(!clear_made) {
+//        if(!clear_made) {
             background_sprite.mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
                 const size_t size = w * h;
                 __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(clear_r));
@@ -344,8 +361,8 @@ namespace Game {
                     bb += 16;
                 }
             });
-            clear_made = true;
-        }
+//            clear_made = true;
+//        }
 
         switch (current_game_state) {
             case game_state::main_menu:
@@ -361,6 +378,10 @@ namespace Game {
                 render_game(background_sprite);
                 break;
         }
+
+        //cursor_rendering
+
+        default_cursor->blit_on_sprite(background_sprite, mouse_state.mouse_x, mouse_state.mouse_y, cursor_frame, 4);
     }
 
     void key_callback(

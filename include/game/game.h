@@ -16,6 +16,7 @@
 
 #include <graphics/soaspritergb.h>
 #include <graphics/soaspritergba.h>
+#include <graphics/Sprite16a.h>
 
 #include <loaders/pngloader.h>
 #include <loaders/resource_file.h>
@@ -32,6 +33,32 @@ namespace Game {
         close_game,
         goto_main_menu,
         start_adventure
+    };
+
+    enum class cursor_state {
+        arrow0 = 0,
+        arrow1 = 1,
+        arrow2 = 2,
+        arrow3 = 3,
+        arrow4 = 4,
+        arrow5 = 5,
+        arrow6 = 6,
+        arrow7 = 7,
+        attack,
+        backpack,
+        cantput,
+        cast,
+        cdefault,
+        defend,
+        dice,
+        move,
+        patrol,
+        pickup,
+        sdefault,
+        select,
+        swarm,
+        town,
+        wait
     };
 
     struct CloseGameEvent{};

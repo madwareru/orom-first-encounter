@@ -72,7 +72,7 @@ bool start_main_loop(
         callback);
     }
 
-    //glfwSetInputMode(glfw_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    glfwSetInputMode(glfw_window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
     //glfwSetWindowIcon(glfw_window, 1, &icon_image);
 
     double prev_time = glfwGetTime();
