@@ -22,6 +22,7 @@
 #include <loaders/resource_file.h>
 #include <loaders/registry_file.h>
 
+#include <game/cursor_state.h>
 #include <game/systems/systems.h>
 #include <game/components/components.h>
 
@@ -32,10 +33,9 @@ namespace Game {
         start_new_game,
         close_game,
         goto_main_menu,
-        start_adventure
+        start_adventure,
+        set_cursor
     };
-
-    enum class cursor_state;
 
     struct CloseGameEvent{};
 

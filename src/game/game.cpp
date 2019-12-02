@@ -2,6 +2,8 @@
 #include <game/game.h>
 #include <game/main_menu_stage.h>
 #include <game/character_generation_stage.h>
+#include <game/cursor_subsystem.h>
+#include <game/cursor_state.h>
 #include <queue>
 
 const double GAME_SPEED_MS[9] = {0.180, 0.130, 0.090, 0.060, 0.040, 0.035, 0.030, 0.025, 0.020};
@@ -40,8 +42,6 @@ namespace  {
         std::vector<std::shared_ptr<SOASpriteRGB>>{}
     };
 
-    std::shared_ptr<Sprite16a> default_cursor;
-
     double tick_accumulator;
     double cursor_tick_accumulator;
     const uint8_t cursor_speed = 4;
@@ -54,6 +54,8 @@ namespace  {
 }
 
 namespace Game {
+
+    static std::unique_ptr<CursorSubsystem> cursor_subsystem;
 
     namespace GameStage {
         ecs_hpp::registry world;
@@ -123,6 +125,7 @@ namespace Game {
         using namespace MainMenuStage;
         stage->on_enter();
         current_game_state = game_state::main_menu;
+        Game::dispatch_message(event::set_cursor, static_cast<uint8_t>(cursor_state::c_select));
         request_clear();
     }
 
@@ -134,11 +137,20 @@ namespace Game {
         }
         stage->on_enter();
         current_game_state = game_state::character_generation;
+        Game::dispatch_message(event::set_cursor, static_cast<uint8_t>(cursor_state::c_default));
         request_clear();
     }
 
     void init() {
         try {
+            double mouse_x_initial;
+            double mouse_y_initial;
+
+            glfwGetCursorPos(glfw_window, &mouse_x_initial, &mouse_y_initial);
+
+            mouse_state.mouse_x = static_cast<uint16_t>(mouse_x_initial);
+            mouse_state.mouse_y = static_cast<uint16_t>(mouse_y_initial);
+
             tick_accumulator = 0.0;
             cursor_tick_accumulator = 0.0;
             cursor_frame = 0;
@@ -284,10 +296,7 @@ namespace Game {
                 }
             }
 
-            auto [success, cursor] = graphic_resources->read_16a_shared("cursors/wait/sprites.16a");
-            if(success) {
-                default_cursor = cursor;
-            }
+            cursor_subsystem = std::make_unique<CursorSubsystem>(graphic_resources, cursor_state::c_move);
 
             load_main_menu_assets();
             load_terrain_tiles();
@@ -304,7 +313,7 @@ namespace Game {
         cursor_tick_accumulator += delta_time / 4.0;
         while(cursor_tick_accumulator > GAME_SPEED_MS[cursor_speed]) {
             cursor_tick_accumulator -= GAME_SPEED_MS[cursor_speed];
-            cursor_frame = (cursor_frame + 1) % default_cursor->frame_count();
+            cursor_subsystem->update();
         }
         while (tick_accumulator > GAME_SPEED_MS[game_speed]) {
             tick_accumulator -= GAME_SPEED_MS[game_speed];
@@ -341,7 +350,10 @@ namespace Game {
     }
 
     void render(SOASpriteRGB &background_sprite) {
-//        if(!clear_made) {
+        if(current_game_state != game_state::game) {
+            // ^^^ in the case of game_state::game all screen
+            // will be garantilly entirely refilled anyway,
+            // so this filter is some sort of optimization
             background_sprite.mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
                 const size_t size = w * h;
                 __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(clear_r));
@@ -361,8 +373,7 @@ namespace Game {
                     bb += 16;
                 }
             });
-//            clear_made = true;
-//        }
+        }
 
         switch (current_game_state) {
             case game_state::main_menu:
@@ -381,7 +392,7 @@ namespace Game {
 
         //cursor_rendering
 
-        default_cursor->blit_on_sprite(background_sprite, mouse_state.mouse_x, mouse_state.mouse_y, cursor_frame);
+        cursor_subsystem->render(background_sprite, mouse_state);
     }
 
     void key_callback(
@@ -391,11 +402,6 @@ namespace Game {
         int action,
         int mods
     ) {
-//        LOG("Got key event: "<<
-//            "[key=" << key << "], " <<
-//            "[scancode=" << scancode << "], " <<
-//            "[action=" << action << "], " <<
-//            "mods=" << mods << "]");
         if(key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
             Game::dispatch_message(Game::event::close_game);
         }
@@ -451,10 +457,17 @@ namespace Game {
             case event::goto_main_menu:
                 set_main_menu_state();
                 break;
+            default: break;
         }
     }
 
     void dispatch_message(const event& message, uint8_t param) {
+        switch (message) {
+            case event::set_cursor:
+                cursor_subsystem->set_cursor(static_cast<cursor_state>(param));
+                break;
+            default: break;
+        }
 
     }
 
