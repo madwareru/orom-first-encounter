@@ -14,7 +14,7 @@ struct Sprite256
     Sprite256(Sprite256&&) = delete;
     Sprite256& operator=(Sprite256&&) = delete;
     ~Sprite256();
-    void blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number, uint8_t boost_alpha);
+    void blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number);
     uint16_t frame_count() const;
 private:
     uint8_t palette_r_[256];

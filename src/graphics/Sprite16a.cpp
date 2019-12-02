@@ -52,7 +52,7 @@ uint16_t Sprite16a::frame_count() const {
     return frame_count_;
 }
 
-void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number, uint8_t boost_alpha) {
+void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number) {
     const uint8_t BLANK_LINE = 0x40;
     const uint8_t EMPTY_AREA_BITS = 0xC0;
     const uint8_t CHUNK_SIZE_BITS = 0x3F;
@@ -97,8 +97,7 @@ void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
                     psh |= *buf++ * 0x100;
 
                     uint8_t palette_id = (psh / 0x002) & 0xFF;
-                    uint16_t alpha_boosted = static_cast<uint16_t>((psh / 0x200) << boost_alpha);
-                    uint8_t alpha = alpha_boosted > 0xFF ? 0xFF : alpha_boosted & 0xFF;
+                    uint8_t alpha = static_cast<uint8_t>((psh / 0x200) * 0x10);
 
                     if(w_drawn >= sw) {
                         offset += w - sw;
@@ -157,8 +156,7 @@ void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
                 psh |= *buf++ * 0x100;
 
                 uint8_t palette_id = (psh / 0x002) & 0xFF;
-                uint16_t alpha_boosted = static_cast<uint16_t>((psh / 0x200) << boost_alpha);
-                uint8_t alpha = alpha_boosted > 0xFF ? 0xFF : alpha_boosted & 0xFF;
+                uint8_t alpha = static_cast<uint8_t>((psh / 0x200) * 0x10);
 
                 if(w_drawn >= sw) {
                     yy++;

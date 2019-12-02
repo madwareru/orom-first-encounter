@@ -297,7 +297,7 @@ namespace Game {
 
         void Stage::draw_sprinkle(SOASpriteRGB& background_sprite) {
             if(star_frame_ >= blind_sprite_->frame_count()) return;
-            blind_sprite_->blit_on_sprite(background_sprite, menu_left_ + star_x_, menu_top_ + star_y_, star_frame_, 4);
+            blind_sprite_->blit_on_sprite(background_sprite, menu_left_ + star_x_, menu_top_ + star_y_, star_frame_);
         }
 
         void Stage::render(SOASpriteRGB &background_sprite) {

@@ -381,7 +381,7 @@ namespace Game {
 
         //cursor_rendering
 
-        default_cursor->blit_on_sprite(background_sprite, mouse_state.mouse_x, mouse_state.mouse_y, cursor_frame, 4);
+        default_cursor->blit_on_sprite(background_sprite, mouse_state.mouse_x, mouse_state.mouse_y, cursor_frame);
     }
 
     void key_callback(

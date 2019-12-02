@@ -52,7 +52,7 @@ uint16_t Sprite256::frame_count() const {
     return frame_count_;
 }
 
-void Sprite256::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number, uint8_t boost_alpha) {
+void Sprite256::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number) {
     const uint8_t BLANK_LINE = 0x40;
     const uint8_t EMPTY_AREA_BITS = 0xC0;
     const uint8_t CHUNK_SIZE_BITS = 0x3F;
