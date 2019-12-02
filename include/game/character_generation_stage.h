@@ -1,5 +1,5 @@
-#ifndef CHARACHTER_GENERATION_STAGE_H__
-#define CHARACHTER_GENERATION_STAGE_H__
+#ifndef CHARACHTER_GENERATION_STAGE_H_
+#define CHARACHTER_GENERATION_STAGE_H_
 
 #include <memory>
 #include <cstdint>
@@ -54,4 +54,4 @@ namespace Game {
     }
 }
 
-#endif /* end of include guard: CHARACHTER_GENERATION_STAGE_H__ */
+#endif /* end of include guard: CHARACHTER_GENERATION_STAGE_H_ */

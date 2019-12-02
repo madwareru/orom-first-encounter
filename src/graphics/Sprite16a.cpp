@@ -96,8 +96,11 @@ void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
                     uint16_t psh = *buf++;
                     psh |= *buf++ * 0x100;
 
+                    // we first shift everything one bit right to get palette identifier
+                    // then we extract alpha. Alpha is four-bit, therefore it takes values
+                    // in a range [0x0..0xF]
                     uint8_t palette_id = (psh / 0x002) & 0xFF;
-                    uint8_t alpha = static_cast<uint8_t>((psh / 0x200) * 0x10);
+                    uint8_t alpha = static_cast<uint8_t>(psh / 0x200) & 0xF;
 
                     if(w_drawn >= sw) {
                         offset += w - sw;
@@ -108,15 +111,11 @@ void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
                     uint8_t dest_g = palette_g_[palette_id];
                     uint8_t dest_b = palette_b_[palette_id];
 
-                    uint8_t one_minus_alpha = 0xFF - alpha;
+                    uint8_t one_minus_alpha = 0xF - alpha;
 
-                    rbuf[offset] = (rbuf[offset] * one_minus_alpha + dest_r * alpha) / 0x100;
-                    gbuf[offset] = (gbuf[offset] * one_minus_alpha + dest_g * alpha) / 0x100;
-                    bbuf[offset] = (bbuf[offset] * one_minus_alpha + dest_b * alpha) / 0x100;
-
-//                    rbuf[offset] = (rbuf[offset] * 256 + (palette_r_[palette_id] - rbuf[offset]) * alpha) / 256;
-//                    gbuf[offset] = (gbuf[offset] * 256 + (palette_g_[palette_id] - gbuf[offset]) * alpha) / 256;
-//                    bbuf[offset] = (bbuf[offset] * 256 + (palette_b_[palette_id] - bbuf[offset]) * alpha) / 256;
+                    rbuf[offset] = (rbuf[offset] * one_minus_alpha + dest_r * alpha) / 0x10;
+                    gbuf[offset] = (gbuf[offset] * one_minus_alpha + dest_g * alpha) / 0x10;
+                    bbuf[offset] = (bbuf[offset] * one_minus_alpha + dest_b * alpha) / 0x10;
 
                     offset++;
                     w_drawn++;
@@ -155,8 +154,11 @@ void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
                 uint16_t psh = *buf++;
                 psh |= *buf++ * 0x100;
 
+                // we first shift everything one bit right to get palette identifier
+                // then we extract alpha. Alpha is four-bit, therefore it takes values
+                // in a range [0x0..0xF]
                 uint8_t palette_id = (psh / 0x002) & 0xFF;
-                uint8_t alpha = static_cast<uint8_t>((psh / 0x200) * 0x10);
+                uint8_t alpha = static_cast<uint8_t>(psh / 0x200) & 0xF;
 
                 if(w_drawn >= sw) {
                     yy++;
@@ -168,13 +170,13 @@ void Sprite16a::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
                 uint8_t dest_g = palette_g_[palette_id];
                 uint8_t dest_b = palette_b_[palette_id];
 
-                uint8_t one_minus_alpha = 0xFF - alpha;
+                uint8_t one_minus_alpha = 0xF - alpha;
 
                 if(xx >= 0 && yy >= 0 && static_cast<size_t>(xx) < w && static_cast<size_t>(yy) < h) {
                     size_t offset = static_cast<size_t>(yy) * w + static_cast<size_t>(xx);
-                    rbuf[offset] = (rbuf[offset] * one_minus_alpha + dest_r * alpha) / 0x100;
-                    gbuf[offset] = (gbuf[offset] * one_minus_alpha + dest_g * alpha) / 0x100;
-                    bbuf[offset] = (bbuf[offset] * one_minus_alpha + dest_b * alpha) / 0x100;
+                    rbuf[offset] = (rbuf[offset] * one_minus_alpha + dest_r * alpha) / 0x10;
+                    gbuf[offset] = (gbuf[offset] * one_minus_alpha + dest_g * alpha) / 0x10;
+                    bbuf[offset] = (bbuf[offset] * one_minus_alpha + dest_b * alpha) / 0x10;
                 }
                 xx++;
                 w_drawn++;

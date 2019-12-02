@@ -1,5 +1,5 @@
-#ifndef MAIN_MENU_STAGE_H__
-#define MAIN_MENU_STAGE_H__
+#ifndef MAIN_MENU_STAGE_H_
+#define MAIN_MENU_STAGE_H_
 
 #include <memory>
 #include <cstdint>
@@ -40,4 +40,4 @@ namespace Game {
     }
 }
 
-#endif /* end of include guard: MAIN_MENU_STAGE_H__ */
+#endif /* end of include guard: MAIN_MENU_STAGE_H_ */
