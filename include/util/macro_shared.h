@@ -8,7 +8,7 @@
 #define LOCATION_INNER __FILE__ " : " S2(__LINE__)
 #define LOCATION " (" LOCATION_INNER ")"
 
-#define REPEAT_2(x) x, x
+#define REPEAT_2(x) (x), (x)
 #define REPEAT_4(x) REPEAT_2(x), REPEAT_2(x)
 #define REPEAT_8(x) REPEAT_4(x), REPEAT_4(x)
 #define REPEAT_16(x) REPEAT_8(x), REPEAT_8(x)

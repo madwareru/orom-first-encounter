@@ -1,5 +1,5 @@
-#ifndef SPRITE_16A_H__
-#define SPRITE_16A_H__
+#ifndef SPRITE_16A_H_
+#define SPRITE_16A_H_
 
 #include <cinttypes>
 #include <loaders/ksy/rage_of_mages_1_16a.h>
@@ -25,4 +25,4 @@ private:
     uint8_t* buffer_raw_;
 };
 
-#endif /* end of include guard: SPRITE_16A_H__ */
+#endif /* end of include guard: SPRITE_16A_H_ */

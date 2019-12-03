@@ -1,5 +1,9 @@
-#include <graphics/font_renderer.h>
+#include <graphics/font_rendering.h>
 #include <util/macro_shared.h>
+
+#include <loaders/resource_file.h>
+#include <graphics/soaspritergb.h>
+#include <graphics/Sprite16.h>
 
 static uint8_t symbol_to_font_atlas_lookup[256] = {
     REPEAT_32(0),         // [0x00..0x20) <- missing
@@ -15,3 +19,9 @@ static uint8_t symbol_to_font_atlas_lookup[256] = {
     ROW_16_ASCENDING(0x80), // [0xE0..0xF0) = 0xA0 - 0x20                 <  PART
     ROW_16_ASCENDING(0xC0)  // [0xF0..0xFF] = 0xE0 - 0x20
 };
+
+Font16::Font16(std::shared_ptr<Sprite16> sprite, std::vector<uint16_t>&& glyph_width_storage)
+    :
+    font_sprite_{sprite},
+    glyph_width_storage_{glyph_width_storage}
+    {}

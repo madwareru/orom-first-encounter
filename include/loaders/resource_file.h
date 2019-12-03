@@ -9,6 +9,8 @@
 #include <memory>
 #include <graphics/soaspritergb.h>
 #include <graphics/Sprite16a.h>
+#include <graphics/Sprite16.h>
+#include <graphics/font_rendering.h>
 #include <util/defer_action.h>
 
 struct ResourceFile
@@ -23,6 +25,8 @@ struct ResourceFile
     rage_of_mages_1_res_t::file_resource_t* get_resource(const char* path);
 
     std::tuple<bool, std::shared_ptr<Sprite16a>> read_16a_shared(const char* path);
+    std::tuple<bool, std::shared_ptr<Sprite16>> read_16_shared(const char* path);
+    std::tuple<bool, std::shared_ptr<Font16>> read_font_16_shared(const char* sprite_path, const char* gliph_data_path);
 
     std::tuple<bool, std::shared_ptr<SOASpriteRGB>> read_bmp_shared(const char* path);
     std::tuple<bool, std::shared_ptr<SOASpriteRGB>> read_mask_shared(const char* path);
