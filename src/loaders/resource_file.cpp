@@ -3,6 +3,13 @@
 #include <util/macro_shared.h>
 #include <loaders/ksy/rage_of_mages_1_bmp.h>
 #include <loaders/ksy/rage_of_mages_1_16a.h>
+#include <loaders/ksy/rage_of_mages_1_256.h>
+#include <loaders/ksy/rage_of_mages_1_16.h>
+
+#include <graphics/Sprite16.h>
+#include <graphics/Sprite16a.h>
+#include <graphics/Sprite256.h>
+#include <graphics/soaspritergb.h>
 
 ResourceFile::ResourceFile(const char* fileName)
 {
@@ -201,6 +208,27 @@ std::tuple<bool, std::shared_ptr<Sprite16>> ResourceFile::read_16_shared(const c
     } catch (const std::exception& ex) {
         LOG_ERROR(ex.what());
         std::shared_ptr<Sprite16> result{nullptr};
+        return std::make_tuple(false, result);
+    }
+}
+
+std::tuple<bool, std::shared_ptr<Sprite256>> ResourceFile::read_256_shared(const char* path) {
+    try {
+        auto sprite_resource = get_resource(path);
+        if(sprite_resource == nullptr) {
+            LOG_ERROR("Resource not found");
+            std::shared_ptr<Sprite256> result{nullptr};
+            return std::make_tuple(false, result);
+        }
+        auto bytes = sprite_resource->bytes();
+        kaitai::kstream ks{bytes};
+        rage_of_mages_1_256_t sprite_file{&ks};
+        auto result = std::make_shared<Sprite256>(&sprite_file);
+        return std::make_tuple(true, result);
+
+    } catch (const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        std::shared_ptr<Sprite256> result{nullptr};
         return std::make_tuple(false, result);
     }
 }

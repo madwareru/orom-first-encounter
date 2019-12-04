@@ -7,11 +7,17 @@
 #include <loaders/registry_file.h>
 #include <tuple>
 #include <memory>
-#include <graphics/soaspritergb.h>
-#include <graphics/Sprite16a.h>
-#include <graphics/Sprite16.h>
+//#include <graphics/soaspritergb.h>
+//#include <graphics/Sprite16a.h>
+//#include <graphics/Sprite16.h>
+
 #include <graphics/font_rendering.h>
 #include <util/defer_action.h>
+
+struct SOASpriteRGB;
+struct Sprite16;
+struct Sprite16a;
+struct Sprite256;
 
 struct ResourceFile
 {
@@ -26,6 +32,7 @@ struct ResourceFile
 
     std::tuple<bool, std::shared_ptr<Sprite16a>> read_16a_shared(const char* path);
     std::tuple<bool, std::shared_ptr<Sprite16>> read_16_shared(const char* path);
+    std::tuple<bool, std::shared_ptr<Sprite256>> read_256_shared(const char* path);
     std::tuple<bool, std::shared_ptr<Font16>> read_font_16_shared(const char* sprite_path, const char* gliph_data_path);
     std::tuple<bool, std::shared_ptr<Font16a>> read_font_16a_shared(const char* sprite_path, const char* gliph_data_path);
 

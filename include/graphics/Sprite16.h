@@ -4,9 +4,9 @@
 #include <cinttypes>
 #include <vector>
 #include <tuple>
-#include <loaders/ksy/rage_of_mages_1_16.h>
 
 struct SOASpriteRGB;
+struct rage_of_mages_1_16_t;
 
 struct Sprite16 {
     Sprite16(rage_of_mages_1_16_t* data);
