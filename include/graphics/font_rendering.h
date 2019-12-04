@@ -17,6 +17,8 @@ struct Font16 {
     Font16& operator=(Font16&&) = delete;
     void render_text(const char* text_to_render, SOASpriteRGB &other, int16_t x, int16_t y);
     void render_text(const std::string& text_to_render, SOASpriteRGB& other, int16_t x, int16_t y);
+    void render_text(const char* text_to_render, SOASpriteRGB &other, int16_t x, int16_t y, uint8_t palette_id);
+    void render_text(const std::string& text_to_render, SOASpriteRGB& other, int16_t x, int16_t y, uint8_t palette_id);
 private:
     std::shared_ptr<Sprite16> font_sprite_;
     std::vector<uint16_t> glyph_width_storage_;

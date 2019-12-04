@@ -423,7 +423,7 @@ namespace Game {
 
         cursor_subsystem->render(background_sprite, mouse_state);
 
-        test_font->render_text(lalala, background_sprite, 16, 16);
+        test_font->render_text(lalala, background_sprite, 16, 16, 0);
     }
 
     void key_callback(

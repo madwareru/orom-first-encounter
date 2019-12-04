@@ -16,6 +16,7 @@ struct Sprite16 {
     Sprite16& operator=(Sprite16&&) = delete;
     ~Sprite16();
     void blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number);
+    void blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number, uint8_t palette_id);
     uint16_t frame_count() const;
 private:
     uint16_t frame_count_;
