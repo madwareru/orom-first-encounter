@@ -6,6 +6,7 @@
 #include <game/cursor_state.h>
 #include <loaders/ksy/rage_of_mages_1_txt_866.h>
 #include <graphics/font_rendering.h>
+#include <graphics/Sprite256.h>
 #include <queue>
 
 const double GAME_SPEED_MS[9] = {0.180, 0.130, 0.090, 0.060, 0.040, 0.035, 0.030, 0.025, 0.020};
@@ -47,6 +48,7 @@ namespace  {
     std::shared_ptr<Font16> test_font;
     std::shared_ptr<Font16a> test_font2;
     std::string lalala;
+    std::shared_ptr<Sprite256> goblin_sprite;
 
     double tick_accumulator;
     double cursor_tick_accumulator;
@@ -183,6 +185,9 @@ namespace Game {
             world_resources    = std::make_shared<ResourceFile>(WORLD_RES_FILENAME);
 
             CharacterGenerationStage::assets_loaded = false;
+
+            auto [gb_result, gb_sprite] = graphic_resources->read_256_shared("units/monsters/ghost/sprites.256");
+            goblin_sprite = gb_sprite;
 
 
 //            {
@@ -424,6 +429,7 @@ namespace Game {
         cursor_subsystem->render(background_sprite, mouse_state);
 
         test_font->render_text(lalala, background_sprite, 16, 16, 0);
+        goblin_sprite->blit_on_sprite(background_sprite, 0, 0, 0);
     }
 
     void key_callback(

@@ -74,8 +74,11 @@ void Sprite256::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
             // render trivially without checks
             int i = 0;
             while(i < raw_size) {
-                uint8_t chunk_size = *buf++ & CHUNK_SIZE_BITS;
-                uint8_t is_empty_area_mask = *buf++ & EMPTY_AREA_BITS;
+                uint8_t ipx = *buf++;
+                uint8_t is_empty_area_mask = ipx & EMPTY_AREA_BITS;
+                uint8_t chunk_size = ipx & CHUNK_SIZE_BITS;
+                ++i;
+
                 if(is_empty_area_mask > 0) {
                     if(is_empty_area_mask == BLANK_LINE) {
                         offset += w * chunk_size;
@@ -87,10 +90,8 @@ void Sprite256::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
                             w_drawn -= sw;
                         }
                     }
-                    i += 2;
                     continue;
                 }
-                i += 2;
 
                 for(uint8_t j = 0; j < chunk_size; ++j) {
                     uint8_t palette_id = *buf++;
@@ -118,8 +119,11 @@ void Sprite256::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
         auto yy = y;
         int i = 0;
         while(i < raw_size) {
-            uint8_t chunk_size = *buf++ & CHUNK_SIZE_BITS;
-            uint8_t is_empty_area_mask = *buf++ & EMPTY_AREA_BITS;
+            uint8_t ipx = *buf++;
+            uint8_t is_empty_area_mask = ipx & EMPTY_AREA_BITS;
+            uint8_t chunk_size = ipx & CHUNK_SIZE_BITS;
+            ++i;
+
             if(is_empty_area_mask > 0) {
                 if(is_empty_area_mask == BLANK_LINE) {
                     yy += chunk_size;
@@ -132,10 +136,8 @@ void Sprite256::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
                         w_drawn -= sw;
                     }
                 }
-                i += 2;
                 continue;
             }
-            i += 2;
 
             for(uint8_t j = 0; j < chunk_size; ++j) {
                 uint8_t palette_id = *buf++;

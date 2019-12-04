@@ -226,8 +226,8 @@ std::tuple<bool, std::shared_ptr<Sprite256>> ResourceFile::read_256_shared(const
         auto result = std::make_shared<Sprite256>(&sprite_file);
         return std::make_tuple(true, result);
 
-    } catch (const std::exception& ex) {
-        LOG_ERROR(ex.what());
+    } catch (...) {
+        //LOG_ERROR(ex.what());
         std::shared_ptr<Sprite256> result{nullptr};
         return std::make_tuple(false, result);
     }

@@ -2,6 +2,7 @@
 #include <graphics/soaspritergb.h>
 
 #include <util/macro_shared.h>
+#include <loaders/ksy/rage_of_mages_1_16.h>
 
 static uint8_t font_palette_lookup_b[256] = {
     0x20,
