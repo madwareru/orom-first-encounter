@@ -5,6 +5,7 @@
 #include <game/cursor_subsystem.h>
 #include <game/cursor_state.h>
 #include <loaders/ksy/rage_of_mages_1_txt_866.h>
+#include <graphics/font_rendering.h>
 #include <queue>
 
 const double GAME_SPEED_MS[9] = {0.180, 0.130, 0.090, 0.060, 0.040, 0.035, 0.030, 0.025, 0.020};
@@ -42,6 +43,10 @@ namespace  {
         std::vector<std::shared_ptr<SOASpriteRGB>>{},
         std::vector<std::shared_ptr<SOASpriteRGB>>{}
     };
+
+    std::shared_ptr<Font16> test_font;
+    std::shared_ptr<Font16a> test_font2;
+    std::string lalala;
 
     double tick_accumulator;
     double cursor_tick_accumulator;
@@ -303,7 +308,19 @@ namespace Game {
             kaitai::kstream ks{event10bytes};
             rage_of_mages_1_txt_866_t txt{&ks};
 
-            LOG("event10 content: " << txt.content());
+            lalala = txt.content();
+
+            auto [font_success, font] = graphic_resources->read_font_16_shared("font1/font1.16", "font1/font1.dat");
+            if(!font_success) {
+                throw std::runtime_error("failed on loading font");
+            }
+            test_font = font;
+
+            auto [font2_success, font2] = graphic_resources->read_font_16a_shared("font4/font4.16a", "font4/font4.dat");
+            if(!font2_success) {
+                throw std::runtime_error("failed on loading font");
+            }
+            test_font2 = font2;
 
             cursor_subsystem = std::make_unique<CursorSubsystem>(graphic_resources, cursor_state::c_move);
 
@@ -311,6 +328,9 @@ namespace Game {
             load_terrain_tiles();
             set_main_menu_state();
 
+        } catch (const std::runtime_error& ex) {
+            LOG_ERROR(ex.what());
+            abort();
         } catch (const std::exception& ex) {
             LOG_ERROR(ex.what());
             abort();
@@ -402,6 +422,8 @@ namespace Game {
         //cursor_rendering
 
         cursor_subsystem->render(background_sprite, mouse_state);
+
+        test_font->render_text(lalala, background_sprite, 16, 16);
     }
 
     void key_callback(

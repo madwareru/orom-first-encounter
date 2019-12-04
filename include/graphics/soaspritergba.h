@@ -19,6 +19,8 @@ struct SOASpriteRGBA
     void mutate(FF&& predicate) {
         predicate(width_, height_, r_buffer_, g_buffer_, b_buffer_, a_buffer_);
     }
+    size_t width() const;
+    size_t height() const;
 private:
     size_t width_;
     size_t height_;

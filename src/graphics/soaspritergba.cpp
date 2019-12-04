@@ -26,6 +26,13 @@ SOASpriteRGBA::SOASpriteRGBA(size_t w, size_t h): width_{w}, height_{h} {
         : &a_buffer_raw_[8];
 }
 
+size_t SOASpriteRGBA::width() const {
+    return width_;
+}
+size_t SOASpriteRGBA::height() const {
+    return height_;
+}
+
 SOASpriteRGBA::~SOASpriteRGBA(){
     delete [] a_buffer_raw_;
     delete [] b_buffer_raw_;

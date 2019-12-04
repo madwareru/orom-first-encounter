@@ -218,17 +218,58 @@ std::tuple<bool, std::shared_ptr<Font16>> ResourceFile::read_font_16_shared(cons
         std::shared_ptr<Font16> res{nullptr};
         return std::make_tuple(false, res);
     }
-    auto gliph_data = gliph_data_resource->bytes();
-    kaitai::kstream ks{gliph_data};
-    std::vector<uint16_t> glyph_width_storage;
 
-    auto count = ks.size() / 4;
-    glyph_width_storage.reserve(count);
-    for(uint16_t i = 0; i < count; ++i) {
-        glyph_width_storage.push_back(static_cast<uint16_t>(ks.read_u4le()));
+    try {
+        auto gliph_data = gliph_data_resource->bytes();
+        kaitai::kstream ks{gliph_data};
+        std::vector<uint16_t> glyph_width_storage;
+
+        auto count = ks.size() / 4;
+        glyph_width_storage.reserve(count);
+        for(uint16_t i = 0; i < count; ++i) {
+            glyph_width_storage.push_back(static_cast<uint16_t>(ks.read_u4le()));
+        }
+
+        return std::make_tuple(true, std::make_shared<Font16>(sprite, std::move(glyph_width_storage)));
+    } catch(const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        std::shared_ptr<Font16> res{nullptr};
+        return std::make_tuple(false, res);
+    }
+}
+
+std::tuple<bool, std::shared_ptr<Font16a>> ResourceFile::read_font_16a_shared(const char* sprite_path, const char* gliph_data_path) {
+    auto [sprite_loaded_successfully, sprite] = read_16a_shared(sprite_path);
+    if(!sprite_loaded_successfully) {
+        LOG_ERROR("problem occured on loading of .16 file for font " << sprite_path);
+        std::shared_ptr<Font16a> res{nullptr};
+        return std::make_tuple(false, res);
+    }
+    auto gliph_data_resource = get_resource(gliph_data_path);
+    if(gliph_data_resource == nullptr) {
+        LOG_ERROR("problem occured on loading of glyph width data: " << gliph_data_path);
+        std::shared_ptr<Font16a> res{nullptr};
+        return std::make_tuple(false, res);
     }
 
-    return std::make_tuple(true, std::make_shared<Font16>(sprite, std::move(glyph_width_storage)));
+    try {
+        auto gliph_data = gliph_data_resource->bytes();
+        kaitai::kstream ks{gliph_data};
+        std::vector<uint16_t> glyph_width_storage;
+
+        auto count = ks.size() / 4;
+        glyph_width_storage.reserve(count);
+        for(uint16_t i = 0; i < count; ++i) {
+            glyph_width_storage.push_back(static_cast<uint16_t>(ks.read_u4le()));
+        }
+
+        return std::make_tuple(true, std::make_shared<Font16a>(sprite, std::move(glyph_width_storage)));
+
+    } catch(const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        std::shared_ptr<Font16a> res{nullptr};
+        return std::make_tuple(false, res);
+    }
 }
 
 std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_bmp_shared(const char* path) {
