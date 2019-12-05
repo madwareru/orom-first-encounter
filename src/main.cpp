@@ -5,6 +5,7 @@
 
 #include <windowing/window.h>
 #include <game/game.h>
+#include <game/game_stage.h>
 
 int main(int argc, char** argv) {
     if(argc > 1) {
@@ -27,9 +28,6 @@ int main(int argc, char** argv) {
             }
         }
     }
-
-    Game::GameStage::terrain_cache = new uint8_t[4 * Game::window_width * Game::window_height];
-    DEFER([&]() {delete [] Game::GameStage::terrain_cache; })
 
     WindowCreationParams window_params {
         "Open Rage Of Mages", // title

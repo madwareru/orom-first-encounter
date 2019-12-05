@@ -55,22 +55,10 @@ namespace Game {
 
     namespace GameStage {
         extern ecs_hpp::registry world;
-        extern uint8_t* terrain_cache;
 
-        struct GameStageShared {
-            uint8_t* terrain_tile_x_cache;
-            uint8_t* terrain_tile_y_cache;
-            uint8_t* terrain_tile_u_cache;
-            uint8_t* terrain_tile_v_cache;
-            uint16_t camera_x;
-            uint16_t camera_y;
-        };
-
-        extern GameStageShared shared;
-
-        struct terrain_event{
-            GameStageShared* shared_data;
-        };
+        // struct terrain_event{
+        //     GameStageShared* shared_data;
+        // };
 
         struct terrain_feature{};
         struct update_feature{};
