@@ -13,7 +13,7 @@ struct FrameBuffer {
     ~FrameBuffer();
     void blit_on_dc(const HDC& hdc);
     template<typename FF>
-    void mutate(FF&& predicate) {
+    void lock(FF&& predicate) {
         predicate(width_, height_, color_buffer_);
     }
 private:

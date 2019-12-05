@@ -142,7 +142,7 @@ std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_mask_shared(c
 
         switch (bitcount) {
             case 8: {
-                result->mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
+                result->lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
                     size_t d_offset = h * w - w;
                     size_t slide = w * 2;
                     size_t s_offset = 0;
@@ -331,7 +331,7 @@ std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_bmp_shared(co
         switch (bitcount) {
             case 8: {
                 auto palette = *(bmp_data->palette());
-                result->mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
+                result->lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
                     size_t d_offset = h * w - w;
                     size_t slide = w * 2;
                     size_t s_offset = 0;
@@ -357,7 +357,7 @@ std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_bmp_shared(co
                 });
             } break;
             case 24: {
-                result->mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
+                result->lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
                     size_t d_offset = h * w - w;
                     size_t slide = w * 2;
                     size_t s_offset = 0;

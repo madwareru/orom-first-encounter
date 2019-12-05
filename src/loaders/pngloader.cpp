@@ -35,7 +35,7 @@ std::shared_ptr<SOASpriteRGB> load_sprite_from_png_24(std::string& memory_buffer
     }
 
     auto result = std::make_shared<SOASpriteRGB>(lodepng_w, lodepng_h);
-    result->mutate([image_bytes](auto dw, auto dh, auto r_buf, auto g_buf, auto b_buf){
+    result->lock([image_bytes](auto dw, auto dh, auto r_buf, auto g_buf, auto b_buf){
         uint8_t* p = image_bytes;
         for(size_t j = 0; j < dh; ++j){
             for(size_t i = 0; i < dw; ++i){
@@ -66,7 +66,7 @@ std::shared_ptr<SOASpriteRGB> load_sprite_from_png_24(const char* filename) {
     }
 
     auto result = std::make_shared<SOASpriteRGB>(lodepng_w, lodepng_h);
-    result->mutate([image_bytes](auto dw, auto dh, auto r_buf, auto g_buf, auto b_buf){
+    result->lock([image_bytes](auto dw, auto dh, auto r_buf, auto g_buf, auto b_buf){
         uint8_t* p = image_bytes;
         for(size_t j = 0; j < dh; ++j){
             for(size_t i = 0; i < dw; ++i){
@@ -97,7 +97,7 @@ std::shared_ptr<SOASpriteRGBA> load_sprite_from_png_32(const char* filename) {
     }
 
     auto result = std::make_shared<SOASpriteRGBA>(lodepng_w, lodepng_h);
-    result->mutate([image_bytes](auto dw, auto dh, auto r_buf, auto g_buf, auto b_buf, auto a_buf){
+    result->lock([image_bytes](auto dw, auto dh, auto r_buf, auto g_buf, auto b_buf, auto a_buf){
         uint8_t* p = image_bytes;
         for(size_t j = 0; j < dh; ++j){
             for(size_t i = 0; i < dw; ++i){

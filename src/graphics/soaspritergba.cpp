@@ -47,7 +47,7 @@ void SOASpriteRGBA::blit_on_sprite(SOASpriteRGB& dsprite, size_t x, size_t y) {
     auto bbuf = b_buffer_;
     auto gbuf = g_buffer_;
     auto rbuf = r_buffer_;
-    dsprite.mutate([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
+    dsprite.lock([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
         if(x >= dw || y >= dh) {
             return;
         }
@@ -200,7 +200,7 @@ void SOASpriteRGBA::blit_on_sprite(SOASpriteRGB& dsprite, size_t dx, size_t dy, 
     auto bbuf = b_buffer_;
     auto gbuf = g_buffer_;
     auto rbuf = r_buffer_;
-    dsprite.mutate([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
+    dsprite.lock([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
 
     });
 }

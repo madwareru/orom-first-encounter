@@ -16,7 +16,7 @@ struct SOASpriteRGBA
     void blit_on_sprite(SOASpriteRGB& other, size_t x, size_t y);
     void blit_on_sprite(SOASpriteRGB& other, size_t dx, size_t dy, size_t sx, size_t sy, size_t w, size_t h);
     template<typename FF>
-    void mutate(FF&& predicate) {
+    void lock(FF&& predicate) {
         predicate(width_, height_, r_buffer_, g_buffer_, b_buffer_, a_buffer_);
     }
     size_t width() const;

@@ -828,7 +828,7 @@ void Sprite16::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_
     auto sh = height;
     auto raw = &buffer_raw_[offset];
     auto raw_size = data_size;
-    other.mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf){
+    other.lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf){
         uint8_t* buf = &raw[0];
         uint16_t w_drawn = 0;
 
@@ -993,7 +993,7 @@ void Sprite16::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_
     auto sh = height;
     auto raw = &buffer_raw_[offset];
     auto raw_size = data_size;
-    other.mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf){
+    other.lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf){
         uint8_t* buf = &raw[0];
         uint16_t w_drawn = 0;
 

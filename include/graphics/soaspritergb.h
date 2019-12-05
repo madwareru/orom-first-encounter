@@ -21,7 +21,7 @@ struct SOASpriteRGB {
     uint8_t get_mask_pixel(size_t x, size_t y) const;
 
     template<typename FF>
-    void mutate(FF&& predicate) {
+    void lock(FF&& predicate) {
         predicate(width_, height_, r_buffer_, g_buffer_, b_buffer_);
     }
 

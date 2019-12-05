@@ -45,7 +45,7 @@ void SOASpriteRGB::blit_on_frame_buffer(FrameBuffer& fbuffer, size_t x, size_t y
     auto gbuf = g_buffer_;
     auto rbuf = r_buffer_;
 
-    fbuffer.mutate([&](auto dw, auto dh, auto dest_cbuf) {
+    fbuffer.lock([&](auto dw, auto dh, auto dest_cbuf) {
         if(x >= dw || y >= dh) {
             return;
         }
@@ -102,7 +102,7 @@ void SOASpriteRGB::blit_on_sprite(SOASpriteRGB& dsprite, size_t x, size_t y) {
     auto bbuf = b_buffer_;
     auto gbuf = g_buffer_;
     auto rbuf = r_buffer_;
-    dsprite.mutate([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
+    dsprite.lock([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
         if(x >= dw || y >= dh) {
             return;
         }
@@ -179,7 +179,7 @@ void SOASpriteRGB::blit_on_sprite_semitransparent(SOASpriteRGB& dsprite, size_t 
     auto bbuf = b_buffer_;
     auto gbuf = g_buffer_;
     auto rbuf = r_buffer_;
-    dsprite.mutate([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
+    dsprite.lock([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
         if(x >= dw || y >= dh) {
             return;
         }
@@ -267,7 +267,7 @@ void SOASpriteRGB::blit_on_sprite_colorkeyed(SOASpriteRGB& dsprite, size_t x, si
     __m128i ckg = _mm_set1_epi8((int8_t)key_green);
     __m128i ckb = _mm_set1_epi8((int8_t)key_blue);
 
-    dsprite.mutate([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
+    dsprite.lock([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
         if(x >= dw || y >= dh) {
             return;
         }
@@ -382,7 +382,7 @@ void SOASpriteRGB::blit_on_sprite_colorkeyed16(SOASpriteRGB& dsprite, size_t x, 
     __m128i ckb = _mm_set1_epi8((int8_t)(key_blue & 0xF0));
     __m128i ckfilter = _mm_set1_epi8((int8_t)0xF0);
 
-    dsprite.mutate([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
+    dsprite.lock([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
         if(x >= dw || y >= dh) {
             return;
         }

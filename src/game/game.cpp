@@ -385,7 +385,7 @@ namespace Game {
             // ^^^ in the case of game_state::game all screen
             // will be garantilly entirely refilled anyway,
             // so this filter is some sort of optimization
-            background_sprite.mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
+            background_sprite.lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
                 const size_t size = w * h;
                 __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(clear_r));
                 __m128i clrg = _mm_set1_epi8(static_cast<int8_t>(clear_g));
@@ -425,7 +425,7 @@ namespace Game {
 
         cursor_subsystem->render(background_sprite, mouse_state);
 
-        test_font->render_text(lalala, background_sprite, 16, 16, 0);
+        test_font2->render_text(lalala, background_sprite, 16, 16);
         goblin_sprite->blit_on_sprite(background_sprite, 0, 0, 10);
     }
 
