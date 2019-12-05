@@ -82,12 +82,9 @@ namespace Game {
     extern uint16_t window_height;
     extern bool windowed;
 
-    extern bool clear_made;
     extern uint8_t clear_r;
     extern uint8_t clear_g;
     extern uint8_t clear_b;
-
-    void request_clear();
 
     void init();
     void update(double delta_time);

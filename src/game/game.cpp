@@ -45,8 +45,10 @@ namespace  {
         std::vector<std::shared_ptr<SOASpriteRGB>>{}
     };
 
+    uint16_t frame_;
     std::shared_ptr<Font16> test_font;
     std::shared_ptr<Font16a> test_font2;
+    std::shared_ptr<Font16> test_font3;
     std::string lalala;
     std::shared_ptr<Sprite256> goblin_sprite;
 
@@ -84,8 +86,6 @@ namespace Game {
         ecs_hpp::registry world;
     }
 
-    bool clear_made;
-
     GLFWwindow* glfw_window;
 
     uint16_t window_width = 1024;
@@ -94,10 +94,6 @@ namespace Game {
     uint8_t clear_r;
     uint8_t clear_g;
     uint8_t clear_b;
-
-    void request_clear() {
-        clear_made = false;
-    }
 
     void load_main_menu_assets() {
         using namespace MainMenuStage;
@@ -134,7 +130,6 @@ namespace Game {
         stage->on_enter();
         current_game_state = game_state::main_menu;
         Game::dispatch_message(event::set_cursor, static_cast<uint8_t>(cursor_state::c_select));
-        request_clear();
     }
 
     void set_char_gen_state() {
@@ -146,7 +141,11 @@ namespace Game {
         stage->on_enter();
         current_game_state = game_state::character_generation;
         Game::dispatch_message(event::set_cursor, static_cast<uint8_t>(cursor_state::c_default));
-        request_clear();
+    }
+
+    void start_level(uint8_t level_id, uint8_t main_hero, uint8_t difficulty){
+        current_game_state = game_state::game;
+        Game::dispatch_message(event::set_cursor, static_cast<uint8_t>(cursor_state::c_move));
     }
 
     void init() {
@@ -188,6 +187,8 @@ namespace Game {
 
             auto [gb_result, gb_sprite] = graphic_resources->read_256_shared("units/monsters/goblin/sprites.256");
             goblin_sprite = gb_sprite;
+
+            frame_ = 0;
 
 
 //            {
@@ -315,7 +316,7 @@ namespace Game {
 
             lalala = txt.content();
 
-            auto [font_success, font] = graphic_resources->read_font_16_shared("font1/font1.16", "font1/font1.dat");
+            auto [font_success, font] = graphic_resources->read_font_16_shared("font2/font2.16", "font2/font2.dat");
             if(!font_success) {
                 throw std::runtime_error("failed on loading font");
             }
@@ -326,6 +327,13 @@ namespace Game {
                 throw std::runtime_error("failed on loading font");
             }
             test_font2 = font2;
+
+            auto [font3_success, font3] = graphic_resources->read_font_16_shared("font3/font3.16", "font3/font3.dat");
+            if(!font3_success) {
+                throw std::runtime_error("failed on loading font");
+            }
+            test_font3 = font3;
+
 
             cursor_subsystem = std::make_unique<CursorSubsystem>(graphic_resources, cursor_state::c_move);
 
@@ -348,6 +356,7 @@ namespace Game {
         }
         while (tick_accumulator > GAME_SPEED_MS[game_speed]) {
             tick_accumulator -= GAME_SPEED_MS[game_speed];
+            ++frame_;
             switch (current_game_state) {
                 case game_state::main_menu:
                     MainMenuStage::stage->update(mouse_state);
@@ -425,8 +434,9 @@ namespace Game {
 
         cursor_subsystem->render(background_sprite, mouse_state);
 
-        test_font2->render_text(lalala, background_sprite, 16, 16);
-        goblin_sprite->blit_on_sprite(background_sprite, 0, 0, 10);
+        test_font->render_text("012345678912312312312312" /*lalala*/, background_sprite, 200, 170, 0);
+        test_font3->render_text("012345678912312312312312" /*lalala*/, background_sprite, 200, 190, 0);
+        goblin_sprite->blit_on_sprite(background_sprite, 0, 0, frame_);
     }
 
     void key_callback(
@@ -506,6 +516,14 @@ namespace Game {
     }
 
     void dispatch_message(const event& message, uint8_t param0, uint8_t param1) {
-
+        switch (message) {
+            case event::start_adventure: {
+                    auto hero = param0;
+                    auto difficulty = param1;
+                    start_level(10, hero, difficulty);
+                }
+                break;
+            default: break;
+        }
     }
 }

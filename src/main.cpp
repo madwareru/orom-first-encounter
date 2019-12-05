@@ -28,7 +28,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    Game::clear_made = false;
     Game::GameStage::terrain_cache = new uint8_t[4 * Game::window_width * Game::window_height];
     DEFER([&]() {delete [] Game::GameStage::terrain_cache; })
 
