@@ -797,7 +797,7 @@ Sprite16::Sprite16(rage_of_mages_1_16_t* data) {
         overall_raw_size += sprite_record->data_size();
     }
     buffer_raw_ = new uint8_t[overall_raw_size];
-    uint16_t offset = 0;
+    uint32_t offset = 0;
     for(uint16_t i = 0; i < sprite_records->size(); ++i) {
         auto sprite_record = sprite_records->at(i);
         auto sprite_data = sprite_record->data();

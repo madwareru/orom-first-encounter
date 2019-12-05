@@ -21,7 +21,7 @@ private:
     uint8_t palette_g_[256];
     uint8_t palette_b_[256];
     uint16_t frame_count_;
-    std::vector<std::tuple<uint16_t, uint16_t, uint16_t, uint16_t>> frame_info_vector_;
+    std::vector<std::tuple<uint32_t, uint16_t, uint16_t, uint16_t>> frame_info_vector_;
     uint8_t* buffer_raw_;
 };
 

@@ -321,7 +321,7 @@ namespace Game {
             }
             test_font = font;
 
-            auto [font2_success, font2] = graphic_resources->read_font_16a_shared("font4/font4.16a", "font4/font4.dat");
+            auto [font2_success, font2] = graphic_resources->read_font_16a_shared("font5/font5.16a", "font5/font5.dat");
             if(!font2_success) {
                 throw std::runtime_error("failed on loading font");
             }
@@ -333,9 +333,6 @@ namespace Game {
             load_terrain_tiles();
             set_main_menu_state();
 
-        } catch (const std::runtime_error& ex) {
-            LOG_ERROR(ex.what());
-            abort();
         } catch (const std::exception& ex) {
             LOG_ERROR(ex.what());
             abort();
@@ -429,7 +426,7 @@ namespace Game {
         cursor_subsystem->render(background_sprite, mouse_state);
 
         test_font->render_text(lalala, background_sprite, 16, 16, 0);
-        goblin_sprite->blit_on_sprite(background_sprite, 0, 0, 0);
+        goblin_sprite->blit_on_sprite(background_sprite, 0, 0, 10);
     }
 
     void key_callback(

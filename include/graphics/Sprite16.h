@@ -20,7 +20,7 @@ struct Sprite16 {
     uint16_t frame_count() const;
 private:
     uint16_t frame_count_;
-    std::vector<std::tuple<uint16_t, uint16_t, uint16_t, uint16_t>> frame_info_vector_;
+    std::vector<std::tuple<uint32_t, uint16_t, uint16_t, uint16_t>> frame_info_vector_;
     uint8_t* buffer_raw_;
 };
 
