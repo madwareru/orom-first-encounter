@@ -783,7 +783,7 @@ static uint8_t font_palette_lookup_r[256] = {
 
 Sprite16::Sprite16(rage_of_mages_1_16_t* data) {
     frame_count_ = static_cast<uint16_t>(data->sprite_count());
-    uint16_t overall_raw_size = 0;
+    uint32_t overall_raw_size = 0;
     auto sprite_records = data->sprite_records();
     for(uint16_t i = 0; i < sprite_records->size(); ++i) {
         auto sprite_record = sprite_records->at(i);

@@ -186,7 +186,7 @@ namespace Game {
 
             CharacterGenerationStage::assets_loaded = false;
 
-            auto [gb_result, gb_sprite] = graphic_resources->read_256_shared("units/monsters/ghost/sprites.256");
+            auto [gb_result, gb_sprite] = graphic_resources->read_256_shared("units/monsters/goblin/sprites.256");
             goblin_sprite = gb_sprite;
 
 

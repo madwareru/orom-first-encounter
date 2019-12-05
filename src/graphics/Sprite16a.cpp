@@ -20,7 +20,7 @@ Sprite16a::Sprite16a(rage_of_mages_1_16a_t* data) {
             palette_r_[i] = i & 0xFF;
         }
     }
-    uint16_t overall_raw_size = 0;
+    uint32_t overall_raw_size = 0;
     auto sprite_records = data->sprite_records();
     for(uint16_t i = 0; i < sprite_records->size(); ++i) {
         auto sprite_record = sprite_records->at(i);
