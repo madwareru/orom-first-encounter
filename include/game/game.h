@@ -7,8 +7,6 @@
 
 #include <GLFW/glfw3.h>
 
-#include <globals/globals.h>
-
 #include <windowing/window.h>
 
 #include <util/defer_action.h>

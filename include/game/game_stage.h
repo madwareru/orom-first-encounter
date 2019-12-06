@@ -13,8 +13,8 @@ namespace Game {
     struct MouseState;
     namespace GameStage {
         struct GameStageShared {
-            uint8_t* terrain_tile_x_cache;
-            uint8_t* terrain_tile_y_cache;
+            uint8_t* terrain_tile_high_byte_cache;
+            uint8_t* terrain_tile_low_byte_cache;
             uint8_t* terrain_tile_u_cache;
             uint8_t* terrain_tile_v_cache;
             uint16_t camera_x;
