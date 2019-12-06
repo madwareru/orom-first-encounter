@@ -93,7 +93,7 @@ namespace Game {
 
     uint16_t window_width = 1024;
     uint16_t window_height = 768;
-    bool windowed = false;
+    bool windowed = true;
     uint8_t clear_r;
     uint8_t clear_g;
     uint8_t clear_b;

@@ -40,6 +40,9 @@ namespace Game {
             uint16_t window_width_;
             uint16_t window_height_;
 
+            uint16_t max_camera_x_;
+            uint16_t max_camera_y_;
+
             std::unique_ptr<TileMap> tile_map_ptr_;
             //void handle_button_click(uint8_t button_id);
 

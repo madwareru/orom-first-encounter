@@ -5,10 +5,13 @@
 #include <graphics/tilemap/tilemap.h>
 #include <loaders/ksy/rage_of_mages_1_alm.h>
 #include <util/macro_shared.h>
+#include <game/game.h>
+#include <assert.h>
 #include <cmath>
 
 namespace {
     enum {
+        SCROLL_SPEED = 16,
         MAX_ALTITUDE = 255,
         STANDART_TILE_HEIGHT = 32,
         MAX_COLUMN_HEIGHT = (MAX_ALTITUDE + STANDART_TILE_HEIGHT)
@@ -411,6 +414,8 @@ namespace Game {
             LOG("W: " << general_map_info->width());
             LOG("H: " << general_map_info->height());
 
+            max_camera_x_ = static_cast<uint16_t>((general_map_info->width() - 16) * 32 - window_width_);
+            max_camera_y_ = static_cast<uint16_t>((general_map_info->height() - 16) * 32 - window_height_);
 
             tile_map_ptr_.release();
             tile_map_ptr_ = std::make_unique<TileMap>(
@@ -464,7 +469,7 @@ namespace Game {
             }
 
             size_t t_stride = general_map_info->width();
-            size_t h_stride = general_map_info->width()+1;
+            size_t h_stride = general_map_info->width();
 
             size_t t_offset = 0;
             size_t h_offset = 0;
@@ -481,9 +486,14 @@ namespace Game {
                     for(size_t j = 0; j < 8; ++j) {
                         const auto tile = tiles[t_offset + i + j];
                         const auto height_tl = height_map[h_offset + i + j];
-                        const auto height_tr = height_map[h_offset + i + j + 1];
-                        const auto height_bl = height_map[h_offset + i + j + h_stride];
-                        const auto height_br = height_map[h_offset + i + j + h_stride + 1];
+                        const auto height_tr = (i + j < general_map_info->width()-1)
+                                ? height_map[h_offset + i + j + 1]
+                                : height_tl;
+
+                        const auto height_bl =  height_map[h_offset + i + j + h_stride];
+                        const auto height_br = (i + j < general_map_info->width()-1)
+                                ? height_map[h_offset + i + j + h_stride + 1]
+                                : height_bl;
 
                         chunk.tile_id[j] = tile->tile_id();
                         chunk.top_heights[j * 2] = height_tl;
@@ -518,7 +528,18 @@ namespace Game {
         }
 
         void Stage::update(const MouseState &mouse_state) {
-
+            if(mouse_state.mouse_x < 16 && render_shared_.camera_x >= SCROLL_SPEED) {
+                render_shared_.camera_x -= SCROLL_SPEED;
+            }
+            if(mouse_state.mouse_x >= (window_width_ - 16) && render_shared_.camera_x < (max_camera_x_ - SCROLL_SPEED - 1)) {
+                render_shared_.camera_x += SCROLL_SPEED;
+            }
+            if(mouse_state.mouse_y < 16 && render_shared_.camera_y >= SCROLL_SPEED) {
+                render_shared_.camera_y -= SCROLL_SPEED;
+            }
+            if(mouse_state.mouse_y >= (window_height_ - 16) && render_shared_.camera_y < (max_camera_y_ - SCROLL_SPEED - 1)) {
+                render_shared_.camera_y += SCROLL_SPEED;
+            }
         }
 
         template<typename FF>
@@ -590,7 +611,7 @@ namespace Game {
 
         void Stage::render(SOASpriteRGB &background_sprite) {
             draw_tiles(background_sprite);
-//            draw_wireframe(background_sprite);
+            draw_wireframe(background_sprite);
 //            uint16_t x = 0;
 //            uint16_t y = 0;
 //            for(auto tileset : tiles_) {
@@ -617,21 +638,13 @@ namespace Game {
                 for(size_t i = 0; i < tilemap_chunks.size(); ++i) {
                     const TileMapChunk& current_chunk = tilemap_chunks[i];
 
-                    int16_t start_x = (current_chunk.start_tile_i - 8) * 32;
-
-                    if(start_x >= dw) continue;
-                    if(start_x + (8 * 32) < 0) continue;
+                    int16_t start_x = (current_chunk.start_tile_i - 8) * 32 - static_cast<int16_t>(render_shared_.camera_x);
 
                     int16_t x0 = start_x;
                     int16_t x1 = x0 + 32;
-                    int16_t y = (current_chunk.tile_j - 8) * 32;
+                    int16_t y = (static_cast<int16_t>(current_chunk.tile_j) - 8) * 32 - static_cast<int16_t>(render_shared_.camera_y);
 
                     for(size_t k = 0; k < 16; k += 2) {
-                        if(x0 <= -32 || x0 >= dw) {
-                            x0 = x1;
-                            x1 += 32;
-                            continue;
-                        }
                         int16_t y0_top = y - current_chunk.top_heights[k];
                         int16_t y1_top = y - current_chunk.top_heights[k+1];
                         int16_t y0_bottom = y + 32 - current_chunk.bottom_heights[k];
@@ -643,58 +656,77 @@ namespace Game {
                         uint8_t column_id = tile_id & 0xF; tile_id /= 0x10;
                         uint8_t terrain_id = tile_id & 0x3;
 
-                        if(column_id == 2 && row_id > 7) {
+                        if(terrain_id == 2 && row_id > 7) {
+                            LOG_ERROR("WRONG_ROW_ID ( > 7)");
                             row_id = 7;
-                        } else if(column_id != 2 && row_id > 13) {
+                        } else if(terrain_id != 2 && row_id > 13) {
+                            LOG_ERROR("WRONG_ROW_ID ( > 13)");
                             row_id = 13;
+                        }
+
+                        if(terrain_id == 3 && column_id > 3) {
+                            LOG_ERROR("WRONG_COLUMN_ID( > 3)");
+                            column_id = 3;
+                        }
+
+                        if(terrain_id >= 4) {
+                            LOG_ERROR("WRONG TERRAIN ID");
+                            return;
+                        }
+
+                        if(terrain_id >= 4) {
+                            LOG_ERROR("WRONG TERRAIN ID");
+                            return;
                         }
 
                         auto tile_sprite = tiles_[terrain_id][column_id];
 
                         if(x0 >= 0 && x0 < dw && y >= 0 && y < dh && y0_top == y1_top && y0_bottom == y1_bottom && (y1_bottom - y1_top == 32)) {
-                            tile_sprite->blit_on_sprite(back_sprite, x0, y1_top, 0, row_id * 32, 32, 32);
+                            tile_sprite->blit_on_sprite(back_sprite, static_cast<uint16_t>(x0), static_cast<uint16_t>(y1_top), 0, row_id * 32, 32, 32);
                             x0 = x1;
                             x1 += 32;
                             continue;
                         }
 
                         brezenham(x0, y0_top, x1, y1_top, [&](auto xx, auto yy) {
-                            high_row[xx - x0] = yy;
+                            low_row[xx - x0] = yy;
                         });
                         brezenham(x0, y0_bottom, x1, y1_bottom, [&](auto xx, auto yy) {
-                            low_row[xx - x0] = yy;
+                            high_row[xx - x0] = yy;
                         });
 
                         tile_sprite->lock([&](auto tw, auto th, auto tr, auto tg, auto tb)
                         {
                             for(uint8_t x = 0; x < 32; ++x) {
                                 int16_t cx = x0 + x;
-                                if(cx < 0) continue;
-                                if(cx >= dw) break;
-                                int16_t hy = low_row[x];
-                                int16_t ly = high_row[x];
-                                uint16_t h_diff = static_cast<uint16_t>(hy - ly);
+                                if(cx < 0 || cx >= dw) continue;
+
+                                int16_t ly = low_row[x];
+                                int16_t hy = high_row[x];
+
+                                uint16_t h_diff = (hy <= ly) ? 0 : static_cast<uint16_t>(hy - ly);
                                 int16_t cy = ly;
                                 auto scaler_array = ACQUIRE_HEIGHT_SCALER(h_diff);
                                 size_t stride = (row_id * 32) * tw + x;
 
                                 for(uint8_t j = 0; j < 32; ++j) {
-                                    if(cy >= dh) break;
+                                    if(scaler_array[j] == 0) {
+                                        stride += tw;
+                                        continue;
+                                    }
 
-                                    if(scaler_array[j] == 0) continue;
+                                    for(uint8_t zz = scaler_array[j]; zz; --zz) {
+                                        if(cy >= 0 && cy < dh) {
+                                            size_t stride_dest = cy * dw + cx;
 
-                                    for(uint8_t zz = 0; zz < scaler_array[j]; ++zz) {
-                                        if(cy < 0) {
-                                            ++cy;
-                                            continue;
+                                            if(stride_dest > dw*dh) {
+                                                LOG_ERROR("OPPS BRO");
+                                            }
+
+                                            rbuf[stride_dest] = tr[stride];
+                                            gbuf[stride_dest] = tg[stride];
+                                            bbuf[stride_dest] = tb[stride];
                                         }
-
-                                        size_t stride_dest = cy * dw + cx;
-
-                                        rbuf[stride_dest] = tr[stride];
-                                        gbuf[stride_dest] = tg[stride];
-                                        bbuf[stride_dest] = tb[stride];
-
                                         ++cy;
                                         if(cy >= dh) break;
                                     }
@@ -723,9 +755,9 @@ namespace Game {
 
                 for(size_t i = 0; i < tilemap_chunks.size(); ++i) {
                     const TileMapChunk& current_chunk = tilemap_chunks[i];
-                    int16_t x0 = (current_chunk.start_tile_i - 8) * 32;
+                    int16_t x0 = (current_chunk.start_tile_i - 8) * 32 - static_cast<int16_t>(render_shared_.camera_x);
                     int16_t x1 = x0 + 32;
-                    int16_t y = (current_chunk.tile_j - 8) * 32;
+                    int16_t y = (current_chunk.tile_j - 8) * 32 - static_cast<int16_t>(render_shared_.camera_y);
 
                     for(size_t k = 0; k < 16; k += 2) {
                         if(x0 <= -32 || x0 >= dw) {
@@ -736,12 +768,9 @@ namespace Game {
                         int16_t y0_top = y - current_chunk.top_heights[k];
                         int16_t y1_top = y - current_chunk.top_heights[k+1];
                         int16_t y0_bottom = y + 32 - current_chunk.bottom_heights[k];
-                        int16_t y1_bottom = y + 32 - current_chunk.bottom_heights[k+1];
 
                         brezenham(x0, y0_top, x1, y1_top, plotter);
-                        brezenham(x0, y0_bottom, x1, y1_bottom, plotter);
                         brezenham(x0, y0_top, x0, y0_bottom, plotter);
-                        brezenham(x1, y1_top, x1, y1_bottom, plotter);
 
                         x0 = x1;
                         x1 += 32;
