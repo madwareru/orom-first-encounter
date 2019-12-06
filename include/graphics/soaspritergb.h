@@ -12,7 +12,8 @@ struct SOASpriteRGB {
     SOASpriteRGB(SOASpriteRGB&& other) = delete;
     SOASpriteRGB& operator=(SOASpriteRGB&&) = delete;
     ~SOASpriteRGB();
-    void blit_on_sprite(SOASpriteRGB& other, size_t x, size_t y);
+    void blit_on_sprite(SOASpriteRGB& other, int16_t x, int16_t y);
+    void blit_on_sprite(SOASpriteRGB& other, size_t dx, size_t dy, size_t sx, size_t sy, size_t w, size_t h);
     void blit_on_sprite_colorkeyed(SOASpriteRGB& other, size_t x, size_t y, uint8_t key_red, uint8_t key_green, uint8_t key_blue);
     void blit_on_sprite_colorkeyed16(SOASpriteRGB& other, size_t x, size_t y, uint8_t key_red, uint8_t key_green, uint8_t key_blue);
     void blit_on_sprite_semitransparent(SOASpriteRGB& other, size_t x, size_t y);

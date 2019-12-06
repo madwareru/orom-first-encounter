@@ -13,7 +13,7 @@ struct SOASpriteRGBA
     SOASpriteRGBA(SOASpriteRGBA&&) = delete;
     SOASpriteRGBA& operator=(SOASpriteRGBA&&) = delete;
     ~SOASpriteRGBA();
-    void blit_on_sprite(SOASpriteRGB& other, size_t x, size_t y);
+    void blit_on_sprite(SOASpriteRGB& other, int16_t x, int16_t y);
     void blit_on_sprite(SOASpriteRGB& other, size_t dx, size_t dy, size_t sx, size_t sy, size_t w, size_t h);
     template<typename FF>
     void lock(FF&& predicate) {

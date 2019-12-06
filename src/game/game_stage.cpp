@@ -182,14 +182,14 @@ namespace Game {
         }
 
         void Stage::render(SOASpriteRGB &background_sprite) {
-            size_t x = 0;
-            size_t y = 0;
+            int16_t x = -17;
+            int16_t y = -22;
             for(auto tileset : tiles_) {
                 for(auto tile : tileset) {
                     tile->blit_on_sprite(background_sprite, x, y);
                     x += 32;
                     if(x >= 1024) {
-                        x %= 1024;
+                        x -= 1024;
                         y += 32 * 14;
                     }
                 }

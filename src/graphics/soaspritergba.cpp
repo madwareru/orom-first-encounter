@@ -40,7 +40,22 @@ SOASpriteRGBA::~SOASpriteRGBA(){
     delete [] r_buffer_raw_;
 }
 
-void SOASpriteRGBA::blit_on_sprite(SOASpriteRGB& dsprite, size_t x, size_t y) {
+void SOASpriteRGBA::blit_on_sprite(SOASpriteRGB& dsprite, int16_t x, int16_t y) {
+    if(x < 0 || y < 0){
+        if((x < 0) && (static_cast<size_t>(-x) >= width_)) {
+            return;
+        }
+        if((y < 0) && (static_cast<size_t>(-y) >= height_)) {
+            return;
+        }
+        size_t sx = (x < 0) ? static_cast<size_t>(-x) : 0;
+        size_t sy = (y < 0) ? static_cast<size_t>(-y) : 0;
+        size_t dx = (x < 0) ? 0 : static_cast<size_t>(x);
+        size_t dy = (y < 0) ? 0 : static_cast<size_t>(y);
+        blit_on_sprite(dsprite, dx, dy, sx, sy, width_ - sx, height_ - sy);
+        return;
+    }
+
     const size_t sw = width_;
     const size_t sh = height_;
     auto abuf = a_buffer_;
@@ -194,13 +209,158 @@ void SOASpriteRGBA::blit_on_sprite(SOASpriteRGB& dsprite, size_t x, size_t y) {
 }
 
 void SOASpriteRGBA::blit_on_sprite(SOASpriteRGB& dsprite, size_t dx, size_t dy, size_t sx, size_t sy, size_t w, size_t h) {
+    if(sx >= width_ || sy >= height_) return;
     const size_t sw = (sx + w > width_) ? width_ - sx : w;
     const size_t sh = (sy + h > height_) ? height_ - sy : h;
+    const size_t src_stride_start = sx + sy * width_;
     auto abuf = a_buffer_;
     auto bbuf = b_buffer_;
     auto gbuf = g_buffer_;
     auto rbuf = r_buffer_;
     dsprite.lock([&](auto dw, auto dh, auto dr_buf, auto dg_buf, auto db_buf) {
+        if(dx >= dw || dy >= dh) {
+            return;
+        }
 
+        size_t span_width = dw - dx;
+        if(span_width > sw) {
+            span_width = sw;
+        }
+
+        size_t span16_count = span_width / 16;
+        span_width %= 16;
+
+        size_t span_count = dh - dy;
+        if(span_count > sh) {
+            span_count = sh;
+        }
+
+        const size_t dst_stride_start = dx + dw * dy;
+
+        uint8_t* a_data_l = &abuf[src_stride_start];
+        uint8_t* b_data_l = &bbuf[src_stride_start];
+        uint8_t* g_data_l = &gbuf[src_stride_start];
+        uint8_t* r_data_l = &rbuf[src_stride_start];
+
+        uint8_t* db_data_l = &db_buf[dst_stride_start];
+        uint8_t* dg_data_l = &dg_buf[dst_stride_start];
+        uint8_t* dr_data_l = &dr_buf[dst_stride_start];
+
+        auto m_z = _mm_set1_epi32(0);
+
+        for(size_t j = span_count; j; --j) {
+            uint8_t* a_data = a_data_l;
+            uint8_t* b_data = b_data_l;
+            uint8_t* g_data = g_data_l;
+            uint8_t* r_data = r_data_l;
+
+            uint8_t* db_data = db_data_l;
+            uint8_t* dg_data = dg_data_l;
+            uint8_t* dr_data = dr_data_l;
+
+            for(size_t i = span16_count; i; --i) {
+                auto ad = _mm_loadu_si128(reinterpret_cast<__m128i*>(a_data));
+                auto bd = _mm_loadu_si128(reinterpret_cast<__m128i*>(b_data));
+                auto gd = _mm_loadu_si128(reinterpret_cast<__m128i*>(g_data));
+                auto rd = _mm_loadu_si128(reinterpret_cast<__m128i*>(r_data));
+
+                auto dbd = _mm_loadu_si128(reinterpret_cast<__m128i*>(db_data));
+                auto dgd = _mm_loadu_si128(reinterpret_cast<__m128i*>(dg_data));
+                auto drd = _mm_loadu_si128(reinterpret_cast<__m128i*>(dr_data));
+
+                // prepare data by unpacking and interlieving
+
+                auto m_a_lo = _mm_unpacklo_epi8(ad, m_z);
+                auto m_a_hi = _mm_unpackhi_epi8(ad, m_z);
+
+                auto m_b_lo = _mm_unpacklo_epi8(bd, m_z);
+                auto m_b_hi = _mm_unpackhi_epi8(bd, m_z);
+
+                auto m_g_lo = _mm_unpacklo_epi8(gd, m_z);
+                auto m_g_hi = _mm_unpackhi_epi8(gd, m_z);
+
+                auto m_r_lo = _mm_unpacklo_epi8(rd, m_z);
+                auto m_r_hi = _mm_unpackhi_epi8(rd, m_z);
+
+                auto m_db_lo = _mm_unpacklo_epi8(dbd, m_z);
+                auto m_db_hi = _mm_unpackhi_epi8(dbd, m_z);
+
+                auto m_dg_lo = _mm_unpacklo_epi8(dgd, m_z);
+                auto m_dg_hi = _mm_unpackhi_epi8(dgd, m_z);
+
+                auto m_dr_lo = _mm_unpacklo_epi8(drd, m_z);
+                auto m_dr_hi = _mm_unpackhi_epi8(drd, m_z);
+
+                // calculating diffs:
+
+                #define DIFFR(x, lohi) \
+                    auto df_##x##_##lohi = _mm_sub_epi16(m_##x##_##lohi, m_d##x##_##lohi)
+                #define DIFF_COMP(x) DIFFR(x, lo); DIFFR(x, hi)
+                    DIFF_COMP(b);
+                    DIFF_COMP(g);
+                    DIFF_COMP(r);
+                #undef DIFF_COMP
+                #undef DIFFR
+
+                // accs:
+
+                #define ACC(x, lohi) \
+                    auto acc_##x##_##lohi = _mm_mullo_epi16(df_##x##_##lohi, m_a_##lohi)
+                #define ACC_COMP(x) ACC(x, lo); ACC(x, hi)
+                    ACC_COMP(b);
+                    ACC_COMP(g);
+                    ACC_COMP(r);
+                #undef ACC_COMP
+                #undef ACC
+
+                // adds:
+
+                #define ADD_ACC(x, lohi) \
+                    auto add_##x##_##lohi = \
+                    _mm_srli_epi16(_mm_add_epi16(_mm_slli_epi16(m_d##x##_##lohi, 8), acc_##x##_##lohi), 8)
+                #define ADD_ACC_COMP(x) ADD_ACC(x, lo); ADD_ACC(x, hi)
+                    ADD_ACC_COMP(b);
+                    ADD_ACC_COMP(g);
+                    ADD_ACC_COMP(r);
+                #undef ADD_ACC_COMP
+                #undef ADD_ACC
+
+                // finals:
+
+                _mm_storeu_si128(reinterpret_cast<__m128i*>(db_data), _mm_packus_epi16(add_b_lo, add_b_hi));
+                _mm_storeu_si128(reinterpret_cast<__m128i*>(dg_data), _mm_packus_epi16(add_g_lo, add_g_hi));
+                _mm_storeu_si128(reinterpret_cast<__m128i*>(dr_data), _mm_packus_epi16(add_r_lo, add_r_hi));
+
+                a_data += 16;
+                b_data += 16;
+                g_data += 16;
+                r_data += 16;
+
+                db_data += 16;
+                dg_data += 16;
+                dr_data += 16;
+            }
+
+            for(size_t i = span_width; i; --i) {
+                auto alpha = *a_data++;
+
+                *db_data = (*db_data * (255 - alpha) + *b_data++ * alpha) / 256;
+                *dg_data = (*dg_data * (255 - alpha) + *g_data++ * alpha) / 256;
+                *dr_data = (*dr_data * (255 - alpha) + *r_data++ * alpha) / 256;
+
+                db_data++;
+                dg_data++;
+                dr_data++;
+            }
+
+            a_data_l += width_;
+            b_data_l += width_;
+            g_data_l += width_;
+            r_data_l += width_;
+
+            db_data_l += dw;
+            dg_data_l += dw;
+            dr_data_l += dw;
+        }
     });
 }
