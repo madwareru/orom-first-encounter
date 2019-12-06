@@ -11,7 +11,7 @@
 
 namespace {
     enum {
-        SCROLL_SPEED = 16,
+        SCROLL_SPEED = 32,
         MAX_ALTITUDE = 255,
         STANDART_TILE_HEIGHT = 32,
         MAX_COLUMN_HEIGHT = (MAX_ALTITUDE + STANDART_TILE_HEIGHT)
@@ -513,8 +513,8 @@ namespace Game {
                             local_max_y = max_y - height_br;
                         }
                     }
-                    chunk.min_y = local_min_y;
-                    chunk.max_y = local_max_y;
+                    chunk.min_y = local_min_y + (y - 8) * 32;
+                    chunk.max_y = local_max_y + (y - 8) * 32;
                     tile_map_ptr_->add_chunk(chunk);
                 }
                 t_offset += t_stride;
@@ -578,6 +578,7 @@ namespace Game {
             if(dx_abs >= dy_abs) {
                 if(x0 > x1) {
                     auto buf = x0; x0 = x1; x1 = buf;
+                    buf = y0; y0 = y1; y1 = buf;
                 }
                 const int8_t sign = (y1 > y0) ? 1 : -1;
                 int32_t D = dy2 - dx_abs;
@@ -635,20 +636,27 @@ namespace Game {
             int16_t low_row[33];
             const std::vector<TileMapChunk>& tilemap_chunks = tile_map_ptr_->get_chunks();
             back_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
+                auto hght = static_cast<int32_t>(dh);
+                auto wdt = static_cast<int32_t>(dw);
                 for(size_t i = 0; i < tilemap_chunks.size(); ++i) {
                     const TileMapChunk& current_chunk = tilemap_chunks[i];
 
-                    int16_t start_x = (current_chunk.start_tile_i - 8) * 32 - static_cast<int16_t>(render_shared_.camera_x);
+                    int16_t sti = static_cast<int16_t>(current_chunk.start_tile_i);
+
+                    int16_t start_x = (sti - 8) * 32 - static_cast<int16_t>(render_shared_.camera_x);
 
                     int16_t x0 = start_x;
                     int16_t x1 = x0 + 32;
-                    int16_t y = (static_cast<int16_t>(current_chunk.tile_j) - 8) * 32 - static_cast<int16_t>(render_shared_.camera_y);
+
+                    int16_t tile_j = static_cast<int16_t>(current_chunk.tile_j);
+
+                    int16_t y = (tile_j - 8) * 32 - static_cast<int16_t>(render_shared_.camera_y);
 
                     for(size_t k = 0; k < 16; k += 2) {
-                        int16_t y0_top = y - current_chunk.top_heights[k];
-                        int16_t y1_top = y - current_chunk.top_heights[k+1];
-                        int16_t y0_bottom = y + 32 - current_chunk.bottom_heights[k];
-                        int16_t y1_bottom = y + 32 - current_chunk.bottom_heights[k+1];
+                        int16_t y0_top = y - static_cast<int16_t>(current_chunk.top_heights[k]);
+                        int16_t y1_top = y - static_cast<int16_t>(current_chunk.top_heights[k+1]);
+                        int16_t y0_bottom = y + 32 - static_cast<int16_t>(current_chunk.bottom_heights[k]);
+                        int16_t y1_bottom = y + 32 - static_cast<int16_t>(current_chunk.bottom_heights[k+1]);
 
                         uint16_t tile_id = current_chunk.tile_id[k/2];
 
@@ -657,36 +665,16 @@ namespace Game {
                         uint8_t terrain_id = tile_id & 0x3;
 
                         if(terrain_id == 2 && row_id > 7) {
-                            LOG_ERROR("WRONG_ROW_ID ( > 7)");
                             row_id = 7;
                         } else if(terrain_id != 2 && row_id > 13) {
-                            LOG_ERROR("WRONG_ROW_ID ( > 13)");
                             row_id = 13;
                         }
 
                         if(terrain_id == 3 && column_id > 3) {
-                            LOG_ERROR("WRONG_COLUMN_ID( > 3)");
                             column_id = 3;
                         }
 
-                        if(terrain_id >= 4) {
-                            LOG_ERROR("WRONG TERRAIN ID");
-                            return;
-                        }
-
-                        if(terrain_id >= 4) {
-                            LOG_ERROR("WRONG TERRAIN ID");
-                            return;
-                        }
-
                         auto tile_sprite = tiles_[terrain_id][column_id];
-
-                        if(x0 >= 0 && x0 < dw && y >= 0 && y < dh && y0_top == y1_top && y0_bottom == y1_bottom && (y1_bottom - y1_top == 32)) {
-                            tile_sprite->blit_on_sprite(back_sprite, static_cast<uint16_t>(x0), static_cast<uint16_t>(y1_top), 0, row_id * 32, 32, 32);
-                            x0 = x1;
-                            x1 += 32;
-                            continue;
-                        }
 
                         brezenham(x0, y0_top, x1, y1_top, [&](auto xx, auto yy) {
                             low_row[xx - x0] = yy;
@@ -697,38 +685,28 @@ namespace Game {
 
                         tile_sprite->lock([&](auto tw, auto th, auto tr, auto tg, auto tb)
                         {
-                            for(uint8_t x = 0; x < 32; ++x) {
+                            for(int8_t x = 0; x < 32; ++x) {
                                 int16_t cx = x0 + x;
                                 if(cx < 0 || cx >= dw) continue;
 
                                 int16_t ly = low_row[x];
                                 int16_t hy = high_row[x];
 
-                                uint16_t h_diff = (hy <= ly) ? 0 : static_cast<uint16_t>(hy - ly);
-                                int16_t cy = ly;
+                                uint16_t h_diff = (hy <= ly) ? static_cast<uint16_t>(ly - hy) : static_cast<uint16_t>(hy - ly);
+                                int16_t cy = (hy <= ly) ? hy : ly;
                                 auto scaler_array = ACQUIRE_HEIGHT_SCALER(h_diff);
                                 size_t stride = (row_id * 32) * tw + x;
 
                                 for(uint8_t j = 0; j < 32; ++j) {
-                                    if(scaler_array[j] == 0) {
-                                        stride += tw;
-                                        continue;
-                                    }
-
                                     for(uint8_t zz = scaler_array[j]; zz; --zz) {
-                                        if(cy >= 0 && cy < dh) {
-                                            size_t stride_dest = cy * dw + cx;
-
-                                            if(stride_dest > dw*dh) {
-                                                LOG_ERROR("OPPS BRO");
-                                            }
+                                        if(cy >= 0 && cy < hght) {
+                                            int32_t stride_dest = cy * wdt + cx;
 
                                             rbuf[stride_dest] = tr[stride];
                                             gbuf[stride_dest] = tg[stride];
                                             bbuf[stride_dest] = tb[stride];
                                         }
                                         ++cy;
-                                        if(cy >= dh) break;
                                     }
                                     stride += tw;
                                 }
