@@ -3,73 +3,64 @@
 
 #include <iostream>
 #include <fstream>
-#include <emmintrin.h>
 #include <vector>
 
 #include <GLFW/glfw3.h>
-
-#include <globals/globals.h>
 
 #include <windowing/window.h>
 
 #include <util/defer_action.h>
 #include <util/macro_shared.h>
 
-#include <graphics/framebuffer.h>
 #include <graphics/soaspritergb.h>
 #include <graphics/soaspritergba.h>
+#include <graphics/Sprite16a.h>
 
 #include <loaders/pngloader.h>
 #include <loaders/resource_file.h>
 #include <loaders/registry_file.h>
 
+#include <game/cursor_state.h>
 #include <game/systems/systems.h>
 #include <game/components/components.h>
 
-#ifdef max
-    #undef max
-    #undef min
-    #define max_min_undef
-#endif
 #include <ecs.hpp/ecs.hpp>
 
 namespace Game {
-    namespace  {
-        std::shared_ptr<ResourceFile> graphic_resources;
-        std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4] = {
-            std::vector<std::shared_ptr<SOASpriteRGB>>{},
-            std::vector<std::shared_ptr<SOASpriteRGB>>{},
-            std::vector<std::shared_ptr<SOASpriteRGB>>{},
-            std::vector<std::shared_ptr<SOASpriteRGB>>{}
-        };
+    enum class event {
+        start_new_game,
+        close_game,
+        goto_main_menu,
+        start_adventure,
+        set_cursor
+    };
 
-        uint32_t mouse_x;
-        uint32_t mouse_y;
-    }
+    struct CloseGameEvent{};
 
-    namespace MainMenuStage {
-        extern ecs_hpp::registry world;
-        struct update_feature;
-        struct rendering_feature;
-    }
+    struct MouseState {
+        uint16_t mouse_x{0};
+        uint16_t mouse_y{0};
+        bool left_button_down{false};
+        bool middle_button_down{false};
+        bool right_button_down{false};
+    };
 
     namespace CityStage {
         extern ecs_hpp::registry world;
-        struct update_feature;
-        struct rendering_feature;
+        struct update_feature{};
+        struct rendering_feature{};
     }
 
     namespace GameStage {
         extern ecs_hpp::registry world;
-        extern uint8_t* terrain_cache;
-        extern uint8_t* terrain_tile_x_cache;
-        extern uint8_t* terrain_tile_y_cache;
-        extern uint8_t* terrain_tile_u_cache;
-        extern uint8_t* terrain_tile_v_cache;
 
-        struct terrain_feature;
-        struct update_feature;
-        struct rendering_feature;
+        // struct terrain_event{
+        //     GameStageShared* shared_data;
+        // };
+
+        struct terrain_feature{};
+        struct update_feature{};
+        struct rendering_feature{};
     }
 
     extern GLFWwindow* glfw_window;
@@ -77,9 +68,17 @@ namespace Game {
     extern uint16_t window_height;
     extern bool windowed;
 
+    extern uint8_t clear_r;
+    extern uint8_t clear_g;
+    extern uint8_t clear_b;
+
     void init();
     void update(double delta_time);
     void render(SOASpriteRGB& background_sprite);
+
+    void dispatch_message(const event& message);
+    void dispatch_message(const event& message, uint8_t param);
+    void dispatch_message(const event& message, uint8_t param0, uint8_t param1);
 
     void key_callback(
         GLFWwindow* window,
@@ -104,4 +103,3 @@ namespace Game {
 }
 
 #endif // GAME_H
-

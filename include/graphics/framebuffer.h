@@ -2,11 +2,9 @@
 #define FRAMEBUFFER_H
 
 #include <cinttypes>
+#define NOMINMAX
 #include <Windows.h>
 #include <wingdi.h>
-
-struct FrameBuffer;
-struct SOASpriteRGB;
 
 struct FrameBuffer {
     FrameBuffer(size_t w, size_t h);
@@ -15,7 +13,7 @@ struct FrameBuffer {
     ~FrameBuffer();
     void blit_on_dc(const HDC& hdc);
     template<typename FF>
-    void mutate(FF&& predicate) {
+    void lock(FF&& predicate) {
         predicate(width_, height_, color_buffer_);
     }
 private:

@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 project(orom-first-encounter VERSION 1.0)
+
 include(LinkingHelper/link_runtime_static.cmake)
 link_runtime_static()
 

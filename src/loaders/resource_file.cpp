@@ -2,6 +2,14 @@
 #include <iostream>
 #include <util/macro_shared.h>
 #include <loaders/ksy/rage_of_mages_1_bmp.h>
+#include <loaders/ksy/rage_of_mages_1_16a.h>
+#include <loaders/ksy/rage_of_mages_1_256.h>
+#include <loaders/ksy/rage_of_mages_1_16.h>
+
+#include <graphics/Sprite16.h>
+#include <graphics/Sprite16a.h>
+#include <graphics/Sprite256.h>
+#include <graphics/soaspritergb.h>
 
 ResourceFile::ResourceFile(const char* fileName)
 {
@@ -105,6 +113,193 @@ std::tuple<bool, std::shared_ptr<RegistryFile>> ResourceFile::read_registry_res_
     }
 }
 
+std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_mask_shared(const char* path) {
+    try {
+        auto bmp_resource = get_resource(path);
+        if(bmp_resource == nullptr) {
+            LOG_ERROR("Resource not found");
+            return std::make_tuple(false, std::make_shared<SOASpriteRGB>(1,1));
+        }
+        auto bytes = bmp_resource->bytes();
+        kaitai::kstream ks{bytes};
+        rage_of_mages_1_bmp_t bmp_file{&ks};
+
+        if(bmp_file.bi_version() != 40) {
+            LOG_ERROR("this version of bmp not supported");
+            return std::make_tuple(false, std::make_shared<SOASpriteRGB>(1,1));
+        }
+
+        if(bmp_file.data() == nullptr) {
+            LOG_ERROR("data is null");
+            return std::make_tuple(false, std::make_shared<SOASpriteRGB>(1,1));
+        }
+
+        auto bmp_data = bmp_file.data();
+        auto pixels_data = bmp_data->pixels_data();
+        auto bitcount = bmp_file.data()->bi_bitcount();
+
+        auto result = std::make_shared<SOASpriteRGB>(bmp_data->width(), bmp_data->height());
+
+        switch (bitcount) {
+            case 8: {
+                result->lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
+                    size_t d_offset = h * w - w;
+                    size_t slide = w * 2;
+                    size_t s_offset = 0;
+                    for(size_t j = h; j; --j) {
+                        for(size_t i = w; i ; --i) {
+                            auto idx = static_cast<uint8_t>(pixels_data[s_offset++]);
+
+                            bbuf[d_offset] = idx;
+                            gbuf[d_offset] = idx;
+                            rbuf[d_offset++] = idx;
+                        }
+                        d_offset -= slide;
+                     }
+                });
+            } break;
+            default: {
+                LOG("unsupported bitcount detected");
+                return std::make_tuple(true, std::make_shared<SOASpriteRGB>(1,1));
+            }
+        }
+        return std::make_tuple(true, result);
+    } catch (const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        return std::make_tuple(false, std::make_shared<SOASpriteRGB>(1,1));
+    }
+}
+
+std::tuple<bool, std::shared_ptr<Sprite16a>> ResourceFile::read_16a_shared(const char* path) {
+    try {
+        auto sprite_resource = get_resource(path);
+        if(sprite_resource == nullptr) {
+            LOG_ERROR("Resource not found");
+            std::shared_ptr<Sprite16a> result{nullptr};
+            return std::make_tuple(false, result);
+        }
+        auto bytes = sprite_resource->bytes();
+        kaitai::kstream ks{bytes};
+        rage_of_mages_1_16a_t sprite_file{&ks};
+        auto result = std::make_shared<Sprite16a>(&sprite_file);
+        return std::make_tuple(true, result);
+
+    } catch (const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        std::shared_ptr<Sprite16a> result{nullptr};
+        return std::make_tuple(false, result);
+    }
+}
+
+std::tuple<bool, std::shared_ptr<Sprite16>> ResourceFile::read_16_shared(const char* path) {
+    try {
+        auto sprite_resource = get_resource(path);
+        if(sprite_resource == nullptr) {
+            LOG_ERROR("Resource not found");
+            std::shared_ptr<Sprite16> result{nullptr};
+            return std::make_tuple(false, result);
+        }
+        auto bytes = sprite_resource->bytes();
+        kaitai::kstream ks{bytes};
+        rage_of_mages_1_16_t sprite_file{&ks};
+        auto result = std::make_shared<Sprite16>(&sprite_file);
+        return std::make_tuple(true, result);
+
+    } catch (const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        std::shared_ptr<Sprite16> result{nullptr};
+        return std::make_tuple(false, result);
+    }
+}
+
+std::tuple<bool, std::shared_ptr<Sprite256>> ResourceFile::read_256_shared(const char* path) {
+    try {
+        auto sprite_resource = get_resource(path);
+        if(sprite_resource == nullptr) {
+            LOG_ERROR("Resource not found");
+            std::shared_ptr<Sprite256> result{nullptr};
+            return std::make_tuple(false, result);
+        }
+        auto bytes = sprite_resource->bytes();
+        kaitai::kstream ks{bytes};
+        rage_of_mages_1_256_t sprite_file{&ks};
+        auto result = std::make_shared<Sprite256>(&sprite_file);
+        return std::make_tuple(true, result);
+
+    } catch (...) {
+        //LOG_ERROR(ex.what());
+        std::shared_ptr<Sprite256> result{nullptr};
+        return std::make_tuple(false, result);
+    }
+}
+
+std::tuple<bool, std::shared_ptr<Font16>> ResourceFile::read_font_16_shared(const char* sprite_path, const char* gliph_data_path) {
+    auto [sprite_loaded_successfully, sprite] = read_16_shared(sprite_path);
+    if(!sprite_loaded_successfully) {
+        LOG_ERROR("problem occured on loading of .16 file for font " << sprite_path);
+        std::shared_ptr<Font16> res{nullptr};
+        return std::make_tuple(false, res);
+    }
+    auto gliph_data_resource = get_resource(gliph_data_path);
+    if(gliph_data_resource == nullptr) {
+        LOG_ERROR("problem occured on loading of glyph width data: " << gliph_data_path);
+        std::shared_ptr<Font16> res{nullptr};
+        return std::make_tuple(false, res);
+    }
+
+    try {
+        auto gliph_data = gliph_data_resource->bytes();
+        kaitai::kstream ks{gliph_data};
+        std::vector<uint16_t> glyph_width_storage;
+
+        auto count = ks.size() / 4;
+        glyph_width_storage.reserve(count);
+        for(uint16_t i = 0; i < count; ++i) {
+            glyph_width_storage.push_back(static_cast<uint16_t>(ks.read_u4le()));
+        }
+
+        return std::make_tuple(true, std::make_shared<Font16>(sprite, std::move(glyph_width_storage)));
+    } catch(const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        std::shared_ptr<Font16> res{nullptr};
+        return std::make_tuple(false, res);
+    }
+}
+
+std::tuple<bool, std::shared_ptr<Font16a>> ResourceFile::read_font_16a_shared(const char* sprite_path, const char* gliph_data_path) {
+    auto [sprite_loaded_successfully, sprite] = read_16a_shared(sprite_path);
+    if(!sprite_loaded_successfully) {
+        LOG_ERROR("problem occured on loading of .16 file for font " << sprite_path);
+        std::shared_ptr<Font16a> res{nullptr};
+        return std::make_tuple(false, res);
+    }
+    auto gliph_data_resource = get_resource(gliph_data_path);
+    if(gliph_data_resource == nullptr) {
+        LOG_ERROR("problem occured on loading of glyph width data: " << gliph_data_path);
+        std::shared_ptr<Font16a> res{nullptr};
+        return std::make_tuple(false, res);
+    }
+
+    try {
+        auto gliph_data = gliph_data_resource->bytes();
+        kaitai::kstream ks{gliph_data};
+        std::vector<uint16_t> glyph_width_storage;
+
+        auto count = ks.size() / 4;
+        glyph_width_storage.reserve(count);
+        for(uint16_t i = 0; i < count; ++i) {
+            glyph_width_storage.push_back(static_cast<uint16_t>(ks.read_u4le()));
+        }
+
+        return std::make_tuple(true, std::make_shared<Font16a>(sprite, std::move(glyph_width_storage)));
+
+    } catch(const std::exception& ex) {
+        LOG_ERROR(ex.what());
+        std::shared_ptr<Font16a> res{nullptr};
+        return std::make_tuple(false, res);
+    }
+}
+
 std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_bmp_shared(const char* path) {
     try {
         auto bmp_resource = get_resource(path);
@@ -126,20 +321,24 @@ std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_bmp_shared(co
             return std::make_tuple(false, std::make_shared<SOASpriteRGB>(1,1));
         }
 
-        auto result = std::make_shared<SOASpriteRGB>(bmp_file.data()->width(), bmp_file.data()->height());
-        auto mutate_is_ok = true;
-        result->mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
-            size_t d_offset = h * w - w;
-            auto bit_count = bmp_file.data()->bi_bitcount();
-            size_t slide_back = w * 2 * bit_count / 8;
-            size_t s_offset = 0;
-            for(size_t j = h; j; --j) {
-                switch (bmp_file.data()->bi_bitcount()) {
-                    case 8: {
-                        auto palette = bmp_file.data()->palette();
+        auto bmp_data = bmp_file.data();
+        auto pixels_data = bmp_data->pixels_data();
+
+        auto bitcount = bmp_data->bi_bitcount();
+
+        auto result = std::make_shared<SOASpriteRGB>(bmp_data->width(), bmp_data->height());
+
+        switch (bitcount) {
+            case 8: {
+                auto palette = *(bmp_data->palette());
+                result->lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
+                    size_t d_offset = h * w - w;
+                    size_t slide = w * 2;
+                    size_t s_offset = 0;
+                    for(size_t j = h; j; --j) {
                         for(size_t i = w; i ; --i) {
-                            auto idx = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(s_offset++));
-                            auto clr = palette->at(idx);
+                            auto idx = static_cast<uint8_t>(pixels_data[s_offset++]);
+                            auto clr = palette[idx];
 
                             uint8_t b = clr & 0xFF; clr = clr / 0x100;
                             uint8_t g = clr & 0xFF; clr = clr / 0x100;
@@ -153,31 +352,30 @@ std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_bmp_shared(co
                             gbuf[d_offset] = g;
                             rbuf[d_offset++] = r;
                         }
-                    } break;
-                    case 24: {
-                        for(size_t i = w; i; --i) {
-                            rbuf[d_offset] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(s_offset++));
-                            gbuf[d_offset] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(s_offset++));
-                            bbuf[d_offset++] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(s_offset++));
-                        }
-                    } break;
-                    case 32: {
+                        d_offset -= slide;
+                     }
+                });
+            } break;
+            case 24: {
+                result->lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
+                    size_t d_offset = h * w - w;
+                    size_t slide = w * 2;
+                    size_t s_offset = 0;
+                    for(size_t j = h; j; --j) {
                         for(size_t i = w; i ; --i) {
-                            rbuf[d_offset] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(s_offset++));
-                            gbuf[d_offset] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(s_offset++));
-                            bbuf[d_offset++] = static_cast<uint8_t>(bmp_file.data()->pixels_data().at(s_offset++));
-                            ++s_offset;
+                            bbuf[d_offset] = static_cast<uint8_t>(pixels_data[s_offset++]);
+                            gbuf[d_offset] = static_cast<uint8_t>(pixels_data[s_offset++]);
+                            rbuf[d_offset++] = static_cast<uint8_t>(pixels_data[s_offset++]);
                         }
-                    } break;
-                    default:
-                        LOG_ERROR("unsupported bitcount detected");
-                        mutate_is_ok = false;
-                        break;
-                }
-                d_offset -= slide_back;
+                        d_offset -= slide;
+                     }
+                });
+            } break;
+            default: {
+                LOG("unsupported bitcount detected");
+                return std::make_tuple(true, std::make_shared<SOASpriteRGB>(1,1));
             }
-        });
-        if(!mutate_is_ok) return std::make_tuple(false, std::make_shared<SOASpriteRGB>(1,1));
+        }
         return std::make_tuple(true, result);
     } catch (const std::exception& ex) {
         LOG_ERROR(ex.what());

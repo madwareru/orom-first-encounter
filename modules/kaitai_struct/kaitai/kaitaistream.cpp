@@ -539,5 +539,29 @@ uint8_t kaitai::kstream::byte_array_max(const std::string val) {
 #endif
 
 std::string kaitai::kstream::bytes_to_str(std::string src, std::string src_enc) {
+    if(src_enc.compare("IBM866") == 0) {
+        const int8_t diff1251_866_A_YA_a_p = 0xC0 - 0x80; //А..Я,а..п
+        const int8_t diff1251_866_r_ya     = 0xF0 - 0xE0; //р..я
+        const int8_t diff1251_866_JO       = 0xA8 - 0xF0; //Ё
+        const int8_t diff1251_866_jo       = 0xB8 - 0xF1; //ё
+        for(size_t i = 0; i < src.size(); ++i) {
+            auto c = src[i];
+            if(c >= 0) {
+                continue; // a tipycal ASCII set for latin symbols keeped untouched
+            }
+            uint8_t current_char = (static_cast<int16_t>(c) + 0x100) & 0xFF;
+            if(current_char < 0xB0) {
+                src[i] = c + diff1251_866_A_YA_a_p;
+            } else if(current_char >= 0xE0 && current_char < 0xF0){
+                src[i] = c + diff1251_866_r_ya;
+            } else if(current_char == 0xF0) {
+                src[i] = c + diff1251_866_JO;
+            } else if(current_char == 0xF1) {
+                src[i] = c + diff1251_866_jo;
+            } else {
+                src[i] = ' '; // ignore special symbols
+            }
+        }
+    }
     return src;
 }

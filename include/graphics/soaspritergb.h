@@ -2,11 +2,8 @@
 #define SOASPRITERGB_H
 
 #include <cinttypes>
-#include <Windows.h>
-#include <wingdi.h>
 
 struct FrameBuffer;
-struct SOASpriteRGB;
 
 struct SOASpriteRGB {
     SOASpriteRGB(size_t w, size_t h);
@@ -15,15 +12,22 @@ struct SOASpriteRGB {
     SOASpriteRGB(SOASpriteRGB&& other) = delete;
     SOASpriteRGB& operator=(SOASpriteRGB&&) = delete;
     ~SOASpriteRGB();
-    void blit_on_sprite(SOASpriteRGB& other, size_t x, size_t y);
+    void blit_on_sprite(SOASpriteRGB& other, int16_t x, int16_t y);
+    void blit_on_sprite(SOASpriteRGB& other, size_t dx, size_t dy, size_t sx, size_t sy, size_t w, size_t h);
     void blit_on_sprite_colorkeyed(SOASpriteRGB& other, size_t x, size_t y, uint8_t key_red, uint8_t key_green, uint8_t key_blue);
     void blit_on_sprite_colorkeyed16(SOASpriteRGB& other, size_t x, size_t y, uint8_t key_red, uint8_t key_green, uint8_t key_blue);
     void blit_on_sprite_semitransparent(SOASpriteRGB& other, size_t x, size_t y);
     void blit_on_frame_buffer(FrameBuffer& other, size_t x, size_t y);
+
+    uint8_t get_mask_pixel(size_t x, size_t y) const;
+
     template<typename FF>
-    void mutate(FF&& predicate) {
+    void lock(FF&& predicate) {
         predicate(width_, height_, r_buffer_, g_buffer_, b_buffer_);
     }
+
+    size_t width() const;
+    size_t height() const;
 private:
     size_t width_;
     size_t height_;

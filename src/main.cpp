@@ -5,6 +5,7 @@
 
 #include <windowing/window.h>
 #include <game/game.h>
+#include <game/game_stage.h>
 
 int main(int argc, char** argv) {
     if(argc > 1) {
@@ -28,18 +29,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    Game::GameStage::terrain_cache = new uint8_t[4 * Game::window_width * Game::window_height];
-    DEFER([&]() {delete [] Game::GameStage::terrain_cache; })
-    size_t offset = 0;
-
-    Game::GameStage::terrain_tile_x_cache = &Game::GameStage::terrain_cache[offset];
-    offset += Game::window_width * Game::window_height;
-    Game::GameStage::terrain_tile_y_cache = &Game::GameStage::terrain_cache[offset];
-    offset += Game::window_width * Game::window_height;
-    Game::GameStage::terrain_tile_u_cache = &Game::GameStage::terrain_cache[offset];
-    offset += Game::window_width * Game::window_height;
-    Game::GameStage::terrain_tile_v_cache = &Game::GameStage::terrain_cache[offset];
-
     WindowCreationParams window_params {
         "Open Rage Of Mages", // title
         Game::window_width,   // width
@@ -47,6 +36,10 @@ int main(int argc, char** argv) {
         !Game::windowed,      // fullscreen
         0x07, 0x02, 0x13      // clear color
     };
+
+    Game::clear_r = window_params.clear_color_r;
+    Game::clear_g = window_params.clear_color_g;
+    Game::clear_b = window_params.clear_color_b;
 
     LifetimeProcHolder lifetime_procs {
         Game::init,

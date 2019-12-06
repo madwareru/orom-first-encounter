@@ -1,8 +1,19 @@
+#include <iostream>
+#include <fstream>
+#include <memory>
+#include <emmintrin.h>
+#include <graphics/soaspritergb.h>
+#include <graphics/framebuffer.h>
 #include <windowing/window.h>
+
 #include <util/macro_shared.h>
 #include <util/defer_action.h>
 
-#define FPS_60_MILLIS 0.0166
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+
+#define FPS_70_MILLIS 0.014
 #define VSYNC_ON
 
 LifetimeProcHolder::LifetimeProcHolder(
@@ -30,10 +41,6 @@ bool start_main_loop(
     HDC h_dc;
     char title_buf[255];
     FrameBuffer frame_buffer{window_params.w_width, window_params.w_height};
-
-    auto clear_r = window_params.clear_color_r;
-    auto clear_g = window_params.clear_color_g;
-    auto clear_b = window_params.clear_color_b;
 
     auto render = lifetime_procs.render_proc_addr;
     auto update = lifetime_procs.update_proc_addr;
@@ -74,28 +81,6 @@ bool start_main_loop(
 
     SOASpriteRGB background_sprite{window_params.w_width, window_params.w_height};
 
-    background_sprite.mutate([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
-        const size_t size = w * h;
-        __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(clear_r));
-        __m128i clrg = _mm_set1_epi8(static_cast<int8_t>(clear_g));
-        __m128i clrb = _mm_set1_epi8(static_cast<int8_t>(clear_b));
-
-        uint8_t *rb = rbuf;
-        uint8_t *gb = gbuf;
-        uint8_t *bb = bbuf;
-
-        for(size_t i = size / 16; i; --i) {
-            _mm_stream_si128(reinterpret_cast<__m128i*>(bb), clrb);
-            _mm_stream_si128(reinterpret_cast<__m128i*>(gb), clrg);
-            _mm_stream_si128(reinterpret_cast<__m128i*>(rb), clrr);
-            rb += 16;
-            gb += 16;
-            bb += 16;
-        }
-    });
-    background_sprite.blit_on_frame_buffer(frame_buffer, 0, 0);
-    frame_buffer.blit_on_dc(h_dc);
-
     (*init)();
 
     while(!glfwWindowShouldClose(glfw_window)) {
@@ -119,10 +104,10 @@ bool start_main_loop(
         background_sprite.blit_on_frame_buffer(frame_buffer, 0, 0);
         frame_buffer.blit_on_dc(h_dc);
 #ifdef VSYNC_ON
-        double diff = point_a + FPS_60_MILLIS - glfwGetTime();
+        double diff = point_a + FPS_70_MILLIS - glfwGetTime();
         while(diff > 0.0) {
             glfwWaitEventsTimeout(diff);
-            diff = point_a + FPS_60_MILLIS - glfwGetTime();
+            diff = point_a + FPS_70_MILLIS - glfwGetTime();
         }
 #else
         glfwPollEvents();
