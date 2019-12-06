@@ -133,6 +133,7 @@ namespace Game {
 
     void start_level(uint8_t level_id, uint8_t main_hero, uint8_t difficulty){
         current_game_state = game_state::game;
+        GameStage::stage->load_level(level_id);
         Game::dispatch_message(event::set_cursor, static_cast<uint8_t>(cursor_state::c_move));
     }
 

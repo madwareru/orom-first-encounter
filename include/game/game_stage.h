@@ -7,6 +7,7 @@
 
 struct ResourceFile;
 struct SOASpriteRGB;
+struct TileMap;
 
 namespace Game {
     struct MouseState;
@@ -25,6 +26,9 @@ namespace Game {
                 std::shared_ptr<ResourceFile> scenario_resources,
                 uint16_t window_width,
                 uint16_t window_height);
+
+            void load_level(uint8_t level_id);
+
             void on_enter();
             void update(const MouseState& mouse_state);
             void render(SOASpriteRGB &background_sprite);
@@ -32,6 +36,8 @@ namespace Game {
         private:
             uint16_t window_width_;
             uint16_t window_height_;
+
+            std::unique_ptr<TileMap> tile_map_ptr_;
             //void handle_button_click(uint8_t button_id);
 
             //bool mouse_down_;

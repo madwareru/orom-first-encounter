@@ -10,7 +10,7 @@ struct TileMap {
     TileMap& operator=(const TileMap&) = delete;
     TileMap(TileMap&&) = delete;
     TileMap& operator=(TileMap&&) = delete;
-    void add_chunk(TileMapChunk&& chunk);
+    void add_chunk(const TileMapChunk& chunk);
     const std::vector<TileMapChunk>& get_chunks() const;
 private:
     std::vector<TileMapChunk> tile_chunks_;
