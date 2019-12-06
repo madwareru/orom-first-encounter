@@ -34,6 +34,9 @@ namespace Game {
             void render(SOASpriteRGB &background_sprite);
             ~Stage();
         private:
+            void draw_tiles(SOASpriteRGB& back_sprite);
+            void draw_wireframe(SOASpriteRGB& back_sprite);
+
             uint16_t window_width_;
             uint16_t window_height_;
 

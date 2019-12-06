@@ -5,6 +5,7 @@
 #include <graphics/tilemap/tilemap.h>
 #include <loaders/ksy/rage_of_mages_1_alm.h>
 #include <util/macro_shared.h>
+#include <cmath>
 
 namespace {
     enum {
@@ -520,23 +521,233 @@ namespace Game {
 
         }
 
-        void Stage::render(SOASpriteRGB &background_sprite) {
-            uint16_t x = 0;
-            uint16_t y = 0;
-            for(auto tileset : tiles_) {
-                for(auto tile : tileset) {
-                    tile->blit_on_sprite(background_sprite, x, y, 0, 96, 32, 64);
-                    x += 32;
-                    if(x >= 1024) {
-                        x -= 1024;
-                        y += 32 * 14;
+        template<typename FF>
+        inline void brezenham(int16_t x0, int16_t y0, int16_t x1, int16_t y1, FF&& plot_func) {
+            if(y0 == y1) {
+                if(x1 >= x0) {
+                    for(int16_t x = x0; x < x1; ++x) {
+                        plot_func(x, y0);
                     }
+                } else {
+                    for(int16_t x = x1; x < x0; ++x) {
+                        plot_func(x, y0);
+                    }
+                }
+                return;
+            }
+
+            if(x0 == x1) {
+                if(y1 >= y0) {
+                    for(int16_t y = y0; y < y1; ++y) {
+                        plot_func(x0, y);
+                    }
+                } else {
+                    for(int16_t y = y1; y < y0; ++y) {
+                        plot_func(x0, y);
+                    }
+                }
+                return;
+            }
+
+            const auto dy_abs = std::abs(y1 - y0);
+            const auto dx_abs = std::abs(x1 - x0);
+            const auto dx2 = 2 * dx_abs;
+            const auto dy2 = 2 * dy_abs;
+
+            if(dx_abs >= dy_abs) {
+                if(x0 > x1) {
+                    auto buf = x0; x0 = x1; x1 = buf;
+                }
+                const int8_t sign = (y1 > y0) ? 1 : -1;
+                int32_t D = dy2 - dx_abs;
+                int16_t y = y0;
+                for(int16_t x = x0; x < x1; ++x) {
+                    plot_func(x, y);
+                    if(D > 0) {
+                        D -= dx2;
+                        y += sign;
+                    }
+                    D += dy2;
+                }
+
+            } else {
+                if(y0 > y1) {
+                    auto buf = y0; y0 = y1; y1 = buf;
+                }
+                const int8_t sign = (x1 > x0) ? 1 : -1;
+                int32_t D = dx2 - dy_abs;
+                int16_t x = x0;
+                for(int16_t y = y0; y < y1; ++y) {
+                    plot_func(x, y);
+                    if(D > 0) {
+                        D -= dy2;
+                        x += sign;
+                    }
+                    D += dx2;
                 }
             }
         }
 
+        void Stage::render(SOASpriteRGB &background_sprite) {
+            draw_tiles(background_sprite);
+//            draw_wireframe(background_sprite);
+//            uint16_t x = 0;
+//            uint16_t y = 0;
+//            for(auto tileset : tiles_) {
+//                for(auto tile : tileset) {
+//                    tile->blit_on_sprite(background_sprite, x, y, 0, 96, 32, 64);
+//                    x += 32;
+//                    if(x >= 1024) {
+//                        x -= 1024;
+//                        y += 32 * 14;
+//                    }
+//                }
+//            }
+        }
+
         void Stage::on_enter() {
 
+        }
+
+        void Stage::draw_tiles(SOASpriteRGB& back_sprite) {
+            int16_t high_row[33];
+            int16_t low_row[33];
+            const std::vector<TileMapChunk>& tilemap_chunks = tile_map_ptr_->get_chunks();
+            back_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
+                for(size_t i = 0; i < tilemap_chunks.size(); ++i) {
+                    const TileMapChunk& current_chunk = tilemap_chunks[i];
+
+                    int16_t start_x = (current_chunk.start_tile_i - 8) * 32;
+
+                    if(start_x >= dw) continue;
+                    if(start_x + (8 * 32) < 0) continue;
+
+                    int16_t x0 = start_x;
+                    int16_t x1 = x0 + 32;
+                    int16_t y = (current_chunk.tile_j - 8) * 32;
+
+                    for(size_t k = 0; k < 16; k += 2) {
+                        if(x0 <= -32 || x0 >= dw) {
+                            x0 = x1;
+                            x1 += 32;
+                            continue;
+                        }
+                        int16_t y0_top = y - current_chunk.top_heights[k];
+                        int16_t y1_top = y - current_chunk.top_heights[k+1];
+                        int16_t y0_bottom = y + 32 - current_chunk.bottom_heights[k];
+                        int16_t y1_bottom = y + 32 - current_chunk.bottom_heights[k+1];
+
+                        uint16_t tile_id = current_chunk.tile_id[k/2];
+
+                        uint8_t row_id = tile_id & 0xF; tile_id /= 0x10;
+                        uint8_t column_id = tile_id & 0xF; tile_id /= 0x10;
+                        uint8_t terrain_id = tile_id & 0x3;
+
+                        if(column_id == 2 && row_id > 7) {
+                            row_id = 7;
+                        } else if(column_id != 2 && row_id > 13) {
+                            row_id = 13;
+                        }
+
+                        auto tile_sprite = tiles_[terrain_id][column_id];
+
+                        if(x0 >= 0 && x0 < dw && y >= 0 && y < dh && y0_top == y1_top && y0_bottom == y1_bottom && (y1_bottom - y1_top == 32)) {
+                            tile_sprite->blit_on_sprite(back_sprite, x0, y1_top, 0, row_id * 32, 32, 32);
+                            x0 = x1;
+                            x1 += 32;
+                            continue;
+                        }
+
+                        brezenham(x0, y0_top, x1, y1_top, [&](auto xx, auto yy) {
+                            high_row[xx - x0] = yy;
+                        });
+                        brezenham(x0, y0_bottom, x1, y1_bottom, [&](auto xx, auto yy) {
+                            low_row[xx - x0] = yy;
+                        });
+
+                        tile_sprite->lock([&](auto tw, auto th, auto tr, auto tg, auto tb)
+                        {
+                            for(uint8_t x = 0; x < 32; ++x) {
+                                int16_t cx = x0 + x;
+                                if(cx < 0) continue;
+                                if(cx >= dw) break;
+                                int16_t hy = low_row[x];
+                                int16_t ly = high_row[x];
+                                uint16_t h_diff = static_cast<uint16_t>(hy - ly);
+                                int16_t cy = ly;
+                                auto scaler_array = ACQUIRE_HEIGHT_SCALER(h_diff);
+                                size_t stride = (row_id * 32) * tw + x;
+
+                                for(uint8_t j = 0; j < 32; ++j) {
+                                    if(cy >= dh) break;
+
+                                    if(scaler_array[j] == 0) continue;
+
+                                    for(uint8_t zz = 0; zz < scaler_array[j]; ++zz) {
+                                        if(cy < 0) {
+                                            ++cy;
+                                            continue;
+                                        }
+
+                                        size_t stride_dest = cy * dw + cx;
+
+                                        rbuf[stride_dest] = tr[stride];
+                                        gbuf[stride_dest] = tg[stride];
+                                        bbuf[stride_dest] = tb[stride];
+
+                                        ++cy;
+                                        if(cy >= dh) break;
+                                    }
+                                    stride += tw;
+                                }
+                            }
+                        });
+
+                        x0 = x1;
+                        x1 += 32;
+                    }
+                }
+            });
+        }
+
+        void Stage::draw_wireframe(SOASpriteRGB& back_sprite) {
+            const std::vector<TileMapChunk>& tilemap_chunks = tile_map_ptr_->get_chunks();
+            back_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
+                auto plotter = [&](auto x, auto y) {
+                    if(x < 0 || y < 0 || x >= dw || y >= dh) return;
+                    auto stride = x + y * dw;
+                    rbuf[stride] = 0x80;
+                    gbuf[stride] = 0x20;
+                    bbuf[stride] = 0x20;
+                };
+
+                for(size_t i = 0; i < tilemap_chunks.size(); ++i) {
+                    const TileMapChunk& current_chunk = tilemap_chunks[i];
+                    int16_t x0 = (current_chunk.start_tile_i - 8) * 32;
+                    int16_t x1 = x0 + 32;
+                    int16_t y = (current_chunk.tile_j - 8) * 32;
+
+                    for(size_t k = 0; k < 16; k += 2) {
+                        if(x0 <= -32 || x0 >= dw) {
+                            x0 = x1;
+                            x1 += 32;
+                            continue;
+                        }
+                        int16_t y0_top = y - current_chunk.top_heights[k];
+                        int16_t y1_top = y - current_chunk.top_heights[k+1];
+                        int16_t y0_bottom = y + 32 - current_chunk.bottom_heights[k];
+                        int16_t y1_bottom = y + 32 - current_chunk.bottom_heights[k+1];
+
+                        brezenham(x0, y0_top, x1, y1_top, plotter);
+                        brezenham(x0, y0_bottom, x1, y1_bottom, plotter);
+                        brezenham(x0, y0_top, x0, y0_bottom, plotter);
+                        brezenham(x1, y1_top, x1, y1_bottom, plotter);
+
+                        x0 = x1;
+                        x1 += 32;
+                    }
+                }
+            });
         }
     }
 }

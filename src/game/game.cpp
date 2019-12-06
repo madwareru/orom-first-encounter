@@ -396,9 +396,9 @@ namespace Game {
 
         cursor_subsystem->render(background_sprite, mouse_state);
 
-        test_font->render_text("012345678912312312312312" /*lalala*/, background_sprite, 200, 170, 0);
-        test_font3->render_text("012345678912312312312312" /*lalala*/, background_sprite, 200, 190, 0);
-        goblin_sprite->blit_on_sprite(background_sprite, 0, 0, frame_);
+//        test_font->render_text("012345678912312312312312" /*lalala*/, background_sprite, 200, 170, 0);
+//        test_font3->render_text("012345678912312312312312" /*lalala*/, background_sprite, 200, 190, 0);
+//        goblin_sprite->blit_on_sprite(background_sprite, 0, 0, frame_);
     }
 
     void key_callback(
