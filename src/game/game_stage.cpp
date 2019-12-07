@@ -568,7 +568,19 @@ namespace Game {
                     return;
                 }
 
-                LOG("TODO: FIND ACTUAL TRIGGER FOR DROP LOCATION AND CORRECT CAMERA POS ACCORDING TO IT");
+                auto instances = *(trigger_data->instances());
+
+                for(uint16_t i = 0; i < trigger_data->instance_count(); ++i) {
+                    const auto current_instance = instances[i];
+                    if(current_instance->type() == rage_of_mages_1_alm_t::INSTANCE_TYPE_START_HERE) {
+                        LOG("FOUND DROP LOCATION INSTANCE!");
+                        uint32_t drop_x = current_instance->argument_values()->at(0);
+                        uint32_t drop_y = current_instance->argument_values()->at(1);
+                        render_shared_.camera_x = std::min(max_camera_x_, static_cast<uint16_t>((drop_x * 32) - window_width_ / 2));
+                        render_shared_.camera_y = std::min(max_camera_y_, static_cast<uint16_t>((drop_y * 32) - window_height_ / 2));
+                        break;
+                    }
+                }
             }
 
             LOG("TODO: LOADING MAP OBJECTS");
