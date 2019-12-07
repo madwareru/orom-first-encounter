@@ -376,15 +376,15 @@ namespace Game {
             tile_map_ptr_ = std::unique_ptr<TileMap>{nullptr};
 
             char buf[32];
-            for(size_t i = 1; i <= 4; ++i) {
-                const size_t capacity = (i < 4) ? 16 : 4;
+            for(uint8_t i = 1; i <= 4; ++i) {
+                const uint8_t capacity = (i < 4) ? 16 : 4;
                 tiles_[i-1].reserve(capacity);
-                for(size_t j = 0; j < capacity; ++j)
+                for(uint8_t j = 0; j < capacity; ++j)
                 {
                     if(j < 10) {
-                        sprintf(buf, "terrain/tile%d-0%d.bmp", (int)i, (int)j);
+                        sprintf(buf, "terrain/tile%d-0%u.bmp", i, j);
                     } else {
-                        sprintf(buf, "terrain/tile%d-%d.bmp", (int)i, (int)j);
+                        sprintf(buf, "terrain/tile%d-%u.bmp", i, j);
                     }
                     auto[success, next_bmp] = graphic_resources_->read_bmp_shared(buf);
                     if(success) {
@@ -423,11 +423,17 @@ namespace Game {
                 general_map_info->height()
             );
 
-            //read_tiles
-
-            uint8_t tiles_id = 255;
+            uint8_t tiles_id      = 255;
             uint8_t height_map_id = 255;
+            uint8_t trigger_id    = 255;
+            uint8_t map_obj_id    = 255;
+            uint8_t fractions_id  = 255;
+            uint8_t units_id      = 255;
+            uint8_t structures_id = 255;
+            uint8_t sacks_id      = 255;
+            uint8_t effects_id    = 255;
 
+            LOG("READING SECTION HEADERS. SEARCHING CONCRETE SECTION LOCATIONS");
             for(uint8_t i = 0; i < alm.sections()->size(); ++i) {
                 const rage_of_mages_1_alm_t::alm_section_t* section_info = alm.sections()->at(i);
 
@@ -438,89 +444,172 @@ namespace Game {
                     case rage_of_mages_1_alm_t::SECTION_KIND_E_HEIGHT_MAP:
                         height_map_id = i;
                         break;
+                    case rage_of_mages_1_alm_t::SECTION_KIND_E_FRACTIONS:
+                        fractions_id = i;
+                        break;
+                    case rage_of_mages_1_alm_t::SECTION_KIND_E_MAP_OBJECTS:
+                        map_obj_id = i;
+                        break;
+                    case rage_of_mages_1_alm_t::SECTION_KIND_E_TRIGGERS:
+                        trigger_id = i;
+                        break;
+                    case rage_of_mages_1_alm_t::SECTION_KIND_E_UNITS:
+                        units_id = i;
+                        break;
+                    case rage_of_mages_1_alm_t::SECTION_KIND_E_STRUCTURES:
+                        structures_id = i;
+                        break;
+                    case rage_of_mages_1_alm_t::SECTION_KIND_E_SACKS:
+                        sacks_id = i;
+                        break;
+                    case rage_of_mages_1_alm_t::SECTION_KIND_E_EFFECTS:
+                        effects_id = i;
+                        break;
                     default: break;
                 }
             }
 
-            if(tiles_id == 255 || height_map_id == 255) {
-                LOG_ERROR("there was an error while retrieving tilemap data");
-                return;
-            }
-
-            const auto tiles_data =
-                dynamic_cast<rage_of_mages_1_alm_t::tiles_sec_t*>(
-                    alm.sections()->at(tiles_id)->body()
-                );
-            const auto height_map_data =
-                dynamic_cast<rage_of_mages_1_alm_t::height_map_sec_t*>(
-                    alm.sections()->at(height_map_id)->body()
-                );
-
-            if(tiles_data == nullptr || height_map_data == nullptr) {
-                LOG_ERROR("there was an error while retrieving tilemap data (dynamic cast)");
-                return;
-            }
-
-            const auto tiles = *(tiles_data->tiles());
-            const auto height_map = *(height_map_data->heights());
-
-            if(tiles.size() % 8 != 0) {
-                LOG_ERROR("hmm...");
-            }
-
-            size_t t_stride = general_map_info->width();
-            size_t h_stride = general_map_info->width();
-
-            size_t t_offset = 0;
-            size_t h_offset = 0;
-
-            for(uint8_t y = 0; y < general_map_info->height(); ++y) {
-                int16_t min_y = static_cast<int16_t>(y * 32);
-                int16_t max_y = static_cast<int16_t>(min_y + 32);
-                for(uint8_t i = 0; i < general_map_info->width(); i += 8) {
-                    TileMapChunk chunk;
-                    chunk.start_tile_i = i;
-                    chunk.tile_j = y;
-                    int16_t local_min_y = min_y;
-                    int16_t local_max_y = max_y - 255;
-                    for(size_t j = 0; j < 8; ++j) {
-                        const auto tile = tiles[t_offset + i + j];
-                        const auto height_tl = height_map[h_offset + i + j];
-                        const auto height_tr = (i + j < general_map_info->width()-1)
-                                ? height_map[h_offset + i + j + 1]
-                                : height_tl;
-
-                        const auto height_bl =  height_map[h_offset + i + j + h_stride];
-                        const auto height_br = (i + j < general_map_info->width()-1)
-                                ? height_map[h_offset + i + j + h_stride + 1]
-                                : height_bl;
-
-                        chunk.tile_id[j] = tile->tile_id();
-                        chunk.top_heights[j * 2] = height_tl;
-                        if(min_y - height_tl < local_min_y) {
-                            local_min_y = min_y - height_tl;
-                        }
-                        chunk.top_heights[j * 2 + 1] = height_tr;
-                        if(min_y - height_tr < local_min_y) {
-                            local_min_y = min_y - height_tr;
-                        }
-                        chunk.bottom_heights[j * 2] = height_bl;
-                        if(max_y - height_bl > local_max_y) {
-                            local_max_y = max_y - height_bl;
-                        }
-                        chunk.bottom_heights[j * 2 + 1] = height_br;
-                        if(max_y - height_br > local_max_y) {
-                            local_max_y = max_y - height_br;
-                        }
-                    }
-                    chunk.min_y = local_min_y + (y - 8) * 32;
-                    chunk.max_y = local_max_y + (y - 8) * 32;
-                    tile_map_ptr_->add_chunk(chunk);
+            LOG("LOADING TILEMAP DATA");
+            {
+                if(tiles_id == 255 || height_map_id == 255) {
+                    LOG_ERROR("there was an error while retrieving tilemap data");
+                    return;
                 }
-                t_offset += t_stride;
-                h_offset += h_stride;
+
+                const auto tiles_data =
+                    dynamic_cast<rage_of_mages_1_alm_t::tiles_sec_t*>(
+                        alm.sections()->at(tiles_id)->body()
+                    );
+                const auto height_map_data =
+                    dynamic_cast<rage_of_mages_1_alm_t::height_map_sec_t*>(
+                        alm.sections()->at(height_map_id)->body()
+                    );
+
+                if(tiles_data == nullptr || height_map_data == nullptr) {
+                    LOG_ERROR("there was an error while retrieving tilemap data (dynamic cast)");
+                    return;
+                }
+
+                const auto tiles = *(tiles_data->tiles());
+                const auto height_map = *(height_map_data->heights());
+
+                if(tiles.size() % 8 != 0) {
+                    LOG_ERROR("hmm...");
+                }
+
+                size_t t_stride = general_map_info->width();
+                size_t h_stride = general_map_info->width();
+
+                size_t t_offset = 0;
+                size_t h_offset = 0;
+
+                for(uint8_t y = 0; y < general_map_info->height(); ++y) {
+                    int16_t min_y = static_cast<int16_t>(y * 32);
+                    int16_t max_y = static_cast<int16_t>(min_y + 32);
+                    for(uint8_t i = 0; i < general_map_info->width(); i += 8) {
+                        TileMapChunk chunk;
+                        chunk.start_tile_i = i;
+                        chunk.tile_j = y;
+                        int16_t local_min_y = min_y;
+                        int16_t local_max_y = max_y - 255;
+                        for(size_t j = 0; j < 8; ++j) {
+                            const auto tile = tiles[t_offset + i + j];
+                            const auto height_tl = height_map[h_offset + i + j];
+                            const auto height_tr = (i + j < general_map_info->width()-1)
+                                    ? height_map[h_offset + i + j + 1]
+                                    : height_tl;
+
+                            const auto height_bl =  height_map[h_offset + i + j + h_stride];
+                            const auto height_br = (i + j < general_map_info->width()-1)
+                                    ? height_map[h_offset + i + j + h_stride + 1]
+                                    : height_bl;
+
+                            chunk.tile_id[j] = tile->tile_id();
+                            chunk.top_heights[j * 2] = height_tl;
+                            if(min_y - height_tl < local_min_y) {
+                                local_min_y = min_y - height_tl;
+                            }
+                            chunk.top_heights[j * 2 + 1] = height_tr;
+                            if(min_y - height_tr < local_min_y) {
+                                local_min_y = min_y - height_tr;
+                            }
+                            chunk.bottom_heights[j * 2] = height_bl;
+                            if(max_y - height_bl > local_max_y) {
+                                local_max_y = max_y - height_bl;
+                            }
+                            chunk.bottom_heights[j * 2 + 1] = height_br;
+                            if(max_y - height_br > local_max_y) {
+                                local_max_y = max_y - height_br;
+                            }
+                        }
+                        chunk.min_y = local_min_y + (y - 8) * 32;
+                        chunk.max_y = local_max_y + (y - 8) * 32;
+                        tile_map_ptr_->add_chunk(chunk);
+                    }
+                    t_offset += t_stride;
+                    h_offset += h_stride;
+                }
             }
-            LOG("FINISHED LOADING TILEMAP DATA");
+
+            LOG("SEARCHING FOR DROP LOCATION");
+            {
+                if(trigger_id == 255) {
+                    LOG_ERROR("there was an error while retrieving trigger data");
+                    return;
+                }
+
+                const auto trigger_data =
+                    dynamic_cast<rage_of_mages_1_alm_t::triggers_sec_t*>(
+                        alm.sections()->at(trigger_id)->body()
+                    );
+
+                if(trigger_data == nullptr) {
+                    LOG_ERROR("there was an error while retrieving trigger data (dynamic cast)");
+                    return;
+                }
+
+                LOG("TODO: FIND ACTUAL TRIGGER FOR DROP LOCATION AND CORRECT CAMERA POS ACCORDING TO IT");
+            }
+
+            LOG("TODO: LOADING MAP OBJECTS");
+            {
+
+            }
+
+            LOG("TODO: LOADING FRACTIONS");
+            {
+
+            }
+
+            LOG("TODO: LOADING STRUCTURES");
+            {
+
+            }
+
+            LOG("TODO: LOADING UNITS");
+            {
+
+            }
+
+            LOG("TODO: LOADING SACKS");
+            {
+
+            }
+
+            LOG("TODO: LOADING EFFECTS");
+            {
+
+            }
+
+            LOG("TODO: LOADING TRIGGERS");
+            {
+
+            }
+
+            LOG("TODO: CALC STATIC LIGHTING");
+            {
+
+            }
         }
 
         Stage::~Stage() {
@@ -595,6 +684,7 @@ namespace Game {
             } else {
                 if(y0 > y1) {
                     auto buf = y0; y0 = y1; y1 = buf;
+                    buf = x0; x0 = x1; x1 = buf;
                 }
                 const int8_t sign = (x1 > x0) ? 1 : -1;
                 int32_t D = dx2 - dy_abs;
@@ -613,18 +703,6 @@ namespace Game {
         void Stage::render(SOASpriteRGB &background_sprite) {
             draw_tiles(background_sprite);
             draw_wireframe(background_sprite);
-//            uint16_t x = 0;
-//            uint16_t y = 0;
-//            for(auto tileset : tiles_) {
-//                for(auto tile : tileset) {
-//                    tile->blit_on_sprite(background_sprite, x, y, 0, 96, 32, 64);
-//                    x += 32;
-//                    if(x >= 1024) {
-//                        x -= 1024;
-//                        y += 32 * 14;
-//                    }
-//                }
-//            }
         }
 
         void Stage::on_enter() {
@@ -726,7 +804,7 @@ namespace Game {
                 auto plotter = [&](auto x, auto y) {
                     if(x < 0 || y < 0 || x >= dw || y >= dh) return;
                     auto stride = x + y * dw;
-                    rbuf[stride] = 0x80;
+                    rbuf[stride] = 0xFF;
                     gbuf[stride] = 0x20;
                     bbuf[stride] = 0x20;
                 };
