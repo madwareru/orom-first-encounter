@@ -14,6 +14,10 @@ FrameBuffer::FrameBuffer(size_t w, size_t h): width_{w}, height_{h} {
     bitmap_info_.bmiHeader.biWidth = static_cast<int32_t>(w);
     bitmap_info_.bmiHeader.biHeight = -static_cast<int32_t>(h);
     bitmap_info_.bmiHeader.biSizeImage = static_cast<uint32_t>(4 * w * h);
+
+    for(size_t i = 0; i < w * h; ++i) {
+        color_buffer_[i] = 0;
+    }
 }
 
 FrameBuffer::~FrameBuffer() {

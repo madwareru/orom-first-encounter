@@ -89,28 +89,50 @@ namespace Game {
         ecs_hpp::registry world;
     }
 
-    GLFWwindow* glfw_window;
+    GLFWwindow** glfw_window() {
+        static GLFWwindow* glfw_window = nullptr;
+        return &glfw_window;
+    }
 
-    uint16_t window_width = 1024;
-    uint16_t window_height = 768;
-    bool windowed = true;
-    uint8_t clear_r;
-    uint8_t clear_g;
-    uint8_t clear_b;
+    uint16_t& window_width() {
+       static uint16_t val = 1024;
+       return val;
+    }
+    uint16_t& window_height() {
+        static uint16_t val = 768;
+        return val;
+    }
+    bool& windowed() {
+        static bool val = true;
+        return val;
+    }
+
+    uint8_t& clear_r() {
+        static uint8_t val = 0;
+        return val;
+    }
+    uint8_t& clear_g() {
+        static uint8_t val = 0;
+        return val;
+    }
+    uint8_t& clear_b() {
+        static uint8_t val = 0;
+        return val;
+    }
 
     void load_main_menu_assets() {
         using namespace MainMenuStage;
-        stage = std::make_unique<Stage>(main_resources, window_width, window_height);
+        stage = std::make_unique<Stage>(main_resources, window_width(), window_height());
     }
 
     void load_character_generation_assets() {
         using namespace CharacterGenerationStage;
-        stage = std::make_unique<Stage>(graphic_resources, window_width, window_height);
+        stage = std::make_unique<Stage>(graphic_resources, window_width(), window_height());
     }
 
     void load_game_stage_assets() {
         using namespace GameStage;
-        stage = std::make_unique<Stage>(graphic_resources, scenario_resources, window_width, window_height);
+        stage = std::make_unique<Stage>(graphic_resources, scenario_resources, window_width(), window_height());
     }
 
     void set_main_menu_state() {
@@ -142,7 +164,7 @@ namespace Game {
             double mouse_x_initial;
             double mouse_y_initial;
 
-            glfwGetCursorPos(glfw_window, &mouse_x_initial, &mouse_y_initial);
+            glfwGetCursorPos(*glfw_window(), &mouse_x_initial, &mouse_y_initial);
 
             mouse_state.mouse_x = static_cast<uint16_t>(mouse_x_initial);
             mouse_state.mouse_y = static_cast<uint16_t>(mouse_y_initial);
@@ -360,9 +382,9 @@ namespace Game {
             // so this filter is some sort of optimization
             background_sprite.lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
                 const size_t size = w * h;
-                __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(clear_r));
-                __m128i clrg = _mm_set1_epi8(static_cast<int8_t>(clear_g));
-                __m128i clrb = _mm_set1_epi8(static_cast<int8_t>(clear_b));
+                __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(clear_r()));
+                __m128i clrg = _mm_set1_epi8(static_cast<int8_t>(clear_g()));
+                __m128i clrb = _mm_set1_epi8(static_cast<int8_t>(clear_b()));
 
                 uint8_t *rb = rbuf;
                 uint8_t *gb = gbuf;
@@ -401,6 +423,21 @@ namespace Game {
 //        goblin_sprite->blit_on_sprite(background_sprite, 0, 0, frame_);
     }
 
+
+    init_proc& init_proc_ptr() {
+        static init_proc proc_p = init;
+        return proc_p;
+    }
+
+    update_proc& update_proc_ptr() {
+        static update_proc proc_p = update;
+        return proc_p;
+    }
+    render_proc& render_proc_ptr() {
+        static render_proc proc_p = render;
+        return proc_p;
+    }
+
     void key_callback(
         GLFWwindow* window,
         int key,
@@ -411,6 +448,10 @@ namespace Game {
         if(key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
             Game::dispatch_message(Game::event::close_game);
         }
+    }
+    GLFWkeyfun& key_callback_ptr() {
+        static GLFWkeyfun fun = key_callback;
+        return fun;
     }
 
     void mouse_button_callback(
@@ -438,6 +479,10 @@ namespace Game {
                 break;
         }
     }
+    GLFWmousebuttonfun& mouse_button_callback_ptr() {
+        static GLFWmousebuttonfun fun = mouse_button_callback;
+        return fun;
+    }
 
     void mouse_callback(
         GLFWwindow* window,
@@ -447,9 +492,13 @@ namespace Game {
         mouse_state.mouse_x = static_cast<uint16_t>(xpos);
         mouse_state.mouse_y = static_cast<uint16_t>(ypos);
     }
+    GLFWcursorposfun& mouse_callback_ptr() {
+        static GLFWcursorposfun fun = mouse_callback;
+        return fun;
+    }
 
     void initiate_game_closing() {
-        glfwSetWindowShouldClose(glfw_window, true);
+        glfwSetWindowShouldClose(*glfw_window(), true);
     }
 
     void dispatch_message(const event& message) {
@@ -482,7 +531,7 @@ namespace Game {
             case event::start_adventure: {
                     auto hero = param0;
                     auto difficulty = param1;
-                    start_level(10, hero, difficulty);
+                    start_level(140, hero, difficulty);
                 }
                 break;
             default: break;
