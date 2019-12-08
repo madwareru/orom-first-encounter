@@ -741,28 +741,28 @@ namespace Game {
                 auto hght = static_cast<int32_t>(dh);
                 auto wdt = static_cast<int32_t>(dw);
 
-                uint8_t camera_tile_x = static_cast<uint8_t>(render_shared_.camera_x / 32) + 8;
-                uint8_t camera_tile_x_max = static_cast<uint8_t>(window_width_ / 32) + camera_tile_x;
+                uint16_t camera_tile_x = static_cast<uint16_t>(render_shared_.camera_x / 32) + 8;
+                uint16_t camera_tile_x_max = static_cast<uint16_t>(window_width_ / 32) + camera_tile_x;
                 if(camera_tile_x_max >= tile_map_ptr_->width()-8) {
-                    camera_tile_x_max = static_cast<uint8_t>(tile_map_ptr_->width()-9);
+                    camera_tile_x_max = static_cast<uint16_t>(tile_map_ptr_->width()-9);
                 }
 
-                uint8_t camera_tile_y = static_cast<uint8_t>(render_shared_.camera_y / 32) + 8;
-                uint8_t camera_tile_y_max = static_cast<uint8_t>(window_width_ / 32) + camera_tile_y;
+                uint16_t camera_tile_y = static_cast<uint16_t>(render_shared_.camera_y / 32) + 8;
+                uint16_t camera_tile_y_max = static_cast<uint16_t>(window_width_ / 32) + camera_tile_y;
                 if(camera_tile_y_max >= tile_map_ptr_->height()) {
-                    camera_tile_y_max = static_cast<uint8_t>(tile_map_ptr_->height()-1);
+                    camera_tile_y_max = static_cast<uint16_t>(tile_map_ptr_->height()-1);
                 }
-                if(camera_tile_y >= 16) {
+                if(camera_tile_y > 16) {
                     camera_tile_y -= 8;
                 }
 
-                uint8_t chunk_x = camera_tile_x / 8;
-                uint8_t chunk_x_max = camera_tile_x_max / 8;
+                uint16_t chunk_x = camera_tile_x / 8;
+                uint16_t chunk_x_max = camera_tile_x_max / 8;
 
-                const uint8_t stride = static_cast<uint8_t>(tile_map_ptr_->width() / 8);
+                const uint16_t stride = static_cast<uint16_t>(tile_map_ptr_->width() / 8);
 
-                for(uint8_t jj = camera_tile_y; jj <= camera_tile_y_max; ++jj) {
-                    for(uint8_t ii = chunk_x; ii <= chunk_x_max; ++ii) {
+                for(uint16_t jj = camera_tile_y; jj <= camera_tile_y_max; ++jj) {
+                    for(uint16_t ii = chunk_x; ii <= chunk_x_max; ++ii) {
                         size_t i = stride * jj + ii;
                         if(i >= tilemap_chunks.size()) {
                             break;
@@ -860,28 +860,28 @@ namespace Game {
                     bbuf[stride] = 0x20;
                 };
 
-                uint8_t camera_tile_x = static_cast<uint8_t>(render_shared_.camera_x / 32) + 8;
-                uint8_t camera_tile_x_max = static_cast<uint8_t>(window_width_ / 32) + camera_tile_x;
+                uint16_t camera_tile_x = static_cast<uint16_t>(render_shared_.camera_x / 32) + 8;
+                uint16_t camera_tile_x_max = static_cast<uint16_t>(window_width_ / 32) + camera_tile_x;
                 if(camera_tile_x_max >= tile_map_ptr_->width()-8) {
-                    camera_tile_x_max = static_cast<uint8_t>(tile_map_ptr_->width()-9);
+                    camera_tile_x_max = static_cast<uint16_t>(tile_map_ptr_->width()-9);
                 }
 
-                uint8_t camera_tile_y = static_cast<uint8_t>(render_shared_.camera_y / 32) + 8;
-                uint8_t camera_tile_y_max = static_cast<uint8_t>(window_width_ / 32) + camera_tile_y;
+                uint16_t camera_tile_y = static_cast<uint16_t>(render_shared_.camera_y / 32) + 8;
+                uint16_t camera_tile_y_max = static_cast<uint16_t>(window_width_ / 32) + camera_tile_y;
                 if(camera_tile_y_max >= tile_map_ptr_->height()) {
-                    camera_tile_y_max = static_cast<uint8_t>(tile_map_ptr_->height()-1);
+                    camera_tile_y_max = static_cast<uint16_t>(tile_map_ptr_->height()-1);
                 }
-                if(camera_tile_y >= 16) {
+                if(camera_tile_y > 16) {
                     camera_tile_y -= 8;
                 }
 
-                uint8_t chunk_x = camera_tile_x / 8;
-                uint8_t chunk_x_max = camera_tile_x_max / 8;
+                uint16_t chunk_x = camera_tile_x / 8;
+                uint16_t chunk_x_max = camera_tile_x_max / 8;
 
-                const uint8_t stride = static_cast<uint8_t>(tile_map_ptr_->width() / 8);
+                const uint16_t stride = static_cast<uint16_t>(tile_map_ptr_->width() / 8);
 
-                for(uint8_t jj = camera_tile_y; jj <= camera_tile_y_max; ++jj) {
-                    for(uint8_t ii = chunk_x; ii <= chunk_x_max; ++ii) {
+                for(uint16_t jj = camera_tile_y; jj <= camera_tile_y_max; ++jj) {
+                    for(uint16_t ii = chunk_x; ii <= chunk_x_max; ++ii) {
                         size_t i = stride * jj + ii;
                         if(i >= tilemap_chunks.size()) {
                             break;
