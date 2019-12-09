@@ -649,16 +649,16 @@ namespace Game {
         }
 
         void Stage::update(const MouseState &mouse_state) {
-            if(mouse_state.mouse_x < 16 && render_shared_.camera_x >= SCROLL_SPEED*2) {
+            if(mouse_state.mouse_x < 16 && render_shared_.camera_x >= SCROLL_SPEED) {
                 render_shared_.camera_x -= SCROLL_SPEED;
             }
-            if(mouse_state.mouse_x >= (window_width_ - 16) && render_shared_.camera_x < (max_camera_x_ - SCROLL_SPEED*2 - 1)) {
+            if(mouse_state.mouse_x >= (window_width_ - 16) && render_shared_.camera_x < (max_camera_x_ - SCROLL_SPEED - 1)) {
                 render_shared_.camera_x += SCROLL_SPEED;
             }
-            if(mouse_state.mouse_y < 16 && render_shared_.camera_y >= SCROLL_SPEED*2) {
+            if(mouse_state.mouse_y < 16 && render_shared_.camera_y >= SCROLL_SPEED) {
                 render_shared_.camera_y -= SCROLL_SPEED;
             }
-            if(mouse_state.mouse_y >= (window_height_ - 16) && render_shared_.camera_y < (max_camera_y_ - SCROLL_SPEED*2 - 1)) {
+            if(mouse_state.mouse_y >= (window_height_ - 16) && render_shared_.camera_y < (max_camera_y_ - SCROLL_SPEED - 1)) {
                 render_shared_.camera_y += SCROLL_SPEED;
             }
         }
@@ -734,7 +734,7 @@ namespace Game {
 
         void Stage::render(SOASpriteRGB &background_sprite) {
             draw_tiles(background_sprite);
-            //draw_wireframe(background_sprite);
+            draw_wireframe(background_sprite);
         }
 
         void Stage::on_enter() {
