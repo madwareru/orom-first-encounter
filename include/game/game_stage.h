@@ -22,10 +22,8 @@ namespace Game {
         };
 
         struct Stage {
-            Stage(std::shared_ptr<ResourceFile> graphic_resources,
-                std::shared_ptr<ResourceFile> scenario_resources,
-                uint16_t window_width,
-                uint16_t window_height);
+            Stage(uint16_t window_width,
+                  uint16_t window_height);
 
             void load_level(uint8_t level_id);
 
@@ -47,9 +45,6 @@ namespace Game {
             //void handle_button_click(uint8_t button_id);
 
             //bool mouse_down_;
-
-            std::shared_ptr<ResourceFile> graphic_resources_;
-            std::shared_ptr<ResourceFile> scenario_resources_;
 
             uint8_t* terrain_cache_;
             GameStageShared render_shared_;

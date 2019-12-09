@@ -1,5 +1,6 @@
 #include <game/character_generation_stage.h>
 #include <game/game.h>
+#include <game/shared/shared_res.h>
 
 #include <graphics/soaspritergb.h>
 #include <loaders/resource_file.h>
@@ -92,11 +93,9 @@ const char* hero_prefix[4] = {"mf", "ff", "fm", "mm"};
 
 namespace Game {
     namespace CharacterGenerationStage {
-        Stage::Stage(std::shared_ptr<ResourceFile> graphic_resources,
-                     uint16_t window_width,
+        Stage::Stage(uint16_t window_width,
                      uint16_t window_height
         ) :
-            graphic_resources_{graphic_resources},
             last_menu_selection_ {0},
             current_button_order_{NONE_BUTTON_ORDER},
             last_frame_lmb_down_{false},
@@ -105,14 +104,14 @@ namespace Game {
         {
             std::srand(std::time(nullptr));
 
-            auto[backgound_success, backgound_bmp] = graphic_resources_->read_bmp_shared("interface/chrgen/precreate/mainarea.bmp");
+            auto[backgound_success, backgound_bmp] = Game::Resources::Graphics().read_bmp_shared("interface/chrgen/precreate/mainarea.bmp");
             if(backgound_success) {
                 menu_background_ = backgound_bmp;
             } else {
                 throw std::runtime_error("couldn't load character creation menu graphics");
             }
 
-            auto[mask_success, mask_bmp] = graphic_resources_->read_mask_shared("interface/chrgen/precreate/mask.bmp");
+            auto[mask_success, mask_bmp] = Game::Resources::Graphics().read_mask_shared("interface/chrgen/precreate/mask.bmp");
             if(mask_success) {
                 menu_mask_ = mask_bmp;
             } else {
@@ -123,7 +122,7 @@ namespace Game {
 
             for(uint16_t i = 0; i < 4; ++i) {
                 sprintf(buffer, "interface/chrgen/precreate/heroes/%sl.bmp", hero_prefix[i]);
-                auto [hover_succ, hover_res] = graphic_resources_->read_bmp_shared(buffer);
+                auto [hover_succ, hover_res] = Game::Resources::Graphics().read_bmp_shared(buffer);
                 if(hover_succ) {
                     hero_button_sprites_[i][0] = hover_res;
                 } else {
@@ -131,7 +130,7 @@ namespace Game {
                 }
 
                 sprintf(buffer, "interface/chrgen/precreate/heroes/%slon.bmp", hero_prefix[i]);
-                auto [click_succ, click_res] = graphic_resources_->read_bmp_shared(buffer);
+                auto [click_succ, click_res] = Game::Resources::Graphics().read_bmp_shared(buffer);
                 if(click_succ) {
                     hero_button_sprites_[i][1] = click_res;
                 } else {
@@ -139,7 +138,7 @@ namespace Game {
                 }
 
                 sprintf(buffer, "interface/chrgen/precreate/heroes/%son.bmp", hero_prefix[i]);
-                auto [selected_succ, selected_res] = graphic_resources_->read_bmp_shared(buffer);
+                auto [selected_succ, selected_res] = Game::Resources::Graphics().read_bmp_shared(buffer);
                 if(selected_succ) {
                     hero_button_sprites_[i][2] = selected_res;
                 } else {
@@ -149,7 +148,7 @@ namespace Game {
 
             for(uint16_t i = 0; i < 3; ++i) {
                 sprintf(buffer, "interface/chrgen/precreate/levels/level%ul.bmp", i);
-                auto [hover_succ, hover_res] = graphic_resources_->read_bmp_shared(buffer);
+                auto [hover_succ, hover_res] = Game::Resources::Graphics().read_bmp_shared(buffer);
                 if(hover_succ) {
                     difficulty_button_sprites_[i][0] = hover_res;
                 } else {
@@ -157,7 +156,7 @@ namespace Game {
                 }
 
                 sprintf(buffer, "interface/chrgen/precreate/levels/level%ulon.bmp", i);
-                auto [click_succ, click_res] = graphic_resources_->read_bmp_shared(buffer);
+                auto [click_succ, click_res] = Game::Resources::Graphics().read_bmp_shared(buffer);
                 if(click_succ) {
                     difficulty_button_sprites_[i][1] = click_res;
                 } else {
@@ -165,7 +164,7 @@ namespace Game {
                 }
 
                 sprintf(buffer, "interface/chrgen/precreate/levels/level%uon.bmp", i);
-                auto [selected_succ, selected_res] = graphic_resources_->read_bmp_shared(buffer);
+                auto [selected_succ, selected_res] = Game::Resources::Graphics().read_bmp_shared(buffer);
                 if(selected_succ) {
                     difficulty_button_sprites_[i][2] = selected_res;
                 } else {
@@ -173,21 +172,21 @@ namespace Game {
                 }
             }
 
-            auto [ok_succ, ok_res] = graphic_resources_->read_bmp_shared("interface/chrgen/precreate/buttonok.bmp");
+            auto [ok_succ, ok_res] = Game::Resources::Graphics().read_bmp_shared("interface/chrgen/precreate/buttonok.bmp");
             if(ok_succ) {
                 ok_button_sprite_ = ok_res;
             } else {
                 throw std::runtime_error("couldn't load character creation menu graphics");
             }
 
-            auto [amulet_succ, amulet_res] = graphic_resources_->read_bmp_shared("interface/chrgen/precreate/amulet.bmp");
+            auto [amulet_succ, amulet_res] = Game::Resources::Graphics().read_bmp_shared("interface/chrgen/precreate/amulet.bmp");
             if(amulet_succ) {
                 amulet_button_sprite_ = amulet_res;
             } else {
                 throw std::runtime_error("couldn't load character creation menu graphics");
             }
 
-            auto [blind_succ, blind_res] = graphic_resources_->read_16a_shared("interface/chrgen/precreate/blind/sprites.16a");
+            auto [blind_succ, blind_res] = Game::Resources::Graphics().read_16a_shared("interface/chrgen/precreate/blind/sprites.16a");
             if(blind_succ) {
                 blind_sprite_ = blind_res;
             } else {

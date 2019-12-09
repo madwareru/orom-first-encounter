@@ -1,4 +1,5 @@
 #include <game/game_stage.h>
+#include <game/shared/shared_res.h>
 
 #include <loaders/resource_file.h>
 #include <graphics/soaspritergb.h>
@@ -353,13 +354,10 @@ namespace {
 
 namespace Game {
     namespace GameStage {
-        Stage::Stage(std::shared_ptr<ResourceFile> graphic_resources,
-                     std::shared_ptr<ResourceFile> scenario_resources,
-                     uint16_t window_width,
+        Stage::Stage(uint16_t window_width,
                      uint16_t window_height) :
                 window_width_{window_width},
-                window_height_{window_height},
-                scenario_resources_{scenario_resources} {
+                window_height_{window_height} {
             terrain_cache_ = new uint8_t[4 * window_width_ * window_height_];
             size_t offset = 0;
 
@@ -372,8 +370,6 @@ namespace Game {
             render_shared_.terrain_tile_v_cache = &terrain_cache_[offset];
             render_shared_.camera_x = 0;
             render_shared_.camera_y = 0;
-
-            graphic_resources_ = graphic_resources;
 
             tile_map_ptr_ = std::unique_ptr<TileMap>{nullptr};
 
@@ -388,7 +384,7 @@ namespace Game {
                     } else {
                         sprintf(buf, "terrain/tile%d-%u.bmp", i, j);
                     }
-                    auto[success, next_bmp] = graphic_resources_->read_bmp_shared(buf);
+                    auto[success, next_bmp] = Game::Resources::Graphics().read_bmp_shared(buf);
                     if(success) {
                         tiles_[i-1].emplace_back(next_bmp);
                     }
@@ -399,7 +395,7 @@ namespace Game {
         void Stage::load_level(uint8_t level_id) {
             char buffer[16];
             sprintf(buffer, "%u.alm", level_id);
-            auto resource_header = scenario_resources_->get_resource(buffer);
+            auto resource_header = Game::Resources::Scenario().get_resource(buffer);
             if(resource_header == nullptr) {
                 LOG_ERROR("could not load resource " << buffer);
                 return;

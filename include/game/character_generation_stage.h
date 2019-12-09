@@ -13,7 +13,7 @@ namespace Game {
     struct MouseState;
     namespace CharacterGenerationStage {
         struct Stage {
-            Stage(std::shared_ptr<ResourceFile> main_resources, uint16_t window_width, uint16_t window_height);
+            Stage(uint16_t window_width, uint16_t window_height);
             void on_enter();
             void update(const MouseState& mouse_state);
             void render(SOASpriteRGB &background_sprite);
@@ -23,8 +23,6 @@ namespace Game {
             uint8_t get_some_random();
 
             bool mouse_down_;
-
-            std::shared_ptr<ResourceFile> graphic_resources_;
 
             std::shared_ptr<SOASpriteRGB> menu_background_;
             std::shared_ptr<SOASpriteRGB> menu_mask_;
