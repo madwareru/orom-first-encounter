@@ -45,4 +45,16 @@
 #define LOG(message_sequence) std::cout << message_sequence << LOCATION << std::endl
 #define LOG_ERROR(message_sequence) std::cerr << message_sequence << LOCATION << std::endl
 
+#define LOG_ASSERT_ON
+
+#ifdef LOG_ASSERT_ON
+    #define LOG_ASSERT(cond)                          \
+        if(!(cond)) {                                 \
+            LOG_ERROR("Assertion failed: " << #cond); \
+            abort();                                  \
+        }
+#else
+    #define LOG_ASSERT(cond)
+#endif
+
 #endif // MACRO_SHARED_H

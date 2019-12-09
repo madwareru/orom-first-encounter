@@ -17,8 +17,8 @@ namespace Game {
             uint8_t* terrain_tile_low_byte_cache;
             uint8_t* terrain_tile_u_cache;
             uint8_t* terrain_tile_v_cache;
-            uint16_t camera_x;
-            uint16_t camera_y;
+            uint32_t camera_x;
+            uint32_t camera_y;
         };
 
         struct Stage {
@@ -40,8 +40,8 @@ namespace Game {
             uint16_t window_width_;
             uint16_t window_height_;
 
-            uint16_t max_camera_x_;
-            uint16_t max_camera_y_;
+            uint32_t max_camera_x_;
+            uint32_t max_camera_y_;
 
             std::unique_ptr<TileMap> tile_map_ptr_;
             //void handle_button_click(uint8_t button_id);
