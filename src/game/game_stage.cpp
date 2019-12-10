@@ -658,8 +658,8 @@ namespace Game {
                         auto x = i % tile_map_ptr_->width();
                         auto y = i / tile_map_ptr_->width();
 
-                        auto xx = tile_map_ptr_->get_x_at_tile(x, y, 16, 16);
-                        auto yy = tile_map_ptr_->get_y_at_tile(x, y, 16, 16);
+                        auto xx = tile_map_ptr_->get_x_at_tile(x, y, 16, 0);
+                        auto yy = tile_map_ptr_->get_y_at_tile(x, y, 16, 0);
 
                         LOG_ASSERT(static_cast<size_t>(real_id) < obj_info.size())
 

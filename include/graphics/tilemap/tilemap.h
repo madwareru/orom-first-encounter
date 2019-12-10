@@ -14,8 +14,8 @@ struct TileMap {
     size_t height() const;
     void add_chunk(const TileMapChunk& chunk);
     const std::vector<TileMapChunk>& get_chunks() const;
-    const int32_t get_x_at_tile(size_t x, size_t y, uint8_t alpha_x, uint8_t alpha_y) const;
-    const int32_t get_y_at_tile(size_t x, size_t y, uint8_t alpha_x, uint8_t alpha_y) const;
+    int32_t get_x_at_tile(size_t x, size_t y, uint8_t alpha_x, uint8_t alpha_y) const;
+    int32_t get_y_at_tile(size_t x, size_t y, uint8_t alpha_x, uint8_t alpha_y) const;
 private:
     size_t w_;
     size_t h_;

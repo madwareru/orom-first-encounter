@@ -56,8 +56,8 @@ void Sprite256::blit_on_sprite_centered(SOASpriteRGB& other, int32_t x, int32_t 
     auto [__, width, height, ___] = frame_info_vector_[frame_number];
     blit_on_sprite(
         other,
-        x - (width * fixed_w / 2 + off_x) / fixed_w,
-        y - (height * fixed_h / 2 + off_y) / fixed_h - 16,
+        x - (width * off_x) / fixed_w,
+        y + 16 - (height * off_y) / fixed_h,
         frame_number
     );
 }

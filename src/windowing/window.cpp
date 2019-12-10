@@ -14,7 +14,7 @@
 #include <GLFW/glfw3native.h>
 
 #define FPS_70_MILLIS 0.014
-//#define VSYNC_ON
+#define VSYNC_ON
 
 LifetimeProcHolder::LifetimeProcHolder(
     init_proc   init_proc_addr_p,
