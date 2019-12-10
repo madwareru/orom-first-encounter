@@ -12,7 +12,7 @@
 
 namespace {
     enum {
-        SCROLL_SPEED = 32,
+        SCROLL_SPEED = 16,
         MAX_ALTITUDE = 255,
         STANDART_TILE_HEIGHT = 32,
         MAX_COLUMN_HEIGHT = (MAX_ALTITUDE + STANDART_TILE_HEIGHT)
@@ -601,15 +601,16 @@ namespace Game {
 
             LOG("TODO: LOADING MAP OBJECTS");
             {
-                /* TODO: we need to create a storage for map object meta
+                /* TODO: We need to create a storage for map object meta
                  *   info by extracting it from a reg file
                  *   Game stage only stores a vector with a structure
                  *   containing some state of a map object such as
-                 *   current frame and state(Alive, InFire, Dead), and,
-                 *   eventually, an identifier in a metatable from
-                 *   which renderer takes info for its work.
+                 *   current frame number, frame_ticks until next frame,
+                 *   state(Alive, InFire, Dead), and, eventually,
+                 *   an identifier in a metatable from which renderer
+                 *   takes info for its work.
                  *
-                 * reg file contains some importaint values
+                 * Reg file contains some importaint values
                  *   related to object count and file count.
                  *   File count is smaller than object count.
                  *   Fields have self-explanatory names.
@@ -628,22 +629,43 @@ namespace Game {
                  *   an object.
                  *
                  * Interesting fields in reg file for individual object are:
-                 *   DescText : String
                  *   ID : Int
+                 *     ID of an object.
+                 *     This is used for references between objects
+                 *     such as link to Parent, DeadObject or FireObject)
                  *   File : Int
+                 *     ID of a file this file relates to
+                 *
                  *   Index : Int
-                 *   Phases : Int
+                 *     Field of unknown nature.
+                 *     Theory -- it may be an identifier in data.bin or directly
+                 *     an identifier from alm in objects section)
+                 *
                  *   Width : Int (Fixed point scale)
                  *   Height : Int (Fixed point scale)
-                 *   CenterX : Int
-                 *   CenterY : Int
+                 *   CenterX : Int (Center X in fixed point coordinates)
+                 *   CenterY : Int (Center Y in fixed point coordinates)
+                 *
+                 *   Phases : Int
+                 *     In fact, this is a frame count, but as long as frames
+                 *     can be duplicated, its more nice to name it phases
                  *   AnimationTime : IntArray
+                 *     Constains count of ticks each phase sould be shown on a screen
                  *   AnimationFrame : IntArray
+                 *     contains frame_id for each phase
+                 *
                  *   DeadObject : Int
-                 *   InMapEditor : Int
-                 *   IconID : Int
-                 *   Parent : Int
+                 *     ID of an object for which we should "replace"
+                 *     an object when it becomes dead
                  *   FireObject : Int
+                 *     ID of an object for which we should "replace"
+                 *     an object when it becomes on fire
+                 *
+                 *   Parent : Int (We have "incomplete" objects sometimes. This objects inherit missing properties from a parent)
+                 *
+                 *   InMapEditor : Int (Visibility in map editor (1 -- visible, 0 -- invisible))
+                 *   IconID : Int (Something map editor related probably)
+                 *   DescText : String (Textual description of an object)
                  */
 
             }
@@ -905,7 +927,6 @@ namespace Game {
                                         if(h_diff > 64000) {
                                             h_diff = 0;
                                         }
-                                        CHECK_SCALER_RANGE(h_diff)
                                         auto scaler_array = ACQUIRE_HEIGHT_SCALER(h_diff);
                                         size_t stride = tile_stride + static_cast<uint8_t>(x);
 
