@@ -601,6 +601,50 @@ namespace Game {
 
             LOG("TODO: LOADING MAP OBJECTS");
             {
+                /* TODO: we need to create a storage for map object meta
+                 *   info by extracting it from a reg file
+                 *   Game stage only stores a vector with a structure
+                 *   containing some state of a map object such as
+                 *   current frame and state(Alive, InFire, Dead), and,
+                 *   eventually, an identifier in a metatable from
+                 *   which renderer takes info for its work.
+                 *
+                 * reg file contains some importaint values
+                 *   related to object count and file count.
+                 *   File count is smaller than object count.
+                 *   Fields have self-explanatory names.
+                 *
+                 *   Fields are:
+                 *     Global/ObjectCount : Int
+                 *     Global/FileCount : int
+                 *
+                 * FileName fields for each file are stored in
+                 *   Files directory and has a name of a form "FileX"
+                 *   where X is a order number of a file. Each such field
+                 *   contains a path to the corresponding object graphics file
+                 *
+                 * Object info stored straight in a root in directories with
+                 *   a name of a form "ObjectX" where X is a order number of
+                 *   an object.
+                 *
+                 * Interesting fields in reg file for individual object are:
+                 *   DescText : String
+                 *   ID : Int
+                 *   File : Int
+                 *   Index : Int
+                 *   Phases : Int
+                 *   Width : Int (Fixed point scale)
+                 *   Height : Int (Fixed point scale)
+                 *   CenterX : Int
+                 *   CenterY : Int
+                 *   AnimationTime : IntArray
+                 *   AnimationFrame : IntArray
+                 *   DeadObject : Int
+                 *   InMapEditor : Int
+                 *   IconID : Int
+                 *   Parent : Int
+                 *   FireObject : Int
+                 */
 
             }
 
