@@ -1,5 +1,6 @@
 #include <game/game_stage.h>
 #include <game/shared/shared_res.h>
+#include <game/shared/map_object_meta.h>
 
 #include <loaders/resource_file.h>
 #include <graphics/soaspritergb.h>
@@ -601,73 +602,30 @@ namespace Game {
 
             LOG("TODO: LOADING MAP OBJECTS");
             {
-                /* TODO: We need to create a storage for map object meta
-                 *   info by extracting it from a reg file
-                 *   Game stage only stores a vector with a structure
-                 *   containing some state of a map object such as
-                 *   current frame number, frame_ticks until next frame,
-                 *   state(Alive, InFire, Dead), and, eventually,
-                 *   an identifier in a metatable from which renderer
-                 *   takes info for its work.
-                 *
-                 * Reg file contains some importaint values
-                 *   related to object count and file count.
-                 *   File count is smaller than object count.
-                 *   Fields have self-explanatory names.
-                 *
-                 *   Fields are:
-                 *     Global/ObjectCount : Int
-                 *     Global/FileCount : int
-                 *
-                 * FileName fields for each file are stored in
-                 *   Files directory and has a name of a form "FileX"
-                 *   where X is a order number of a file. Each such field
-                 *   contains a path to the corresponding object graphics file
-                 *
-                 * Object info stored straight in a root in directories with
-                 *   a name of a form "ObjectX" where X is a order number of
-                 *   an object.
-                 *
-                 * Interesting fields in reg file for individual object are:
-                 *   ID : Int
-                 *     ID of an object.
-                 *     This is used for references between objects
-                 *     such as link to Parent, DeadObject or FireObject)
-                 *   File : Int
-                 *     ID of a file this file relates to
-                 *
-                 *   Index : Int
-                 *     Field of unknown nature.
-                 *     Theory -- it may be an identifier in data.bin or directly
-                 *     an identifier from alm in objects section)
-                 *
-                 *   Width : Int (Fixed point scale)
-                 *   Height : Int (Fixed point scale)
-                 *   CenterX : Int (Center X in fixed point coordinates)
-                 *   CenterY : Int (Center Y in fixed point coordinates)
-                 *
-                 *   Phases : Int
-                 *     In fact, this is a frame count, but as long as frames
-                 *     can be duplicated, its more nice to name it phases
-                 *   AnimationTime : IntArray
-                 *     Constains count of ticks each phase sould be shown on a screen
-                 *   AnimationFrame : IntArray
-                 *     contains frame_id for each phase
-                 *
-                 *   DeadObject : Int
-                 *     ID of an object for which we should "replace"
-                 *     an object when it becomes dead
-                 *   FireObject : Int
-                 *     ID of an object for which we should "replace"
-                 *     an object when it becomes on fire
-                 *
-                 *   Parent : Int (We have "incomplete" objects sometimes. This objects inherit missing properties from a parent)
-                 *
-                 *   InMapEditor : Int (Visibility in map editor (1 -- visible, 0 -- invisible))
-                 *   IconID : Int (Something map editor related probably)
-                 *   DescText : String (Textual description of an object)
-                 */
+                try {
+                    const auto& map_object_meta = Game::Meta::MapObjects();
+                    const auto& obj_files = map_object_meta.info();
+                    const auto& obj_sprites = map_object_meta.sprites();
 
+                    LOG("obj sprite count: " << obj_sprites.size());
+                    LOG("obj count: " << obj_files.size());
+
+                    for(const auto& obj : obj_files) {
+                        LOG("obj:");
+                        LOG("    id: " << obj.id);
+                        LOG("    parent_id: " << obj.parent_id);
+                        LOG("    dead_id: " << obj.dead_id);
+                        LOG("    file_id: " << obj.file_id);
+                        LOG("    fixed_w: " << obj.fixed_w);
+                        LOG("    fixed_h: " << obj.fixed_h);
+                        LOG("    center_x: " << obj.center_x);
+                        LOG("    center_y: " << obj.center_y);
+                        LOG("    phases_count: " << obj.phases_count);
+                    }
+
+                } catch (const std::exception& ex) {
+                    LOG_ERROR(ex.what());
+                }
             }
 
             LOG("TODO: LOADING FRACTIONS");
