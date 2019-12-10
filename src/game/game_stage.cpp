@@ -4,6 +4,7 @@
 
 #include <loaders/resource_file.h>
 #include <graphics/soaspritergb.h>
+#include <graphics/Sprite256.h>
 #include <graphics/tilemap/tilemap.h>
 #include <loaders/ksy/rage_of_mages_1_alm.h>
 #include <util/macro_shared.h>
@@ -355,6 +356,19 @@ namespace {
 
 namespace Game {
     namespace GameStage {
+        MapObject::MapObject(int32_t p_coord_x,
+                             int32_t p_coord_y,
+                             int32_t p_depth,
+                             int32_t p_phase_ticks_remain,
+                             int32_t p_current_phase,
+                             int32_t p_meta_id,
+                             object_state p_state,
+                             std::shared_ptr<Sprite256> p_sprite):
+            coord_x{p_coord_x}, coord_y{p_coord_y},
+            depth{p_depth}, phase_ticks_remain{p_phase_ticks_remain},
+            current_phase{p_current_phase}, meta_id{p_meta_id},
+            state{p_state}, sprite{p_sprite}{}
+
         Stage::Stage(uint16_t window_width,
                      uint16_t window_height) :
                 window_width_{window_width},
@@ -600,29 +614,71 @@ namespace Game {
                 }
             }
 
-            LOG("TODO: LOADING MAP OBJECTS");
+            LOG("LOADING MAP OBJECTS");
             {
                 try {
                     const auto& map_object_meta = Game::Meta::MapObjects();
-                    const auto& obj_files = map_object_meta.info();
+                    const auto& obj_info = map_object_meta.info();
                     const auto& obj_sprites = map_object_meta.sprites();
 
-                    LOG("obj sprite count: " << obj_sprites.size());
-                    LOG("obj count: " << obj_files.size());
-
-                    for(const auto& obj : obj_files) {
-                        LOG("obj:");
-                        LOG("    id: " << obj.id);
-                        LOG("    parent_id: " << obj.parent_id);
-                        LOG("    dead_id: " << obj.dead_id);
-                        LOG("    file_id: " << obj.file_id);
-                        LOG("    fixed_w: " << obj.fixed_w);
-                        LOG("    fixed_h: " << obj.fixed_h);
-                        LOG("    center_x: " << obj.center_x);
-                        LOG("    center_y: " << obj.center_y);
-                        LOG("    phases_count: " << obj.phases_count);
+                    if(map_obj_id == 255) {
+                        LOG_ERROR("there was an error while retrieving map object data");
+                        return;
                     }
 
+                    const auto obj_data =
+                        dynamic_cast<rage_of_mages_1_alm_t::map_objects_sec_t*>(
+                            alm.sections()->at(map_obj_id)->body()
+                        );
+
+                    if(obj_data == nullptr) {
+                        LOG_ERROR("there was an error while retrieving map object data (dynamic cast)");
+                        return;
+                    }
+
+                    auto count = obj_data->objects()->size();
+
+                    map_objects_.clear();
+
+                    for(size_t i = 0; i < count; ++i) {
+                        auto obj_id = obj_data->objects()->at(i);
+                        if(obj_id == 0) continue;
+
+                        int32_t real_id = -1;
+                        for(size_t j = 0; j < obj_info.size(); ++j) {
+                            if(obj_info[j].id == obj_id-1) {
+                                real_id = static_cast<int32_t>(j);
+                                break;
+                            }
+                        }
+                        if(real_id == -1) {
+                            continue;
+                        }
+
+                        auto x = i % tile_map_ptr_->width();
+                        auto y = i / tile_map_ptr_->width();
+
+                        auto xx = tile_map_ptr_->get_x_at_tile(x, y, 16, 16);
+                        auto yy = tile_map_ptr_->get_y_at_tile(x, y, 16, 16);
+
+                        LOG_ASSERT(static_cast<size_t>(real_id) < obj_info.size())
+
+                        const Game::Meta::MapObjectMetaEntry& meta_entry = obj_info[static_cast<size_t>(real_id)];
+
+                        auto cur_phase = meta_entry.anim_frames.size() >= 1 ? meta_entry.anim_frames[0] : 0;
+                        auto phase_time = meta_entry.anim_times.size() >= 1 ? meta_entry.anim_times[0] : -1;
+
+                        map_objects_.emplace_back(
+                            xx,
+                            yy,
+                            y,
+                            phase_time,
+                            cur_phase,
+                            real_id,
+                            meta_entry.dead_id == -1 ? object_state::dead : object_state::alive,
+                            obj_sprites[static_cast<size_t>(meta_entry.file_id)]
+                        );
+                    }
                 } catch (const std::exception& ex) {
                     LOG_ERROR(ex.what());
                 }
@@ -669,6 +725,17 @@ namespace Game {
         }
 
         void Stage::update(const MouseState &mouse_state) {
+            for(size_t i = 0; i < map_objects_.size(); ++i) {
+                if(map_objects_[i].phase_ticks_remain < 0) continue;
+                if(map_objects_[i].phase_ticks_remain == 1) {
+                    const auto& meta = Game::Meta::MapObjects().info()[static_cast<size_t>(map_objects_[i].meta_id)];
+                    map_objects_[i].current_phase = (map_objects_[i].current_phase + 1) % meta.phases_count;
+                    map_objects_[i].phase_ticks_remain = meta.anim_times[static_cast<size_t>(map_objects_[i].current_phase)];
+                    continue;
+                }
+                --map_objects_[i].phase_ticks_remain;
+            }
+
             if(mouse_state.mouse_x < 16 && render_shared_.camera_x >= SCROLL_SPEED) {
                 render_shared_.camera_x -= SCROLL_SPEED;
             }
@@ -754,11 +821,26 @@ namespace Game {
 
         void Stage::render(SOASpriteRGB &background_sprite) {
             draw_tiles(background_sprite);
-            draw_wireframe(background_sprite);
+            //draw_wireframe(background_sprite);
+            draw_objects(background_sprite);
         }
 
         void Stage::on_enter() {
 
+        }
+
+        void Stage::draw_objects(SOASpriteRGB &back_sprite) {
+            for(auto& obj : map_objects_) {
+                const auto& meta = Game::Meta::MapObjects().info()[static_cast<size_t>(obj.meta_id)];
+
+                obj.sprite->blit_on_sprite_centered(
+                    back_sprite,
+                    obj.coord_x - static_cast<int32_t>(render_shared_.camera_x),
+                    obj.coord_y - static_cast<int32_t>(render_shared_.camera_y),
+                    static_cast<uint16_t>(obj.current_phase),
+                    meta.center_x, meta.center_y,
+                    meta.fixed_w, meta.fixed_h);
+            }
         }
 
         void Stage::draw_tiles(SOASpriteRGB& back_sprite) {
