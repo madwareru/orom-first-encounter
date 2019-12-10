@@ -5,8 +5,10 @@
 
 //8x1 chunk
 struct TileMapChunk {
-    int16_t min_y;
-    int16_t max_y;
+    int32_t min_x;
+    int32_t min_y;
+    int32_t max_x;
+    int32_t max_y;
     uint8_t start_tile_i;
     uint8_t tile_j;
     uint16_t tile_id[8];

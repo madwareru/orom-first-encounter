@@ -13,7 +13,7 @@ struct ResourceFile;
 namespace Game {
     struct MouseState;
     struct CursorSubsystem {
-        CursorSubsystem(std::shared_ptr<ResourceFile> graphic_resources, cursor_state initial_cursor);
+        CursorSubsystem(cursor_state initial_cursor);
         void update();
         void render(SOASpriteRGB &background_sprite, const MouseState& mouse_state);
         void set_cursor(cursor_state cursor);

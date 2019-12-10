@@ -1,5 +1,6 @@
 #include <game/main_menu_stage.h>
 #include <game/game.h>
+#include <game/shared/shared_res.h>
 
 #include <graphics/soaspritergb.h>
 #include <loaders/resource_file.h>
@@ -37,23 +38,21 @@ const uint16_t BUTTON_COORDS[8][2] = {
 
 namespace Game {
     namespace MainMenuStage {
-        Stage::Stage(std::shared_ptr<ResourceFile> main_resources,
-                     uint16_t window_width,
+        Stage::Stage(uint16_t window_width,
                      uint16_t window_height
         ) :
-            main_resources_{main_resources},
             last_main_menu_selection {0},
             current_button_order{NONE_BUTTON_ORDER},
             last_frame_lmb_down{false}
         {
-            auto[backgound_success, backgound_bmp] = main_resources->read_bmp_shared("graphics/mainmenu/menu_.bmp");
+            auto[backgound_success, backgound_bmp] = Game::Resources::Main().read_bmp_shared("graphics/mainmenu/menu_.bmp");
             if(backgound_success) {
                 main_menu_background = backgound_bmp;
             } else {
                 throw std::runtime_error("couldn't load main menu graphics");
             }
 
-            auto[mask_success, mask_bmp] = main_resources->read_mask_shared("graphics/mainmenu/menumask.bmp");
+            auto[mask_success, mask_bmp] = Game::Resources::Main().read_mask_shared("graphics/mainmenu/menumask.bmp");
             if(mask_success) {
                 main_menu_mask = mask_bmp;
             } else {
@@ -64,7 +63,7 @@ namespace Game {
                 char buffer[40];
                 size_t order = j-1;
                 sprintf(buffer, "graphics/mainmenu/button%u.bmp", j);
-                auto [hover_succ, hover_res] = main_resources->read_bmp_shared(buffer);
+                auto [hover_succ, hover_res] = Game::Resources::Main().read_bmp_shared(buffer);
                 if(hover_succ) {
                     button_sprites[order][0] = hover_res;
                 } else {
@@ -72,7 +71,7 @@ namespace Game {
                 }
 
                 sprintf(buffer, "graphics/mainmenu/button%up.bmp", j);
-                auto [click_succ, click_res] = main_resources->read_bmp_shared(buffer);
+                auto [click_succ, click_res] = Game::Resources::Main().read_bmp_shared(buffer);
                 if(click_succ) {
                     button_sprites[order][1] = click_res;
                 } else {

@@ -14,7 +14,7 @@
 #include <GLFW/glfw3native.h>
 
 #define FPS_70_MILLIS 0.014
-#define VSYNC_ON
+//#define VSYNC_ON
 
 LifetimeProcHolder::LifetimeProcHolder(
     init_proc   init_proc_addr_p,
@@ -37,8 +37,8 @@ bool start_main_loop(
             MouseButtonCallbackHolder>
         >& eventCallbacks
 ) {
-    HWND h_window;
-    HDC h_dc;
+    HWND h_window = nullptr;
+    HDC h_dc = nullptr;
     char title_buf[255];
     FrameBuffer frame_buffer{window_params.w_width, window_params.w_height};
 
@@ -56,6 +56,8 @@ bool start_main_loop(
 
     h_window = glfwGetWin32Window(glfw_window);
     h_dc = GetDC(h_window);
+
+    frame_buffer.blit_on_dc(h_dc);
 
     for(auto callback : eventCallbacks) {
         std::visit([&](auto&& arg) {

@@ -52,6 +52,16 @@ uint16_t Sprite256::frame_count() const {
     return frame_count_;
 }
 
+void Sprite256::blit_on_sprite_centered(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number, int32_t off_x, int32_t off_y, int32_t fixed_w, int32_t fixed_h) {
+    auto [__, width, height, ___] = frame_info_vector_[frame_number];
+    blit_on_sprite(
+        other,
+        x - (width * fixed_w / 2 + off_x) / fixed_w,
+        y - (height * fixed_h / 2 + off_y) / fixed_h - 16,
+        frame_number
+    );
+}
+
 void Sprite256::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number) {
     const uint8_t BLANK_LINE = 0x40;
     const uint8_t EMPTY_AREA_BITS = 0xC0;

@@ -1,4 +1,5 @@
 #include <emmintrin.h>
+#include <game/shared/shared_res.h>
 #include <game/game.h>
 #include <game/main_menu_stage.h>
 #include <game/character_generation_stage.h>
@@ -21,29 +22,6 @@ namespace  {
         inn,
         training_center,
         game
-    };
-
-    std::shared_ptr<ResourceFile> graphic_resources;
-    std::shared_ptr<ResourceFile> main_resources;
-    std::shared_ptr<ResourceFile> movie_resources;
-    std::shared_ptr<ResourceFile> scenario_resources;
-    std::shared_ptr<ResourceFile> sfx_resources;
-    std::shared_ptr<ResourceFile> speech_resources;
-    std::shared_ptr<ResourceFile> world_resources;
-
-    const char* GRAPHICS_RES_FILENAME = "GRAPHICS.res";
-    const char* MAIN_RES_FILENAME     = "MAIN.res";
-    const char* MOVIES_RES_FILENAME   = "MOVIES.res";
-    const char* SCENARIO_RES_FILENAME = "SCENARIO.res";
-    const char* SFX_RES_FILENAME      = "SFX.res";
-    const char* SPEECH_RES_FILENAME   = "SPEECH.res";
-    const char* WORLD_RES_FILENAME    = "WORLD.res";
-
-    std::vector<std::shared_ptr<SOASpriteRGB>> tiles[4] = {
-        std::vector<std::shared_ptr<SOASpriteRGB>>{},
-        std::vector<std::shared_ptr<SOASpriteRGB>>{},
-        std::vector<std::shared_ptr<SOASpriteRGB>>{},
-        std::vector<std::shared_ptr<SOASpriteRGB>>{}
     };
 
     uint16_t frame_;
@@ -89,28 +67,50 @@ namespace Game {
         ecs_hpp::registry world;
     }
 
-    GLFWwindow* glfw_window;
+    GLFWwindow** glfw_window() {
+        static GLFWwindow* glfw_window = nullptr;
+        return &glfw_window;
+    }
 
-    uint16_t window_width = 1024;
-    uint16_t window_height = 768;
-    bool windowed = true;
-    uint8_t clear_r;
-    uint8_t clear_g;
-    uint8_t clear_b;
+    uint16_t& window_width() {
+       static uint16_t val = 1024;
+       return val;
+    }
+    uint16_t& window_height() {
+        static uint16_t val = 768;
+        return val;
+    }
+    bool& windowed() {
+        static bool val = true;
+        return val;
+    }
+
+    uint8_t& clear_r() {
+        static uint8_t val = 0;
+        return val;
+    }
+    uint8_t& clear_g() {
+        static uint8_t val = 0;
+        return val;
+    }
+    uint8_t& clear_b() {
+        static uint8_t val = 0;
+        return val;
+    }
 
     void load_main_menu_assets() {
         using namespace MainMenuStage;
-        stage = std::make_unique<Stage>(main_resources, window_width, window_height);
+        stage = std::make_unique<Stage>(window_width(), window_height());
     }
 
     void load_character_generation_assets() {
         using namespace CharacterGenerationStage;
-        stage = std::make_unique<Stage>(graphic_resources, window_width, window_height);
+        stage = std::make_unique<Stage>(window_width(), window_height());
     }
 
     void load_game_stage_assets() {
         using namespace GameStage;
-        stage = std::make_unique<Stage>(graphic_resources, scenario_resources, window_width, window_height);
+        stage = std::make_unique<Stage>(window_width(), window_height());
     }
 
     void set_main_menu_state() {
@@ -142,7 +142,7 @@ namespace Game {
             double mouse_x_initial;
             double mouse_y_initial;
 
-            glfwGetCursorPos(glfw_window, &mouse_x_initial, &mouse_y_initial);
+            glfwGetCursorPos(*glfw_window(), &mouse_x_initial, &mouse_y_initial);
 
             mouse_state.mouse_x = static_cast<uint16_t>(mouse_x_initial);
             mouse_state.mouse_y = static_cast<uint16_t>(mouse_y_initial);
@@ -152,17 +152,9 @@ namespace Game {
             cursor_frame = 0;
             game_speed = 4;
 
-            graphic_resources  = std::make_shared<ResourceFile>(GRAPHICS_RES_FILENAME);
-            main_resources     = std::make_shared<ResourceFile>(MAIN_RES_FILENAME);
-            movie_resources    = std::make_shared<ResourceFile>(MOVIES_RES_FILENAME);
-            scenario_resources = std::make_shared<ResourceFile>(SCENARIO_RES_FILENAME);
-            sfx_resources      = std::make_shared<ResourceFile>(SFX_RES_FILENAME);
-            speech_resources   = std::make_shared<ResourceFile>(SPEECH_RES_FILENAME);
-            world_resources    = std::make_shared<ResourceFile>(WORLD_RES_FILENAME);
-
             CharacterGenerationStage::assets_loaded = false;
 
-            auto [gb_result, gb_sprite] = graphic_resources->read_256_shared("units/monsters/goblin/sprites.256");
+            auto [gb_result, gb_sprite] = Game::Resources::Graphics().read_256_shared("units/monsters/goblin/sprites.256");
             goblin_sprite = gb_sprite;
 
             frame_ = 0;
@@ -285,33 +277,33 @@ namespace Game {
 //                }
 //            }
 
-            auto event10res = main_resources->get_resource("text/battle/m10/event01.txt");
+            auto event10res = Game::Resources::Main().get_resource("text/battle/m10/event01.txt");
             auto event10bytes = event10res->bytes();
             kaitai::kstream ks{event10bytes};
             rage_of_mages_1_txt_866_t txt{&ks};
 
             lalala = txt.content();
 
-            auto [font_success, font] = graphic_resources->read_font_16_shared("font2/font2.16", "font2/font2.dat");
+            auto [font_success, font] = Game::Resources::Graphics().read_font_16_shared("font2/font2.16", "font2/font2.dat");
             if(!font_success) {
                 throw std::runtime_error("failed on loading font");
             }
             test_font = font;
 
-            auto [font2_success, font2] = graphic_resources->read_font_16a_shared("font5/font5.16a", "font5/font5.dat");
+            auto [font2_success, font2] = Game::Resources::Graphics().read_font_16a_shared("font5/font5.16a", "font5/font5.dat");
             if(!font2_success) {
                 throw std::runtime_error("failed on loading font");
             }
             test_font2 = font2;
 
-            auto [font3_success, font3] = graphic_resources->read_font_16_shared("font3/font3.16", "font3/font3.dat");
+            auto [font3_success, font3] = Game::Resources::Graphics().read_font_16_shared("font3/font3.16", "font3/font3.dat");
             if(!font3_success) {
                 throw std::runtime_error("failed on loading font");
             }
             test_font3 = font3;
 
 
-            cursor_subsystem = std::make_unique<CursorSubsystem>(graphic_resources, cursor_state::c_move);
+            cursor_subsystem = std::make_unique<CursorSubsystem>(cursor_state::c_move);
 
             load_main_menu_assets();
             load_game_stage_assets();
@@ -360,9 +352,9 @@ namespace Game {
             // so this filter is some sort of optimization
             background_sprite.lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf) {
                 const size_t size = w * h;
-                __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(clear_r));
-                __m128i clrg = _mm_set1_epi8(static_cast<int8_t>(clear_g));
-                __m128i clrb = _mm_set1_epi8(static_cast<int8_t>(clear_b));
+                __m128i clrr = _mm_set1_epi8(static_cast<int8_t>(clear_r()));
+                __m128i clrg = _mm_set1_epi8(static_cast<int8_t>(clear_g()));
+                __m128i clrb = _mm_set1_epi8(static_cast<int8_t>(clear_b()));
 
                 uint8_t *rb = rbuf;
                 uint8_t *gb = gbuf;
@@ -401,6 +393,21 @@ namespace Game {
 //        goblin_sprite->blit_on_sprite(background_sprite, 0, 0, frame_);
     }
 
+
+    init_proc& init_proc_ptr() {
+        static init_proc proc_p = init;
+        return proc_p;
+    }
+
+    update_proc& update_proc_ptr() {
+        static update_proc proc_p = update;
+        return proc_p;
+    }
+    render_proc& render_proc_ptr() {
+        static render_proc proc_p = render;
+        return proc_p;
+    }
+
     void key_callback(
         GLFWwindow* window,
         int key,
@@ -411,6 +418,10 @@ namespace Game {
         if(key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
             Game::dispatch_message(Game::event::close_game);
         }
+    }
+    GLFWkeyfun& key_callback_ptr() {
+        static GLFWkeyfun fun = key_callback;
+        return fun;
     }
 
     void mouse_button_callback(
@@ -438,6 +449,10 @@ namespace Game {
                 break;
         }
     }
+    GLFWmousebuttonfun& mouse_button_callback_ptr() {
+        static GLFWmousebuttonfun fun = mouse_button_callback;
+        return fun;
+    }
 
     void mouse_callback(
         GLFWwindow* window,
@@ -447,9 +462,13 @@ namespace Game {
         mouse_state.mouse_x = static_cast<uint16_t>(xpos);
         mouse_state.mouse_y = static_cast<uint16_t>(ypos);
     }
+    GLFWcursorposfun& mouse_callback_ptr() {
+        static GLFWcursorposfun fun = mouse_callback;
+        return fun;
+    }
 
     void initiate_game_closing() {
-        glfwSetWindowShouldClose(glfw_window, true);
+        glfwSetWindowShouldClose(*glfw_window(), true);
     }
 
     void dispatch_message(const event& message) {

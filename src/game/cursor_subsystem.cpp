@@ -1,3 +1,4 @@
+#include <game/shared/shared_res.h>
 #include <game/cursor_subsystem.h>
 #include <loaders/resource_file.h>
 #include <graphics/soaspritergb.h>
@@ -6,9 +7,8 @@
 #include <util/macro_shared.h>
 
 namespace Game {
-    CursorSubsystem::CursorSubsystem(
-            std::shared_ptr<ResourceFile> graphic_resources,
-            Game::cursor_state initial_cursor) : current_frame_{0} {
+    CursorSubsystem::CursorSubsystem(Game::cursor_state initial_cursor) :
+        current_frame_{0} {
         current_cursor_ = initial_cursor;
         size_t pos;
 
@@ -17,7 +17,7 @@ namespace Game {
             ofsset_x_array_[pos] = offset_x;                                            \
             ofsset_y_array_[pos] = offset_y;                                            \
             auto [cursor_name##_s, cursor_name##_r] =                                   \
-            graphic_resources->read_16a_shared("cursors/" #cursor_name "/sprites.16a"); \
+            Game::Resources::Graphics().read_16a_shared("cursors/" #cursor_name "/sprites.16a"); \
             if (cursor_name##_s) {                                                      \
                 sprites_[pos] = cursor_name##_r;                                        \
             } else {                                                                    \
