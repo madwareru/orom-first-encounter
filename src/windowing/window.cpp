@@ -106,10 +106,14 @@ bool start_main_loop(
         background_sprite.blit_on_frame_buffer(frame_buffer, 0, 0);
         frame_buffer.blit_on_dc(h_dc);
 #ifdef VSYNC_ON
-        double diff = point_a + FPS_70_MILLIS - glfwGetTime();
-        while(diff > 0.0) {
-            glfwWaitEventsTimeout(diff);
-            diff = point_a + FPS_70_MILLIS - glfwGetTime();
+        if(delta_time > FPS_70_MILLIS + 0.0005) {
+            glfwPollEvents();
+        } else {
+            double diff = point_a + FPS_70_MILLIS - glfwGetTime();
+            while(diff > 0.0) {
+                glfwWaitEventsTimeout(diff);
+                diff = point_a + FPS_70_MILLIS - glfwGetTime();
+            }
         }
 #else
         glfwPollEvents();

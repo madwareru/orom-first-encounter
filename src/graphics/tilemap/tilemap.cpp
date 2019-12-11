@@ -30,9 +30,9 @@ int32_t TileMap::get_y_at_tile(size_t x, size_t y, uint8_t alpha_x, uint8_t alph
     size_t off_x = (x % 8) * 2;
 
     int32_t tlh = static_cast<int32_t>(chunk.top_heights[off_x]);
-    int32_t trh = static_cast<int32_t>(chunk.top_heights[off_x+1]);
-    int32_t blh = static_cast<int32_t>(chunk.bottom_heights[off_x]);
-    int32_t brh = static_cast<int32_t>(chunk.bottom_heights[off_x+1]);
+    int32_t blh = static_cast<int32_t>(chunk.bottom_heights[off_x++]);
+    int32_t trh = static_cast<int32_t>(chunk.top_heights[off_x]);
+    int32_t brh = static_cast<int32_t>(chunk.bottom_heights[off_x]);
 
     int32_t lerp_top = 32 * tlh + (trh - tlh) * alpha_x;
     int32_t lerp_bottom = 32 * blh + (brh - blh) * alpha_x;
