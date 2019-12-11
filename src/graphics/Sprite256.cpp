@@ -12,6 +12,21 @@ Sprite256::Sprite256(rage_of_mages_1_256_t* data) {
             palette_b_[i] = clr & 0xFF; clr /= 0x100;
             palette_g_[i] = clr & 0xFF; clr /= 0x100;
             palette_r_[i] = clr & 0xFF;
+            if(palette_b_[i] < 128) {
+                palette_b_[i] *= 2;
+            } else {
+                palette_b_[i] = 255;
+            }
+            if(palette_g_[i] < 128) {
+                palette_g_[i] *= 2;
+            } else {
+                palette_g_[i] = 255;
+            }
+            if(palette_r_[i] < 128) {
+                palette_r_[i] *= 2;
+            } else {
+                palette_r_[i] = 255;
+            }
         }
     } else {
         for(uint16_t i = 0; i < 256; ++i) {
@@ -57,7 +72,7 @@ void Sprite256::blit_on_sprite_centered(SOASpriteRGB& other, int32_t x, int32_t 
     blit_on_sprite(
         other,
         x - (width * off_x) / fixed_w,
-        y + 16 - (height * off_y) / fixed_h,
+        y - (height * off_y) / fixed_h,
         frame_number
     );
 }

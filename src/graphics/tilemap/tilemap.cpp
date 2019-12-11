@@ -31,12 +31,16 @@ int32_t TileMap::get_y_at_tile(size_t x, size_t y, uint8_t alpha_x, uint8_t alph
 
     int32_t tlh = static_cast<int32_t>(chunk.top_heights[off_x]);
     int32_t trh = static_cast<int32_t>(chunk.top_heights[off_x+1]);
-    int32_t blh = static_cast<int32_t>(chunk.bottom_heights[off_x])-32;
-    int32_t brh = static_cast<int32_t>(chunk.bottom_heights[off_x+1])-32;
+    int32_t blh = static_cast<int32_t>(chunk.bottom_heights[off_x]);
+    int32_t brh = static_cast<int32_t>(chunk.bottom_heights[off_x+1]);
 
-    int32_t lerp_top = (tlh * (32 - alpha_x) + trh * (alpha_x)) / 32;
-    int32_t lerp_bottom = (blh * (32 - alpha_x) + brh * (alpha_x)) / 32;
-    return (static_cast<int32_t>(y) - 8) * 32 - (lerp_top * (32 - alpha_y) + lerp_bottom * (alpha_y)) / 32;
+    int32_t lerp_top = 32 * tlh + (trh - tlh) * alpha_x;
+    int32_t lerp_bottom = 32 * blh + (brh - blh) * alpha_x;
+    int32_t lerp_center = (32 * lerp_top + (lerp_bottom - lerp_top) * alpha_y) / 1024;
+
+    auto center_y = (static_cast<int32_t>(y) - 8) * 32 + alpha_y;
+
+    return center_y - lerp_center;
 }
 
 void TileMap::add_chunk(const TileMapChunk& chunk) {
