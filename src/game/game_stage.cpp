@@ -1,6 +1,7 @@
 #include <game/game_stage.h>
 #include <game/shared/shared_res.h>
 #include <game/shared/map_object_meta.h>
+#include <game/shared/structure_meta.h>
 
 #include <loaders/resource_file.h>
 #include <graphics/soaspritergb.h>
@@ -697,7 +698,46 @@ namespace Game {
 
             LOG("TODO: LOADING STRUCTURES");
             {
+                try {
+                    const auto& structure_meta = Game::Meta::Structures();
+                    const auto& struct_info = structure_meta.info();
+                    const auto& struct_sprites = structure_meta.sprites();
 
+
+                    if(structures_id == 255) {
+                        LOG_ERROR("there was an error while retrieving structure data");
+                        return;
+                    }
+
+                    const auto structure_data =
+                        dynamic_cast<rage_of_mages_1_alm_t::structures_sec_t*>(
+                            alm.sections()->at(structures_id)->body()
+                        );
+
+                    if(structure_data == nullptr) {
+                        LOG_ERROR("there was an error while retrieving structure data (dynamic cast)");
+                        return;
+                    }
+
+                    const auto count = structure_data->structures()->size();
+                    for(size_t i = 0; i < count; ++i) {
+                        auto struct_entry = structure_data->structures()->at(i);
+                        LOG("structure:");
+                        LOG("    id: " << struct_entry->id());
+                        LOG("    x: " << static_cast<int32_t>(struct_entry->x_coord() / 0x100));
+                        LOG("    y: " << static_cast<int32_t>(struct_entry->y_coord() / 0x100));
+                        LOG("    type id: " << static_cast<int32_t>(struct_entry->type_id()));
+                        LOG("    health: " << static_cast<int32_t>(struct_entry->health()));
+                        LOG("    fraction: " << static_cast<int32_t>(struct_entry->fraction_id()));
+                        if(!struct_entry->_is_null_bridge_details()) {
+                            LOG("    bridge width: " << static_cast<int32_t>(struct_entry->bridge_details()->width()));
+                            LOG("    bridge height: " << static_cast<int32_t>(struct_entry->bridge_details()->height()));
+                        }
+                    }
+
+                } catch (const std::exception& ex) {
+                    LOG_ERROR(ex.what());
+                }
             }
 
             LOG("TODO: LOADING UNITS");

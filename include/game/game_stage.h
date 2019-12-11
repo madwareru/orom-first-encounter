@@ -67,12 +67,6 @@ namespace Game {
             uint32_t max_camera_x_;
             uint32_t max_camera_y_;
 
-            std::unique_ptr<TileMap> tile_map_ptr_;
-            std::vector<MapObject> map_objects_;
-            //void handle_button_click(uint8_t button_id);
-
-            //bool mouse_down_;
-
             uint8_t* terrain_cache_;
             GameStageShared render_shared_;
 
@@ -82,6 +76,13 @@ namespace Game {
                 std::vector<std::shared_ptr<SOASpriteRGB>>{},
                 std::vector<std::shared_ptr<SOASpriteRGB>>{}
             };
+            std::unique_ptr<TileMap> tile_map_ptr_;
+            std::vector<MapObject> map_objects_;
+            //void handle_button_click(uint8_t button_id);
+
+            //bool mouse_down_;
+
+
         };
     }
 }

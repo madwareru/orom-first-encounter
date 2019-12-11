@@ -132,6 +132,8 @@ namespace Meta {
                     char cur_char = file_name.content[j];
                     if(cur_char == '\\') {
                         file_entry.push_back('/');
+                    } else if(cur_char >= 'A' && cur_char <= 'Z') {
+                        file_entry.push_back('a' + (cur_char - 'A'));
                     } else {
                         file_entry.push_back(cur_char);
                     }
