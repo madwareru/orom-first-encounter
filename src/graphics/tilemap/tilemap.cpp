@@ -22,21 +22,19 @@ int32_t TileMap::get_x_at_tile(size_t x, size_t y, uint8_t alpha_x, uint8_t alph
 }
 
 int32_t TileMap::get_y_at_tile(size_t x, size_t y, uint8_t alpha_x, uint8_t alpha_y) const {
-    size_t chx = x / 8;
-    size_t chk_id = (w_ / 8) * y + chx;
-    LOG_ASSERT(chk_id < tile_chunks_.size())
+    size_t chk_id = (w_ * y + x) / 8;
     auto chunk = tile_chunks_[chk_id];
 
-    size_t off_x = (x % 8) * 2;
+    size_t off_x = (x & 0x7) * 2;
 
-    int32_t tlh = static_cast<int32_t>(chunk.top_heights[off_x]);
-    int32_t blh = static_cast<int32_t>(chunk.bottom_heights[off_x++]);
-    int32_t trh = static_cast<int32_t>(chunk.top_heights[off_x]);
-    int32_t brh = static_cast<int32_t>(chunk.bottom_heights[off_x]);
+    auto tlh = chunk.top_heights[off_x];
+    auto blh = chunk.bottom_heights[off_x++];
+    auto trh = chunk.top_heights[off_x];
+    auto brh = chunk.bottom_heights[off_x];
 
-    int32_t lerp_top = 32 * tlh + (trh - tlh) * alpha_x;
-    int32_t lerp_bottom = 32 * blh + (brh - blh) * alpha_x;
-    int32_t lerp_center = (32 * lerp_top + (lerp_bottom - lerp_top) * alpha_y) / 1024;
+    auto lerp_top = 32 * tlh + (trh - tlh) * alpha_x;
+    auto lerp_bottom = 32 * blh + (brh - blh) * alpha_x;
+    auto lerp_center = (32 * lerp_top + (lerp_bottom - lerp_top) * alpha_y) / 1024;
 
     auto center_y = (static_cast<int32_t>(y) - 8) * 32 + alpha_y;
 

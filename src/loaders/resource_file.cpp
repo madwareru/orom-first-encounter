@@ -344,7 +344,11 @@ std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_bmp_shared(co
                             uint8_t g = clr & 0xFF; clr = clr / 0x100;
                             uint8_t r = clr & 0xFF;
 
-                            if(b <= 127) b *= 2; else b = 255;
+                            if(b < 170) {
+                                b = b * 3 / 2;
+                            } else {
+                                b = 255;
+                            }
                             if(g <= 127) g *= 2; else g = 255;
                             if(r <= 127) r *= 2; else r = 255;
 
