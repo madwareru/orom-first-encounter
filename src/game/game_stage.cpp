@@ -821,7 +821,7 @@ namespace Game {
 
         void Stage::render(SOASpriteRGB &background_sprite) {
             draw_tiles(background_sprite);
-            //draw_wireframe(background_sprite);
+            draw_wireframe(background_sprite);
             draw_objects(background_sprite);
         }
 

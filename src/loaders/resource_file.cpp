@@ -349,7 +349,7 @@ std::tuple<bool, std::shared_ptr<SOASpriteRGB>> ResourceFile::read_bmp_shared(co
                             } else {
                                 b = 255;
                             }
-                            if(g <= 127) g *= 2; else g = 255;
+                            if(g <= 127) g *= 2; else g = 255; g = (g * 900) / 1000;
                             if(r <= 127) r *= 2; else r = 255;
 
                             bbuf[d_offset] = b;

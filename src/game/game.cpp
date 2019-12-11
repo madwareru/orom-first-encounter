@@ -81,7 +81,7 @@ namespace Game {
         return val;
     }
     bool& windowed() {
-        static bool val = true;
+        static bool val = false;
         return val;
     }
 
