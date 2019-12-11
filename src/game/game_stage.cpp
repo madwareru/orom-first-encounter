@@ -665,8 +665,19 @@ namespace Game {
 
                         const Game::Meta::MapObjectMetaEntry& meta_entry = obj_info[static_cast<size_t>(real_id)];
 
-                        auto cur_phase = meta_entry.anim_frames.size() >= 1 ? meta_entry.anim_frames[0] : 0;
-                        auto phase_time = meta_entry.anim_times.size() >= 1 ? meta_entry.anim_times[0] : -1;
+                        int32_t cur_phase;
+                        int32_t phase_time;
+
+                        if(meta_entry.anim_frames.size() >= 1 && meta_entry.anim_times.size() >= 1) {
+                            auto frame = static_cast<size_t>(rand()) % meta_entry.anim_frames.size();
+                            cur_phase = meta_entry.anim_frames[frame];
+                            phase_time = meta_entry.anim_times[frame];
+                        } else {
+                            cur_phase = 0;
+                            phase_time = -1;
+                        }
+
+                        auto sprite = const_cast<std::shared_ptr<Sprite256>&>(obj_sprites[static_cast<size_t>(meta_entry.file_id)]);
 
                         map_objects_.emplace_back(
                             xx,
@@ -676,17 +687,12 @@ namespace Game {
                             cur_phase,
                             real_id,
                             meta_entry.dead_id == -1 ? object_state::dead : object_state::alive,
-                            obj_sprites[static_cast<size_t>(meta_entry.file_id)]
+                            sprite
                         );
                     }
                 } catch (const std::exception& ex) {
                     LOG_ERROR(ex.what());
                 }
-            }
-
-            LOG("TODO: LOADING FRACTIONS");
-            {
-
             }
 
             LOG("TODO: LOADING STRUCTURES");
@@ -695,6 +701,12 @@ namespace Game {
             }
 
             LOG("TODO: LOADING UNITS");
+            {
+
+            }
+
+
+            LOG("TODO: LOADING FRACTIONS");
             {
 
             }
@@ -821,7 +833,7 @@ namespace Game {
 
         void Stage::render(SOASpriteRGB &background_sprite) {
             draw_tiles(background_sprite);
-            draw_wireframe(background_sprite);
+            //draw_wireframe(background_sprite);
             draw_objects(background_sprite);
         }
 
@@ -833,10 +845,13 @@ namespace Game {
             for(auto& obj : map_objects_) {
                 const auto& meta = Game::Meta::MapObjects().info()[static_cast<size_t>(obj.meta_id)];
 
+                auto obj_x = obj.coord_x - static_cast<int32_t>(render_shared_.camera_x);
+                auto obj_y = obj.coord_y - static_cast<int32_t>(render_shared_.camera_y);
+
                 obj.sprite->blit_on_sprite_centered(
                     back_sprite,
-                    obj.coord_x - static_cast<int32_t>(render_shared_.camera_x),
-                    obj.coord_y - static_cast<int32_t>(render_shared_.camera_y),
+                    obj_x,
+                    obj_y,
                     static_cast<uint16_t>(obj.current_phase),
                     meta.center_x, meta.center_y,
                     meta.fixed_w, meta.fixed_h);
