@@ -34,7 +34,20 @@ namespace Game {
             bool operator()(const renderer_entry& lhs, const renderer_entry& rhs) {
                 auto [l_priority, l_id, l_kind] = lhs;
                 auto [r_priority, r_id, r_kind] = rhs;
-                return l_priority > r_priority;
+                if(l_priority != r_priority) {
+                    return l_priority > r_priority;
+                }
+                return (
+                    (l_kind == renderer_kind::object ||
+                     l_kind == renderer_kind::unit ||
+                     l_kind == renderer_kind::structure
+                    )
+                    &&
+                    (r_kind == renderer_kind::object_shadow ||
+                     r_kind == renderer_kind::unit_shadow ||
+                     r_kind == renderer_kind::structure_shadow
+                    )
+                );
             }
         };
 

@@ -924,10 +924,12 @@ namespace Game {
             //TODO: do this smarter with spatial partition
             for(size_t i = 0; i < map_objects_.size(); ++i) {
                 auto& obj = map_objects_[i];
-                //TODO: make a solid priority instead of just obj_y
-                size_t priority = static_cast<size_t>(9*256 + obj.coord_y * 32);
+                //we sort on depth, but additionally on obj.meta_id to "batch" similar sprites in a row together
+                //we should do this coherently for all types of renderers so they all nicely sort together
+                //TODO: check if this is a better way to make a priority or may be there is a better solution exists
+                size_t priority = static_cast<size_t>((obj.depth * 0x20 + 0x10) * 0x10000 + obj.meta_id * 0x100);
+                render_queue_.push(std::make_tuple(priority, i, renderer_kind::object_shadow));
                 render_queue_.push(std::make_tuple(priority, i, renderer_kind::object));
-                render_queue_.push(std::make_tuple(priority - 16, i, renderer_kind::object_shadow));
             }
         }
 
