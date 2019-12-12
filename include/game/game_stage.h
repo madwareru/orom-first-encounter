@@ -20,6 +20,8 @@ namespace Game {
             uint8_t* terrain_tile_low_byte_cache;
             uint8_t* terrain_tile_u_cache;
             uint8_t* terrain_tile_v_cache;
+            uint8_t* terrain_tile_i_cache;
+            uint8_t* terrain_tile_j_cache;
             uint32_t camera_x;
             uint32_t camera_y;
         };
@@ -84,10 +86,14 @@ namespace Game {
             void render(SOASpriteRGB &background_sprite);
             ~Stage();
         private:
+            void update_scrolling();
+            void update_scrolling(uint16_t left, uint16_t right, uint16_t top, uint16_t bottom);
+
             void draw_tiles(SOASpriteRGB& back_sprite);
-            void send_objects_to_render(SOASpriteRGB& back_sprite);
+            void send_objects_to_render();
             void draw_wireframe(SOASpriteRGB& back_sprite);
 
+            uint8_t water_offset_;
             uint16_t window_width_;
             uint16_t window_height_;
 
