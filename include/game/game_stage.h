@@ -4,6 +4,8 @@
 #include <memory>
 #include <cstdint>
 #include <vector>
+#include <queue>
+#include <tuple>
 
 struct ResourceFile;
 struct SOASpriteRGB;
@@ -23,6 +25,18 @@ namespace Game {
         };
 
         enum class object_state {alive, burning, dead};
+
+        enum class renderer_kind {object, unit, structure, object_shadow, unit_shadow, structure_shadow};
+
+        using renderer_entry = std::tuple<size_t, size_t, renderer_kind>;
+
+        struct compare_renderer_entry {
+            bool operator()(const renderer_entry& lhs, const renderer_entry& rhs) {
+                auto [l_priority, l_id, l_kind] = lhs;
+                auto [r_priority, r_id, r_kind] = rhs;
+                return l_priority > r_priority;
+            }
+        };
 
         struct MapObject {
             MapObject(
@@ -58,7 +72,7 @@ namespace Game {
             ~Stage();
         private:
             void draw_tiles(SOASpriteRGB& back_sprite);
-            void draw_objects(SOASpriteRGB& back_sprite);
+            void send_objects_to_render(SOASpriteRGB& back_sprite);
             void draw_wireframe(SOASpriteRGB& back_sprite);
 
             uint16_t window_width_;
@@ -78,6 +92,8 @@ namespace Game {
             };
             std::unique_ptr<TileMap> tile_map_ptr_;
             std::vector<MapObject> map_objects_;
+
+            std::priority_queue<renderer_entry, std::vector<renderer_entry>, compare_renderer_entry> render_queue_;
             //void handle_button_click(uint8_t button_id);
 
             //bool mouse_down_;

@@ -70,10 +70,10 @@ namespace Meta {
 
         LOG("Reading structures meta");
         {
+            char buffer[256];
             entries_.reserve(static_cast<size_t>(struct_count));
             sprites_.reserve(static_cast<size_t>(struct_count));
             for(int32_t i = 0; i < struct_count; ++i) {
-                char buffer[16];
                 sprintf(buffer, "Structure%d/", i);
                 auto [id, file_name, tile_width, tile_height, full_height] =
                     structures_reg->read_record(

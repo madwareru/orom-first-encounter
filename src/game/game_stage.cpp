@@ -703,7 +703,6 @@ namespace Game {
                     const auto& struct_info = structure_meta.info();
                     const auto& struct_sprites = structure_meta.sprites();
 
-
                     if(structures_id == 255) {
                         LOG_ERROR("there was an error while retrieving structure data");
                         return;
@@ -874,27 +873,61 @@ namespace Game {
         void Stage::render(SOASpriteRGB &background_sprite) {
             draw_tiles(background_sprite);
             //draw_wireframe(background_sprite);
-            draw_objects(background_sprite);
+            send_objects_to_render(background_sprite);
+            while (!render_queue_.empty()) {
+                auto[priority, id, kind] = render_queue_.top();
+                render_queue_.pop();
+                switch(kind) {
+                    case renderer_kind::object:{
+                        auto& obj = map_objects_[id];
+                        const auto& meta = Game::Meta::MapObjects().info()[static_cast<size_t>(obj.meta_id)];
+
+                        auto obj_x = obj.coord_x - static_cast<int32_t>(render_shared_.camera_x);
+                        auto obj_y = obj.coord_y - static_cast<int32_t>(render_shared_.camera_y);
+
+                        obj.sprite->blit_on_sprite_centered(
+                            background_sprite,
+                            obj_x,
+                            obj_y,
+                            static_cast<uint16_t>(obj.current_phase),
+                            meta.center_x, meta.center_y,
+                            meta.fixed_w, meta.fixed_h);
+                        }
+                        break;
+                    case renderer_kind::unit:
+                            //TODO: render units
+                        break;
+                    case renderer_kind::structure:{
+                            //TODO: render structures
+                        }
+                        break;
+                    case renderer_kind::object_shadow:
+                            //TODO: render object shadows
+                        break;
+                    case renderer_kind::unit_shadow:{
+                            //TODO: render unit shadows
+                        }
+                        break;
+                    case renderer_kind::structure_shadow:{
+                            //TODO: render structure shadows
+                        }
+                        break;
+                }
+            }
         }
 
         void Stage::on_enter() {
 
         }
 
-        void Stage::draw_objects(SOASpriteRGB &back_sprite) {
-            for(auto& obj : map_objects_) {
-                const auto& meta = Game::Meta::MapObjects().info()[static_cast<size_t>(obj.meta_id)];
-
-                auto obj_x = obj.coord_x - static_cast<int32_t>(render_shared_.camera_x);
-                auto obj_y = obj.coord_y - static_cast<int32_t>(render_shared_.camera_y);
-
-                obj.sprite->blit_on_sprite_centered(
-                    back_sprite,
-                    obj_x,
-                    obj_y,
-                    static_cast<uint16_t>(obj.current_phase),
-                    meta.center_x, meta.center_y,
-                    meta.fixed_w, meta.fixed_h);
+        void Stage::send_objects_to_render(SOASpriteRGB &back_sprite) {
+            //TODO: do this smarter with spatial partition
+            for(size_t i = 0; i < map_objects_.size(); ++i) {
+                auto& obj = map_objects_[i];
+                //TODO: make a solid priority instead of just obj_y
+                size_t priority = static_cast<size_t>(9*256 + obj.coord_y * 32);
+                render_queue_.push(std::make_tuple(priority, i, renderer_kind::object));
+                render_queue_.push(std::make_tuple(priority - 16, i, renderer_kind::object_shadow));
             }
         }
 
