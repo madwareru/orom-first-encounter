@@ -41,4 +41,32 @@ private:
     uint8_t* b_buffer_;
 };
 
+struct SOASpritePal {
+    SOASpritePal(size_t w, size_t h);
+    SOASpritePal(const SOASpritePal& other) = delete;
+    SOASpritePal& operator=(const SOASpritePal&) = delete;
+    SOASpritePal(SOASpritePal&& other) = delete;
+    SOASpritePal& operator=(SOASpritePal&&) = delete;
+    ~SOASpritePal();
+
+    uint8_t get_mask_pixel(size_t x, size_t y) const;
+
+    template<typename FF>
+    void lock(FF&& predicate) {
+        predicate(width_, height_, buffer_, pal_r_, pal_g_, pal_b_);
+    }
+
+    size_t width() const;
+    size_t height() const;
+private:
+    size_t width_;
+    size_t height_;
+
+    uint8_t* buffer_raw_;
+    uint8_t* buffer_;
+    uint8_t* pal_r_;
+    uint8_t* pal_g_;
+    uint8_t* pal_b_;
+};
+
 #endif // SOASPRITERGB_H

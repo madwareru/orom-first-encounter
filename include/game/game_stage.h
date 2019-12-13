@@ -9,6 +9,7 @@
 
 struct ResourceFile;
 struct SOASpriteRGB;
+struct SOASpritePal;
 struct Sprite256;
 struct TileMap;
 
@@ -103,11 +104,11 @@ namespace Game {
             uint8_t* terrain_cache_;
             GameStageShared render_shared_;
 
-            std::vector<std::shared_ptr<SOASpriteRGB>> tiles_[4]{
-                std::vector<std::shared_ptr<SOASpriteRGB>>{},
-                std::vector<std::shared_ptr<SOASpriteRGB>>{},
-                std::vector<std::shared_ptr<SOASpriteRGB>>{},
-                std::vector<std::shared_ptr<SOASpriteRGB>>{}
+            std::vector<std::shared_ptr<SOASpritePal>> tiles_[4]{
+                std::vector<std::shared_ptr<SOASpritePal>>{},
+                std::vector<std::shared_ptr<SOASpritePal>>{},
+                std::vector<std::shared_ptr<SOASpritePal>>{},
+                std::vector<std::shared_ptr<SOASpritePal>>{}
             };
             std::unique_ptr<TileMap> tile_map_ptr_;
             std::vector<MapObject> map_objects_;

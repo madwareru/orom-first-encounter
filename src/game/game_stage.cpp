@@ -9,6 +9,7 @@
 #include <graphics/tilemap/tilemap.h>
 #include <loaders/ksy/rage_of_mages_1_alm.h>
 #include <util/macro_shared.h>
+#include <emmintrin.h>
 #include <game/game.h>
 #include <assert.h>
 #include <cmath>
@@ -318,6 +319,9 @@ namespace {
         9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9
     };
 
+    float normal_map[3 * 256 * 256];
+    uint8_t lightness_map[256*256];
+
     void init_height_scaler_lookup() {
         for(size_t i = 0; i < STANDART_TILE_HEIGHT * (MAX_COLUMN_HEIGHT + 1); ++i) {
             height_scaler_lookup[i] = 0;
@@ -405,11 +409,21 @@ namespace Game {
                     } else {
                         sprintf(buf, "terrain/tile%d-%u.bmp", i, j);
                     }
-                    auto[success, next_bmp] = Game::Resources::Graphics().read_bmp_shared(buf);
+                    auto[success, next_bmp] = Game::Resources::Graphics().read_pal_bmp_shared(buf);
                     if(success) {
                         tiles_[i-1].emplace_back(next_bmp);
                     }
                 }
+            }
+
+            for(size_t i = 0; i < 3 * 256 * 256; i+= 3) {
+                normal_map[i] = 0.0f;
+                normal_map[i+1] = 0.0f;
+                normal_map[i+2] = 1.0f;
+            }
+
+            for(size_t i = 0; i < 256 * 256; i+= 3) {
+                lightness_map[i] = 255;
             }
         }
 
@@ -432,6 +446,12 @@ namespace Game {
             LOG("SECTION COUNT: " << alm_header->section_count());
             LOG("W: " << general_map_info->width());
             LOG("H: " << general_map_info->height());
+
+            float sun_angle = 1.1231231f; //-general_map_info->negative_sun_angle();
+
+            float sun_x = std::cos(sun_angle);
+            float sun_y = std::sin(sun_angle);
+            float sun_z = -0.65f;
 
             max_camera_x_ = static_cast<uint32_t>((general_map_info->width() - 16) * 32 - window_width_);
             max_camera_y_ = static_cast<uint32_t>((general_map_info->height() - 16) * 32 - window_height_);
@@ -521,6 +541,30 @@ namespace Game {
 
                 size_t t_offset = 0;
                 size_t h_offset = 0;
+
+                for(uint8_t j = 1; j < general_map_info->height() - 1; ++j) {
+                    size_t stride = (j * 256 + 1) * 3;
+                    for(uint8_t i = 1; i < general_map_info->width() - 1; ++i) {
+
+//                        float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i + 1]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
+//                        float y = 32.0f * 2; /*2.0f*eps*/
+//                        float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i + h_stride]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
+                        float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
+                        float y = 16.0f * 2; /*2.0f*eps*/
+                        float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
+                        float d = std::sqrtf(x*x + y*y + z*z);
+
+                        x /= d;
+                        y /= d;
+                        z /= d;
+
+                        normal_map[stride++] = x;
+                        normal_map[stride++] = y;
+                        normal_map[stride++] = z;
+
+                        lightness_map[256 * j + i] = static_cast<uint8_t>((sun_x * x + sun_y * y + sun_z * z) * 100.0f + 125.0f);
+                    }
+                }
 
                 for(uint16_t y = 0; y < general_map_info->height(); ++y) {
                     int16_t min_y = (static_cast<int16_t>(y) - 8) * 32;
@@ -1115,9 +1159,13 @@ namespace Game {
             uint8_t* tr;
             uint8_t* tg;
             uint8_t* tb;
+            uint8_t* tbuf;
+
             back_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
                 uint8_t* ub = render_shared_.terrain_tile_u_cache;
                 uint8_t* vb = render_shared_.terrain_tile_v_cache;
+                uint8_t* ib = render_shared_.terrain_tile_i_cache;
+                uint8_t* jb = render_shared_.terrain_tile_j_cache;
                 uint8_t* hb = render_shared_.terrain_tile_high_byte_cache;
                 uint8_t* lb = render_shared_.terrain_tile_low_byte_cache;
 
@@ -1130,6 +1178,7 @@ namespace Game {
                 auto woffset = (water_offset_ / WATER_SCROLLING_TICKS) * 4;
 
                 for(size_t offs = dw*dh; offs; --offs) {
+
                     uint8_t terrain_id_ = *hb++;
                     uint8_t low_byte = *lb++;
                     uint8_t col_id_ = low_byte / 0x10;
@@ -1143,20 +1192,42 @@ namespace Game {
                         terrain_id = terrain_id_;
                         col_id = col_id_;
                         auto tile_sprite = tiles_[terrain_id_][col_id_];
-                        tile_sprite->lock([&](auto tw, auto th, auto tr_, auto tg_, auto tb_) {
+                        tile_sprite->lock([&](auto tw, auto th, auto tbuf_, auto tr_, auto tg_, auto tb_) {
                             tr = tr_;
                             tg = tg_;
                             tb = tb_;
+                            tbuf = tbuf_;
                         });
                     }
 
                     uint8_t u = *ub++;
                     uint8_t v = *vb++;
+
                     auto tile_stride = 32 * (row_id * 32 + v) + u;
 
-                    *rb++ = tr[tile_stride];
-                    *gb++ = tg[tile_stride];
-                    *bb++ = tb[tile_stride];
+                    uint8_t i = *ib++;
+                    uint8_t j = *jb++;
+                    uint32_t loffs = j * 256 + i;
+
+                    uint8_t l0 = lightness_map[loffs++];
+                    uint8_t l1 = lightness_map[loffs];
+                    loffs += 255;
+                    uint8_t l2 = lightness_map[loffs++];
+                    uint8_t l3 = lightness_map[loffs];
+
+                    uint8_t one_minus_u = 31 - u;
+
+                    uint16_t lt = (l0 * one_minus_u + l1 * u);
+                    uint16_t lb = (l2 * one_minus_u + l3 * u);
+                    uint8_t lc = (lt * (31 - v) + lb * v) / 1024 / 16;
+                    if(lc > 15) lc = 15;
+
+                    uint32_t pal_stride = 256 * lc;
+
+                    uint8_t idx = tbuf[tile_stride];
+                    *rb++ = tr[pal_stride + idx];
+                    *gb++ = tg[pal_stride + idx];
+                    *bb++ = tb[pal_stride + idx];
                 }
             });
         }
