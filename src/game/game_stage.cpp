@@ -1,6 +1,7 @@
 #include <game/game_stage.h>
 #include <game/shared/shared_res.h>
 #include <game/shared/map_object_meta.h>
+#include <game/shared/structure_meta.h>
 
 #include <loaders/resource_file.h>
 #include <graphics/soaspritergb.h>
@@ -8,7 +9,9 @@
 #include <graphics/tilemap/tilemap.h>
 #include <loaders/ksy/rage_of_mages_1_alm.h>
 #include <util/macro_shared.h>
+#include <emmintrin.h>
 #include <game/game.h>
+#include <chrono>
 #include <assert.h>
 #include <cmath>
 
@@ -317,6 +320,9 @@ namespace {
         9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9
     };
 
+    float normal_map[3 * 256 * 256];
+    uint8_t lightness_map[256*256];
+
     void init_height_scaler_lookup() {
         for(size_t i = 0; i < STANDART_TILE_HEIGHT * (MAX_COLUMN_HEIGHT + 1); ++i) {
             height_scaler_lookup[i] = 0;
@@ -368,12 +374,24 @@ namespace Game {
             depth{p_depth}, phase_ticks_remain{p_phase_ticks_remain},
             current_phase{p_current_phase}, meta_id{p_meta_id},
             state{p_state}, sprite{p_sprite}{}
+        Structure::Structure(int32_t p_coord_x,
+                             int32_t p_coord_y,
+                             int32_t p_depth,
+                             int32_t p_phase_ticks_remain,
+                             int32_t p_current_phase,
+                             int32_t p_meta_id,
+                             std::shared_ptr<Sprite256> p_sprite):
+            coord_x{p_coord_x}, coord_y{p_coord_y},
+            depth{p_depth}, phase_ticks_remain{p_phase_ticks_remain},
+            current_phase{p_current_phase}, meta_id{p_meta_id},
+            sprite{p_sprite}{}
 
         Stage::Stage(uint16_t window_width,
                      uint16_t window_height) :
+            water_offset_{0},
                 window_width_{window_width},
                 window_height_{window_height} {
-            terrain_cache_ = new uint8_t[4 * window_width_ * window_height_];
+            terrain_cache_ = new uint8_t[6 * window_width_ * window_height_];
             size_t offset = 0;
 
             render_shared_.terrain_tile_high_byte_cache = &terrain_cache_[offset];
@@ -383,6 +401,10 @@ namespace Game {
             render_shared_.terrain_tile_u_cache = &terrain_cache_[offset];
             offset += window_width * window_height;
             render_shared_.terrain_tile_v_cache = &terrain_cache_[offset];
+            offset += window_width * window_height;
+            render_shared_.terrain_tile_i_cache = &terrain_cache_[offset];
+            offset += window_width * window_height;
+            render_shared_.terrain_tile_j_cache = &terrain_cache_[offset];
             render_shared_.camera_x = 0;
             render_shared_.camera_y = 0;
 
@@ -399,11 +421,21 @@ namespace Game {
                     } else {
                         sprintf(buf, "terrain/tile%d-%u.bmp", i, j);
                     }
-                    auto[success, next_bmp] = Game::Resources::Graphics().read_bmp_shared(buf);
+                    auto[success, next_bmp] = Game::Resources::Graphics().read_pal_bmp_shared(buf);
                     if(success) {
                         tiles_[i-1].emplace_back(next_bmp);
                     }
                 }
+            }
+
+            for(size_t i = 0; i < 3 * 256 * 256; i+= 3) {
+                normal_map[i] = 0.0f;
+                normal_map[i+1] = 0.0f;
+                normal_map[i+2] = 1.0f;
+            }
+
+            for(size_t i = 0; i < 256 * 256; i+= 3) {
+                lightness_map[i] = 255;
             }
         }
 
@@ -426,6 +458,12 @@ namespace Game {
             LOG("SECTION COUNT: " << alm_header->section_count());
             LOG("W: " << general_map_info->width());
             LOG("H: " << general_map_info->height());
+
+            float sun_angle = 3.1231231f; //-general_map_info->negative_sun_angle();
+
+            float sun_x = std::cos(sun_angle);
+            float sun_y = std::sin(sun_angle);
+            float sun_z = -0.85f;
 
             max_camera_x_ = static_cast<uint32_t>((general_map_info->width() - 16) * 32 - window_width_);
             max_camera_y_ = static_cast<uint32_t>((general_map_info->height() - 16) * 32 - window_height_);
@@ -515,6 +553,30 @@ namespace Game {
 
                 size_t t_offset = 0;
                 size_t h_offset = 0;
+
+                for(uint8_t j = 1; j < general_map_info->height() - 1; ++j) {
+                    size_t stride = (j * 256 + 1) * 3;
+                    for(uint8_t i = 1; i < general_map_info->width() - 1; ++i) {
+
+//                        float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i + 1]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
+//                        float y = 32.0f * 2; /*2.0f*eps*/
+//                        float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i + h_stride]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
+                        float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
+                        float y = 16.0f * 2; /*2.0f*eps*/
+                        float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
+                        float d = std::sqrtf(x*x + y*y + z*z);
+
+                        x /= d;
+                        y /= d;
+                        z /= d;
+
+                        normal_map[stride++] = x;
+                        normal_map[stride++] = y;
+                        normal_map[stride++] = z;
+
+                        lightness_map[256 * j + i] = static_cast<uint8_t>((sun_x * x + sun_y * y + sun_z * z) * 65.0f + 160.0f);
+                    }
+                }
 
                 for(uint16_t y = 0; y < general_map_info->height(); ++y) {
                     int16_t min_y = (static_cast<int16_t>(y) - 8) * 32;
@@ -613,6 +675,7 @@ namespace Game {
                     }
                 }
             }
+            update_scrolling();
 
             LOG("LOADING MAP OBJECTS");
             {
@@ -663,10 +726,21 @@ namespace Game {
 
                         LOG_ASSERT(static_cast<size_t>(real_id) < obj_info.size())
 
-                        const Game::Meta::MapObjectMetaEntry& meta_entry = obj_info[static_cast<size_t>(real_id)];
+                        const auto& meta_entry = obj_info[static_cast<size_t>(real_id)];
 
-                        auto cur_phase = meta_entry.anim_frames.size() >= 1 ? meta_entry.anim_frames[0] : 0;
-                        auto phase_time = meta_entry.anim_times.size() >= 1 ? meta_entry.anim_times[0] : -1;
+                        int32_t cur_phase;
+                        int32_t phase_time;
+
+                        if(meta_entry.anim_frames.size() >= 1 && meta_entry.anim_times.size() >= 1) {
+                            auto frame = static_cast<size_t>(rand()) % meta_entry.anim_frames.size();
+                            cur_phase = meta_entry.anim_frames[frame];
+                            phase_time = meta_entry.anim_times[frame];
+                        } else {
+                            cur_phase = 0;
+                            phase_time = -1;
+                        }
+
+                        auto sprite = const_cast<std::shared_ptr<Sprite256>&>(obj_sprites[static_cast<size_t>(meta_entry.file_id)]);
 
                         map_objects_.emplace_back(
                             xx,
@@ -676,7 +750,7 @@ namespace Game {
                             cur_phase,
                             real_id,
                             meta_entry.dead_id == -1 ? object_state::dead : object_state::alive,
-                            obj_sprites[static_cast<size_t>(meta_entry.file_id)]
+                            sprite
                         );
                     }
                 } catch (const std::exception& ex) {
@@ -684,17 +758,109 @@ namespace Game {
                 }
             }
 
-            LOG("TODO: LOADING FRACTIONS");
-            {
-
-            }
-
             LOG("TODO: LOADING STRUCTURES");
             {
+                try {
+                    const auto& structure_meta = Game::Meta::Structures();
+                    const auto& struct_info = structure_meta.info();
+                    const auto& struct_sprites = structure_meta.sprites();
 
+                    if(structures_id == 255) {
+                        LOG_ERROR("there was an error while retrieving structure data");
+                        return;
+                    }
+
+                    const auto structure_data =
+                        dynamic_cast<rage_of_mages_1_alm_t::structures_sec_t*>(
+                            alm.sections()->at(structures_id)->body()
+                        );
+
+                    if(structure_data == nullptr) {
+                        LOG_ERROR("there was an error while retrieving structure data (dynamic cast)");
+                        return;
+                    }
+
+                    const auto count = structure_data->structures()->size();
+                    structures_.clear();
+                    structures_.reserve(count);
+
+                    for(size_t i = 0; i < count; ++i) {
+                        auto struct_entry = structure_data->structures()->at(i);
+                        LOG("structure:");
+                        LOG("    id: " << struct_entry->id());
+                        LOG("    x: " << static_cast<int32_t>(struct_entry->x_coord() / 0x100));
+                        LOG("    y: " << static_cast<int32_t>(struct_entry->y_coord() / 0x100));
+                        LOG("    type id: " << static_cast<int32_t>(struct_entry->type_id()));
+                        LOG("    health: " << static_cast<int32_t>(struct_entry->health()));
+                        LOG("    fraction: " << static_cast<int32_t>(struct_entry->fraction_id()));
+                        if(!struct_entry->_is_null_bridge_details()) {
+                            LOG("    bridge width: " << static_cast<int32_t>(struct_entry->bridge_details()->width()));
+                            LOG("    bridge height: " << static_cast<int32_t>(struct_entry->bridge_details()->height()));
+                        }
+
+                        int32_t real_id = -1;
+                        for(size_t j = 0; j < struct_info.size(); ++j) {
+                            if(static_cast<uint32_t>(struct_info[j].id) == struct_entry->type_id()) {
+                                real_id = static_cast<int32_t>(j);
+                                break;
+                            }
+                        }
+                        if(real_id == -1) {
+                            continue;
+                        }
+
+                        auto x = static_cast<size_t>(struct_entry->x_coord() / 0x100);
+                        auto y = static_cast<size_t>(struct_entry->y_coord() / 0x100);
+
+                        auto u = static_cast<uint8_t>((struct_entry->x_coord() & 0xFF) / 8);
+                        auto v = static_cast<uint8_t>((struct_entry->y_coord() & 0xFF) / 8);
+
+                        auto xx = tile_map_ptr_->get_x_at_tile(x, y, u, v);
+                        auto yy = tile_map_ptr_->get_y_at_tile(x, y, u, v);
+
+                        const auto& meta_entry = struct_info[static_cast<size_t>(real_id)];
+
+                        if(meta_entry.full_height > meta_entry.tile_height) {
+                            yy -= 32 * (meta_entry.full_height - meta_entry.tile_height);
+                        }
+
+                        int32_t cur_phase;
+                        int32_t phase_time;
+
+                        if(meta_entry.anim_frames.size() >= 1 && meta_entry.anim_times.size() >= 1) {
+                            auto frame = static_cast<size_t>(rand()) % meta_entry.anim_frames.size();
+                            cur_phase = meta_entry.anim_frames[frame];
+                            phase_time = meta_entry.anim_times[frame];
+                        } else {
+                            cur_phase = 0;
+                            phase_time = -1;
+                        }
+
+                        auto sprite = const_cast<std::shared_ptr<Sprite256>&>(struct_sprites[static_cast<size_t>(real_id)]);
+
+                        structures_.emplace_back(
+                            xx,
+                            yy,
+                            y,
+                            phase_time,
+                            cur_phase,
+                            real_id,
+                            sprite
+                        );
+                    }
+
+                } catch (const std::exception& ex) {
+                    LOG_ERROR(ex.what());
+                }
             }
 
             LOG("TODO: LOADING UNITS");
+            {
+
+            }
+
+
+            LOG("TODO: LOADING FRACTIONS");
             {
 
             }
@@ -725,6 +891,7 @@ namespace Game {
         }
 
         void Stage::update(const MouseState &mouse_state) {
+            ++water_offset_;
             for(size_t i = 0; i < map_objects_.size(); ++i) {
                 if(map_objects_[i].phase_ticks_remain < 0) continue;
                 if(map_objects_[i].phase_ticks_remain == 1) {
@@ -738,16 +905,43 @@ namespace Game {
 
             if(mouse_state.mouse_x < 16 && render_shared_.camera_x >= SCROLL_SPEED) {
                 render_shared_.camera_x -= SCROLL_SPEED;
-            }
-            if(mouse_state.mouse_x >= (window_width_ - 16) && render_shared_.camera_x < (max_camera_x_ - SCROLL_SPEED - 1)) {
+                for(int j = 0; j < window_height_ * 6; ++j) {
+                    const auto stride = j * window_width_;
+                    const size_t size = window_width_-SCROLL_SPEED;
+                    memmove(&terrain_cache_[stride+SCROLL_SPEED], &terrain_cache_[stride], size);
+                }
+                update_scrolling(0, SCROLL_SPEED, 0, window_height_);
+            } else if(mouse_state.mouse_x >= (window_width_ - 16) && render_shared_.camera_x < (max_camera_x_ - SCROLL_SPEED - 1)) {
                 render_shared_.camera_x += SCROLL_SPEED;
+                for(int j = 0; j < window_height_ * 6; ++j) {
+                    const auto stride = j * window_width_;
+                    const size_t size = window_width_-SCROLL_SPEED;
+                    memmove(&terrain_cache_[stride], &terrain_cache_[stride+SCROLL_SPEED], size);
+                }
+                update_scrolling(window_width_ - SCROLL_SPEED, window_width_, 0, window_height_);
             }
             if(mouse_state.mouse_y < 16 && render_shared_.camera_y >= SCROLL_SPEED) {
                 render_shared_.camera_y -= SCROLL_SPEED;
-            }
-            if(mouse_state.mouse_y >= (window_height_ - 16) && render_shared_.camera_y < (max_camera_y_ - SCROLL_SPEED - 1)) {
+                const size_t offset = window_width_*SCROLL_SPEED;
+                size_t base_offset = 0;
+                for(uint16_t i = 0; i < 6; ++i){
+                    memmove(&terrain_cache_[base_offset+offset], &terrain_cache_[base_offset], window_width_*(window_height_-SCROLL_SPEED));
+                    base_offset += window_width_*window_height_;
+                }
+                update_scrolling(0, window_width_, 0, SCROLL_SPEED);
+            } else if(mouse_state.mouse_y >= (window_height_ - 16) && render_shared_.camera_y < (max_camera_y_ - SCROLL_SPEED - 1)) {
                 render_shared_.camera_y += SCROLL_SPEED;
+                const size_t offset = window_width_*SCROLL_SPEED;
+                size_t base_offset = 0;
+                for(uint16_t i = 0; i < 6; ++i){
+                    memmove(&terrain_cache_[base_offset], &terrain_cache_[base_offset+offset], window_width_*(window_height_-SCROLL_SPEED));
+                    base_offset += window_width_*window_height_;
+                }
+                update_scrolling(0, window_width_, window_height_-SCROLL_SPEED, window_height_);
             }
+
+            //todo : game object selection etc here
+
         }
 
         template<typename FF>
@@ -820,182 +1014,358 @@ namespace Game {
         }
 
         void Stage::render(SOASpriteRGB &background_sprite) {
+            //auto start = std::chrono::high_resolution_clock::now();
             draw_tiles(background_sprite);
+            //auto end = std::chrono::high_resolution_clock::now();
+            //std::chrono::duration<double, std::milli> elapsed = end-start;
+            //LOG("tiles drawn in " << elapsed.count() << " ms");
             //draw_wireframe(background_sprite);
-            draw_objects(background_sprite);
+            //start = std::chrono::high_resolution_clock::now();
+            send_objects_to_render();
+            send_structures_to_render();
+            //end = std::chrono::high_resolution_clock::now();
+            //elapsed = end-start;
+            //LOG("objects sent in " << elapsed.count() << " ms");
+            //start = std::chrono::high_resolution_clock::now();
+            while (!render_queue_.empty()) {
+                auto[priority, id, kind] = render_queue_.top();
+                render_queue_.pop();
+                switch(kind) {
+                    case renderer_kind::object:{
+                        auto& obj = map_objects_[id];
+                        const auto& meta = Game::Meta::MapObjects().info()[static_cast<size_t>(obj.meta_id)];
+
+                        auto obj_x = obj.coord_x - static_cast<int32_t>(render_shared_.camera_x);
+                        auto obj_y = obj.coord_y - static_cast<int32_t>(render_shared_.camera_y);
+
+                        obj.sprite->blit_on_sprite_centered(
+                            background_sprite,
+                            obj_x,
+                            obj_y,
+                            static_cast<uint16_t>(obj.current_phase),
+                            meta.center_x, meta.center_y,
+                            meta.fixed_w, meta.fixed_h);
+                        }
+                        break;
+                    case renderer_kind::unit:
+                            //TODO: render units
+                        break;
+                    case renderer_kind::structure:{
+                            //TODO: render structures
+                        auto& struct_entry = structures_[id];
+                        const auto& meta = Game::Meta::Structures().info()[static_cast<size_t>(struct_entry.meta_id)];
+
+                        auto obj_x = struct_entry.coord_x - static_cast<int32_t>(render_shared_.camera_x);
+                        auto obj_y = struct_entry.coord_y - static_cast<int32_t>(render_shared_.camera_y);
+
+                        uint8_t offs = 0;
+                        for(int8_t iy = 0; iy < std::max(meta.tile_height, 1); ++iy){
+                            for(int8_t ix = 0; ix < std::max(meta.tile_width, 1); ++ix) {
+                                struct_entry.sprite->blit_on_sprite_centered(
+                                    background_sprite,
+                                    obj_x + ix * 32,
+                                    obj_y + iy * 32,
+                                    offs++,//static_cast<uint16_t>(struct_entry.current_phase),
+                                    127, 127,
+                                    256, 256);
+                            }
+                        }
+                    }
+                        break;
+                    case renderer_kind::structure_bottom:{
+                            //TODO: render structures
+                        auto& struct_entry = structures_[id];
+                        const auto& meta = Game::Meta::Structures().info()[static_cast<size_t>(struct_entry.meta_id)];
+
+                        auto obj_x = struct_entry.coord_x - static_cast<int32_t>(render_shared_.camera_x);
+                        auto obj_y = struct_entry.coord_y - static_cast<int32_t>(render_shared_.camera_y);
+
+                        uint8_t offs = static_cast<uint8_t>(meta.tile_width*meta.tile_height);
+                        for(int32_t iy = meta.tile_height; iy < meta.full_height; ++iy){
+                            for(int8_t ix = 0; ix < std::max(meta.tile_width, 1); ++ix) {
+                                struct_entry.sprite->blit_on_sprite_centered(
+                                    background_sprite,
+                                    obj_x + ix * 32,
+                                    obj_y + iy * 32,
+                                    offs++,//static_cast<uint16_t>(struct_entry.current_phase),
+                                    127, 127,
+                                    256, 256);
+                            }
+                        }
+                    }
+                        break;
+                    case renderer_kind::object_shadow:
+                            //TODO: render object shadows
+                        break;
+                    case renderer_kind::unit_shadow:{
+                            //TODO: render unit shadows
+                        }
+                        break;
+                    case renderer_kind::structure_shadow:{
+                            //TODO: render structure shadows
+                        }
+                        break;
+                }
+            }
+            //end = std::chrono::high_resolution_clock::now();
+            //elapsed = end-start;
+            //LOG("rendering kept " << elapsed.count() << " ms");
         }
 
         void Stage::on_enter() {
 
         }
 
-        void Stage::draw_objects(SOASpriteRGB &back_sprite) {
-            for(auto& obj : map_objects_) {
-                const auto& meta = Game::Meta::MapObjects().info()[static_cast<size_t>(obj.meta_id)];
+        void Stage::send_objects_to_render() {
+            //TODO: do this smarter with spatial partition
+            for(size_t i = 0; i < map_objects_.size(); ++i) {
+                const auto& obj = map_objects_[i];
+                //we sort on depth, but additionally on obj.meta_id to "batch" similar sprites in a row together
+                //we should do this coherently for all types of renderers so they all nicely sort together
+                //TODO: check if this is a better way to make a priority or may be there is a better solution exists
 
-                obj.sprite->blit_on_sprite_centered(
-                    back_sprite,
-                    obj.coord_x - static_cast<int32_t>(render_shared_.camera_x),
-                    obj.coord_y - static_cast<int32_t>(render_shared_.camera_y),
-                    static_cast<uint16_t>(obj.current_phase),
-                    meta.center_x, meta.center_y,
-                    meta.fixed_w, meta.fixed_h);
+                auto tr_x = (obj.coord_x - static_cast<int32_t>(render_shared_.camera_x)) / 32;
+                auto tr_y = (obj.coord_y - static_cast<int32_t>(render_shared_.camera_y)) / 32;
+
+                if(tr_x < 0 || tr_y > window_width_ / 32) continue;
+                if(tr_y < 0 || tr_y > window_height_ / 32) continue;
+
+                size_t priority = static_cast<size_t>(obj.depth * 0x200000 + obj.meta_id * 0x100 + 0x10);
+                render_queue_.push(std::make_tuple(priority, i, renderer_kind::object_shadow));
+                render_queue_.push(std::make_tuple(priority, i, renderer_kind::object));
             }
         }
 
-        void Stage::draw_tiles(SOASpriteRGB& back_sprite) {
+        void Stage::send_structures_to_render() {
+            //TODO: do this smarter with spatial partition
+            for(size_t i = 0; i < structures_.size(); ++i) {
+                const auto& struct_entry = structures_[i];
+                //we sort on depth, but additionally on obj.meta_id to "batch" similar sprites in a row together
+                //we should do this coherently for all types of renderers so they all nicely sort together
+                //additionally for structures there is a check if a structure is "flat"
+                //as long as "bottom" part of a sprite being rendered separately as if it would be flat
+                //TODO: check if this is a better way to make a priority or may be there is a better solution exists
+
+                const auto& meta = Game::Meta::Structures().info()[static_cast<size_t>(struct_entry.meta_id)];
+                size_t priority =
+                   meta.flat == -1
+                       ? static_cast<size_t>((struct_entry.depth/* + meta.full_height-1*/) * 0x200000 + struct_entry.meta_id * 0x100 + 0x05):
+                         static_cast<size_t>(struct_entry.meta_id * 0x100 + 0x05);
+                render_queue_.push(std::make_tuple(priority, i, renderer_kind::structure_shadow));
+                render_queue_.push(std::make_tuple(priority, i, renderer_kind::structure));
+                if(meta.full_height > meta.tile_height) {
+                    render_queue_.push(std::make_tuple(priority % 0x100, i, renderer_kind::structure_bottom));
+                }
+            }
+        }
+
+        void Stage::update_scrolling() {
+            update_scrolling(0, window_width_, 0, window_height_);
+        }
+
+        void Stage::update_scrolling(uint16_t left, uint16_t right, uint16_t top, uint16_t bottom) {
             int32_t high_row[33];
             int32_t low_row[33];
             const std::vector<TileMapChunk>& tilemap_chunks = tile_map_ptr_->get_chunks();
-            back_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
-                auto hght = static_cast<int32_t>(dh);
-                auto wdt = static_cast<int32_t>(dw);
 
-                const uint32_t bottom_y = render_shared_.camera_y + window_height_;
-                const uint32_t right_x = render_shared_.camera_x + window_width_;
+            const uint32_t bottom_y = render_shared_.camera_y + bottom;
+            const uint32_t right_x = render_shared_.camera_x + right;
 
-                for(size_t i = 0; i < tilemap_chunks.size(); ++i) {
-                    const TileMapChunk& current_chunk = tilemap_chunks[i];
-                    if(current_chunk.max_y < static_cast<int32_t>(render_shared_.camera_y)) {
-                        continue;
+            for(size_t i = 0; i < tilemap_chunks.size(); ++i) {
+                const TileMapChunk& current_chunk = tilemap_chunks[i];
+                if(current_chunk.max_y < static_cast<int32_t>(render_shared_.camera_y)) {
+                    continue;
+                }
+                if(current_chunk.min_y >= static_cast<int32_t>(bottom_y)) {
+                    continue;
+                }
+                if(current_chunk.max_x < static_cast<int32_t>(render_shared_.camera_x)) {
+                    continue;
+                }
+                if(current_chunk.min_x >= static_cast<int32_t>(right_x)) {
+                    continue;
+                }
+
+                int32_t sti = static_cast<int32_t>(current_chunk.start_tile_i);
+
+                int32_t start_x = (sti - 8) * 32 - static_cast<int32_t>(render_shared_.camera_x);
+
+                int32_t x0 = start_x;
+                int32_t x1 = x0 + 32;
+
+                uint8_t tile_j = current_chunk.tile_j;
+
+                if(current_chunk.tile_j >= tile_map_ptr_->height())
+                    break;
+
+                int32_t y = (tile_j - 8) * 32 - static_cast<int32_t>(render_shared_.camera_y);
+
+                uint8_t k = 0;
+                while(k < 16) {
+                    if(x0 >= static_cast<int32_t>(right))
+                        break;
+
+                    uint8_t tile_i = current_chunk.start_tile_i + k / 2;
+
+                    if(tile_i >= tile_map_ptr_->width())
+                        break;
+
+
+                    uint32_t tile_id = current_chunk.tile_id[k/2];
+
+                    auto tlh = current_chunk.top_heights[k];
+                    auto blh = current_chunk.bottom_heights[k++];
+                    auto trh = current_chunk.top_heights[k];
+                    auto brh = current_chunk.bottom_heights[k++];
+
+                    int32_t y0_top = y - static_cast<int32_t>(tlh);
+                    int32_t y1_top = y - static_cast<int32_t>(trh);
+                    int32_t y0_bottom = (y - static_cast<int32_t>(blh)) + 32;
+                    int32_t y1_bottom = (y - static_cast<int32_t>(brh)) + 32;
+
+                    uint8_t row_id = tile_id & 0xF;
+                    uint8_t column_id = (tile_id & 0xF0) / 0x10;
+                    uint8_t terrain_id = (tile_id / 0x100) & 0x3;
+
+                    if(terrain_id == 2 && row_id > 7) {
+                        row_id = 7;
+                    } else if(terrain_id != 2 && row_id > 13) {
+                        row_id = 13;
                     }
-                    if(current_chunk.min_y >= static_cast<int32_t>(bottom_y)) {
-                        continue;
-                    }
-                    if(current_chunk.max_x < static_cast<int32_t>(render_shared_.camera_x)) {
-                        continue;
-                    }
-                    if(current_chunk.min_x >= static_cast<int32_t>(right_x)) {
-                        continue;
+
+                    if(terrain_id == 3 && column_id > 3) {
+                        column_id = 3;
                     }
 
-                    int32_t sti = static_cast<int32_t>(current_chunk.start_tile_i);
+                    if((y0_bottom >= top ||
+                        y1_bottom >= top)
+                        &&
+                       (y0_top < static_cast<int32_t>(bottom) ||
+                        y1_top < static_cast<int32_t>(bottom))
+                        &&
+                        x1 > left
+                        &&
+                        x0 < static_cast<int32_t>(right)
+                    ) {
 
-                    int32_t start_x = (sti - 8) * 32 - static_cast<int32_t>(render_shared_.camera_x);
+                        brezenham(x0, y0_top, x1, y1_top, [&](auto xx, auto yy) {
+                            uint8_t id = static_cast<uint8_t>(xx - x0);
+                            low_row[id] = yy;
+                        });
+                        brezenham(x0, y0_bottom, x1, y1_bottom, [&](auto xx, auto yy) {
+                            uint8_t id = static_cast<uint8_t>(xx - x0);
+                            high_row[id] = yy;
+                        });
 
-                    int32_t x0 = start_x;
-                    int32_t x1 = x0 + 32;
+                        uint8_t corrected_tile_id = (column_id * 0x10) | row_id;
 
-                    int32_t tile_j = static_cast<int32_t>(current_chunk.tile_j);
+                        for(uint8_t x = 0; x < 32; ++x) {
+                            int32_t cx = x0 + x;
+                            if(cx < 0 || cx >= right) continue;
 
-                    int32_t y = (tile_j - 8) * 32 - static_cast<int32_t>(render_shared_.camera_y);
+                            int32_t ly = low_row[x];
+                            int32_t hy = high_row[x];
 
-                    size_t k = 0;
-                    while(k < 16) {
-                        if(x0 >= static_cast<int32_t>(window_width_))
-                            break;
+                            int32_t cy = ly;
+                            uint16_t h_diff = static_cast<uint16_t>(hy - ly);
 
-                        if(current_chunk.start_tile_i + k / 2 >= tile_map_ptr_->width())
-                            break;
+                            if(h_diff > 64000) {
+                                h_diff = 0;
+                            }
+                            auto scaler_array = ACQUIRE_HEIGHT_SCALER(h_diff);
 
-                        if(current_chunk.tile_j >= tile_map_ptr_->height())
-                            break;
+                            for(uint8_t j = 0; j < 32; ++j) {
+                                for(uint8_t zz = scaler_array[j]; zz; --zz) {
+                                    if(cy >= 0 && cy < bottom) {
+                                        int32_t stride_dest = cy * window_width_ + cx;
 
-                        uint32_t tile_id = current_chunk.tile_id[k/2];
-
-                        auto tlh = current_chunk.top_heights[k];
-                        auto blh = current_chunk.bottom_heights[k++];
-                        auto trh = current_chunk.top_heights[k];
-                        auto brh = current_chunk.bottom_heights[k++];
-
-                        int32_t y0_top = y - static_cast<int32_t>(tlh);
-                        int32_t y1_top = y - static_cast<int32_t>(trh);
-                        int32_t y0_bottom = (y - static_cast<int32_t>(blh)) + 32;
-                        int32_t y1_bottom = (y - static_cast<int32_t>(brh)) + 32;
-
-                        uint8_t row_id = tile_id & 0xF; tile_id /= 0x10;
-                        uint8_t column_id = tile_id & 0xF; tile_id /= 0x10;
-                        uint8_t terrain_id = tile_id & 0x3;
-
-                        if(terrain_id == 2 && row_id > 7) {
-                            row_id = 7;
-                        } else if(terrain_id != 2 && row_id > 13) {
-                            row_id = 13;
-                        }
-
-                        if(terrain_id == 3 && column_id > 3) {
-                            column_id = 3;
-                        }
-
-                        auto tile_sprite = tiles_[terrain_id][column_id];
-
-                        uint32_t tile_h_stride = 32 * row_id;
-
-                        if((y0_bottom >= 0 ||
-                            y1_bottom >= 0)
-                            &&
-                           (y0_top < static_cast<int32_t>(window_height_) ||
-                            y1_top < static_cast<int32_t>(window_height_))
-                            &&
-                            x1 > 0
-                            &&
-                            x0 < static_cast<int32_t>(window_width_)) {
-                            bool can_draw_as_plain_tile =
-                                (trh == tlh) &&
-                                (blh == brh) &&
-                                (y0_bottom - y0_top == 32) &&
-                                (x0 >= 0) &&
-                                (y0_top >= 0);
-
-                            if(can_draw_as_plain_tile) {
-                                uint32_t tile_x = static_cast<uint32_t>(x0);
-                                uint32_t tile_y = static_cast<uint32_t>(y0_top);
-                                tile_sprite->blit_on_sprite(back_sprite, tile_x, tile_y, 0, tile_h_stride, 32, 32);
-                            } else {
-                                brezenham(x0, y0_top, x1, y1_top, [&](auto xx, auto yy) {
-                                    uint8_t id = static_cast<uint8_t>(xx - x0);
-                                    low_row[id] = yy;
-                                });
-                                brezenham(x0, y0_bottom, x1, y1_bottom, [&](auto xx, auto yy) {
-                                    uint8_t id = static_cast<uint8_t>(xx - x0);
-                                    high_row[id] = yy;
-                                });
-
-                                tile_sprite->lock([&](auto tw, auto th, auto tr, auto tg, auto tb)
-                                {
-                                    size_t tile_stride = tile_h_stride * tw;
-                                    for(int8_t x = 0; x < 32; ++x) {
-                                        int32_t cx = x0 + x;
-                                        if(cx < 0 || cx >= dw) continue;
-
-                                        int32_t ly = low_row[x];
-                                        int32_t hy = high_row[x];
-
-                                        int32_t cy = ly;
-                                        uint16_t h_diff = static_cast<uint16_t>(hy - ly);
-
-                                        if(h_diff > 64000) {
-                                            h_diff = 0;
-                                        }
-                                        auto scaler_array = ACQUIRE_HEIGHT_SCALER(h_diff);
-                                        size_t stride = tile_stride + static_cast<uint8_t>(x);
-
-                                        for(uint8_t j = 0; j < 32; ++j) {
-                                            for(uint8_t zz = scaler_array[j]; zz; --zz) {
-                                                if(cy >= 0 && cy < hght) {
-                                                    int32_t stride_dest = cy * wdt + cx;
-
-                                                    LOG_ASSERT(stride_dest < dw*dh)
-                                                    LOG_ASSERT(stride < tw*th)
-
-                                                    rbuf[stride_dest] = tr[stride];
-                                                    gbuf[stride_dest] = tg[stride];
-                                                    bbuf[stride_dest] = tb[stride];
-                                                }
-                                                ++cy;
-                                            }
-                                            stride += tw;
-                                            if(cy >= hght)
-                                                break;
-                                        }
+                                        render_shared_.terrain_tile_high_byte_cache[stride_dest] = terrain_id;
+                                        render_shared_.terrain_tile_low_byte_cache[stride_dest] = corrected_tile_id;
+                                        render_shared_.terrain_tile_u_cache[stride_dest] = x;
+                                        render_shared_.terrain_tile_v_cache[stride_dest] = j;
+                                        render_shared_.terrain_tile_i_cache[stride_dest] = tile_i;
+                                        render_shared_.terrain_tile_j_cache[stride_dest] = tile_j;
                                     }
-                                });
+                                    ++cy;
+                                }
+                                if(cy >= bottom)
+                                    break;
                             }
                         }
-
-                        x0 = x1;
-                        x1 += 32;
                     }
+
+                    x0 = x1;
+                    x1 += 32;
+                }
+            }
+
+        }
+
+        void Stage::draw_tiles(SOASpriteRGB& back_sprite) {
+            uint8_t terrain_id = NO_ID;
+            uint8_t col_id = NO_ID;
+            const uint8_t* tr = tiles_[0][0]->red_palette();
+            const uint8_t* tg = tiles_[0][0]->green_palette();
+            const uint8_t* tb = tiles_[0][0]->blue_palette();
+            const uint8_t* tbuf;
+
+            back_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
+                uint8_t* ub = render_shared_.terrain_tile_u_cache;
+                uint8_t* vb = render_shared_.terrain_tile_v_cache;
+                uint8_t* ib = render_shared_.terrain_tile_i_cache;
+                uint8_t* jb = render_shared_.terrain_tile_j_cache;
+                uint8_t* hb = render_shared_.terrain_tile_high_byte_cache;
+                uint8_t* lb = render_shared_.terrain_tile_low_byte_cache;
+
+                uint8_t* rb = rbuf;
+                uint8_t* gb = gbuf;
+                uint8_t* bb = bbuf;
+
+                const uint8_t WATER_SCROLLING_TICKS = 4;
+
+                auto woffset = (water_offset_ / WATER_SCROLLING_TICKS) * 4;
+
+                for(size_t offs = dw*dh; offs; --offs) {
+
+                    uint8_t terrain_id_ = *hb++;
+                    uint8_t low_byte = *lb++;
+                    uint8_t col_id_ = low_byte / 0x10;
+                    uint8_t row_id = low_byte & 0xF;
+
+                    if(terrain_id_ == 2) {
+                        col_id_ = (col_id_ + woffset) % 16;
+                    }
+
+                    if(terrain_id_ != terrain_id || col_id_ != col_id) {
+                        terrain_id = terrain_id_;
+                        col_id = col_id_;
+                        auto tile_sprite = tiles_[terrain_id_][col_id_];
+                        tbuf = tile_sprite->buffer();
+                    }
+
+                    uint8_t u = *ub++;
+                    uint8_t v = *vb++;
+
+                    auto tile_stride = 32 * (row_id * 32 + v) + u;
+
+                    uint8_t i = *ib++;
+                    uint8_t j = *jb++;
+                    uint32_t loffs = j * 256 + i;
+                    uint32_t loffs2 = loffs + 256;
+
+                    uint8_t l0 = lightness_map[loffs++] / 16;
+                    uint8_t l1 = lightness_map[loffs] / 16;
+                    uint8_t l2 = lightness_map[loffs2++] / 16;
+                    uint8_t l3 = lightness_map[loffs2] / 16;
+
+                    uint16_t lt = 32 * l0 + (l1 - l0) * u;
+                    uint16_t lb = 32 * l2 + (l3 - l2) * u;
+                    uint8_t lc = (32 * lt + (lb - lt) * v) / 1024;
+
+                    uint32_t pal_stride = 256 * lc + tbuf[tile_stride];
+                    *rb++ = tr[pal_stride];
+                    *gb++ = tg[pal_stride];
+                    *bb++ = tb[pal_stride];
                 }
             });
         }

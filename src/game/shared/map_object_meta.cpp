@@ -14,19 +14,18 @@ namespace {
 namespace Game {
 namespace Meta {
     MapObjectMetaEntry::MapObjectMetaEntry(
-            int32_t p_id,
-            int32_t p_file_id,
-            int32_t p_parent_id,
-            int32_t p_dead_id,
-            int32_t p_fixed_w,
-            int32_t p_fixed_h,
-            int32_t p_center_x,
-            int32_t p_center_y,
-            int32_t p_phases_count,
-            std::vector<int32_t> p_anim_times,
-            std::vector<int32_t> p_anim_frames
-       ) :
-        id{p_id},
+        int32_t p_id,
+        int32_t p_file_id,
+        int32_t p_parent_id,
+        int32_t p_dead_id,
+        int32_t p_fixed_w,
+        int32_t p_fixed_h,
+        int32_t p_center_x,
+        int32_t p_center_y,
+        int32_t p_phases_count,
+        std::vector<int32_t>&& p_anim_times,
+        std::vector<int32_t>&& p_anim_frames
+    ) : id{p_id},
         file_id{p_file_id},
         parent_id{p_parent_id},
         dead_id{p_dead_id},
@@ -164,12 +163,10 @@ namespace Meta {
                     center_x.exists ? center_x.content : -1,
                     center_y.exists ? center_y.content : -1,
                     phases_count.exists ? phases_count.content : -1,
-                    anim_times.content, // when array not exists this field hold empty vector
-                    anim_frames.content // when array not exists this field hold empty vector
+                    std::move(anim_times.content), // when array not exists this field hold empty vector
+                    std::move(anim_frames.content) // when array not exists this field hold empty vector
                 );
             }
-
-            // "topologic search" which "ensures" data so it stops to be incomplete
 
             std::vector<mark> marker_vec;
             marker_vec.reserve(static_cast<size_t>(obj_count));

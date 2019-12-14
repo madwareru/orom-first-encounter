@@ -3,6 +3,32 @@
 #include <emmintrin.h>
 #include <iostream>
 
+SOASpritePal::SOASpritePal(size_t w, size_t h): width_{w}, height_{h} {
+    buffer_raw_ = new uint8_t[w * h + 8 + 0x3000];
+    buffer_ = (reinterpret_cast<int32_t>(&buffer_raw_[0]) % 16 == 0)
+            ? &buffer_raw_[0]
+            : &buffer_raw_[8];
+    pal_r_ = buffer_ + w*h;
+    pal_g_ = pal_r_ + 0x1000;
+    pal_b_ = pal_g_ + 0x1000;
+}
+SOASpritePal::~SOASpritePal() {
+    delete [] buffer_raw_;
+}
+
+const uint8_t* SOASpritePal::blue_palette() const {
+    return pal_b_;
+}
+const uint8_t* SOASpritePal::green_palette() const {
+    return pal_g_;
+}
+const uint8_t* SOASpritePal::red_palette() const {
+    return pal_r_;
+}
+const uint8_t* SOASpritePal::buffer() const {
+    return buffer_;
+}
+
 SOASpriteRGB::SOASpriteRGB(size_t w, size_t h): width_{w}, height_{h} {
     r_buffer_raw_ = new uint8_t[w * h + 8];
     g_buffer_raw_ = new uint8_t[w * h + 8];

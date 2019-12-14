@@ -13,8 +13,8 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
-#define FPS_70_MILLIS 0.014
-#define VSYNC_ON
+#define FPS_30_MILLIS 0.033
+//#define VSYNC_ON
 
 LifetimeProcHolder::LifetimeProcHolder(
     init_proc   init_proc_addr_p,
@@ -106,13 +106,13 @@ bool start_main_loop(
         background_sprite.blit_on_frame_buffer(frame_buffer, 0, 0);
         frame_buffer.blit_on_dc(h_dc);
 #ifdef VSYNC_ON
-        if(delta_time > FPS_70_MILLIS + 0.0005) {
+        if(delta_time > FPS_30_MILLIS + 0.0005) {
             glfwPollEvents();
         } else {
-            double diff = point_a + FPS_70_MILLIS - glfwGetTime();
+            double diff = point_a + FPS_30_MILLIS - glfwGetTime();
             while(diff > 0.0) {
                 glfwWaitEventsTimeout(diff);
-                diff = point_a + FPS_70_MILLIS - glfwGetTime();
+                diff = point_a + FPS_30_MILLIS - glfwGetTime();
             }
         }
 #else
