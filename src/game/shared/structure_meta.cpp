@@ -80,9 +80,9 @@ namespace Meta {
                         buffer,
                         IntField{"ID"},
                         StringField{"File"},
-                        IntField{"tile_width"},
-                        IntField{"tile_height"},
-                        IntField{"tile_height"}
+                        IntField{"TileWidth"},
+                        IntField{"TileHeight"},
+                        IntField{"FullHeight"}
                     );
 
                 auto [selection_x1, selection_y1, selection_x2, selection_y2] =

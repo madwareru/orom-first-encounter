@@ -49,7 +49,10 @@ struct SOASpritePal {
     SOASpritePal& operator=(SOASpritePal&&) = delete;
     ~SOASpritePal();
 
-    uint8_t get_mask_pixel(size_t x, size_t y) const;
+    const uint8_t* red_palette() const;
+    const uint8_t* green_palette() const;
+    const uint8_t* blue_palette() const;
+    const uint8_t* buffer() const;
 
     template<typename FF>
     void lock(FF&& predicate) {

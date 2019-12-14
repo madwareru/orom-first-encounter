@@ -11,6 +11,7 @@
 #include <util/macro_shared.h>
 #include <emmintrin.h>
 #include <game/game.h>
+#include <chrono>
 #include <assert.h>
 #include <cmath>
 
@@ -373,6 +374,17 @@ namespace Game {
             depth{p_depth}, phase_ticks_remain{p_phase_ticks_remain},
             current_phase{p_current_phase}, meta_id{p_meta_id},
             state{p_state}, sprite{p_sprite}{}
+        Structure::Structure(int32_t p_coord_x,
+                             int32_t p_coord_y,
+                             int32_t p_depth,
+                             int32_t p_phase_ticks_remain,
+                             int32_t p_current_phase,
+                             int32_t p_meta_id,
+                             std::shared_ptr<Sprite256> p_sprite):
+            coord_x{p_coord_x}, coord_y{p_coord_y},
+            depth{p_depth}, phase_ticks_remain{p_phase_ticks_remain},
+            current_phase{p_current_phase}, meta_id{p_meta_id},
+            sprite{p_sprite}{}
 
         Stage::Stage(uint16_t window_width,
                      uint16_t window_height) :
@@ -447,11 +459,11 @@ namespace Game {
             LOG("W: " << general_map_info->width());
             LOG("H: " << general_map_info->height());
 
-            float sun_angle = 1.1231231f; //-general_map_info->negative_sun_angle();
+            float sun_angle = 3.1231231f; //-general_map_info->negative_sun_angle();
 
             float sun_x = std::cos(sun_angle);
             float sun_y = std::sin(sun_angle);
-            float sun_z = -0.65f;
+            float sun_z = -0.85f;
 
             max_camera_x_ = static_cast<uint32_t>((general_map_info->width() - 16) * 32 - window_width_);
             max_camera_y_ = static_cast<uint32_t>((general_map_info->height() - 16) * 32 - window_height_);
@@ -562,7 +574,7 @@ namespace Game {
                         normal_map[stride++] = y;
                         normal_map[stride++] = z;
 
-                        lightness_map[256 * j + i] = static_cast<uint8_t>((sun_x * x + sun_y * y + sun_z * z) * 100.0f + 125.0f);
+                        lightness_map[256 * j + i] = static_cast<uint8_t>((sun_x * x + sun_y * y + sun_z * z) * 65.0f + 160.0f);
                     }
                 }
 
@@ -714,7 +726,7 @@ namespace Game {
 
                         LOG_ASSERT(static_cast<size_t>(real_id) < obj_info.size())
 
-                        const Game::Meta::MapObjectMetaEntry& meta_entry = obj_info[static_cast<size_t>(real_id)];
+                        const auto& meta_entry = obj_info[static_cast<size_t>(real_id)];
 
                         int32_t cur_phase;
                         int32_t phase_time;
@@ -769,6 +781,9 @@ namespace Game {
                     }
 
                     const auto count = structure_data->structures()->size();
+                    structures_.clear();
+                    structures_.reserve(count);
+
                     for(size_t i = 0; i < count; ++i) {
                         auto struct_entry = structure_data->structures()->at(i);
                         LOG("structure:");
@@ -782,6 +797,56 @@ namespace Game {
                             LOG("    bridge width: " << static_cast<int32_t>(struct_entry->bridge_details()->width()));
                             LOG("    bridge height: " << static_cast<int32_t>(struct_entry->bridge_details()->height()));
                         }
+
+                        int32_t real_id = -1;
+                        for(size_t j = 0; j < struct_info.size(); ++j) {
+                            if(static_cast<uint32_t>(struct_info[j].id) == struct_entry->type_id()) {
+                                real_id = static_cast<int32_t>(j);
+                                break;
+                            }
+                        }
+                        if(real_id == -1) {
+                            continue;
+                        }
+
+                        auto x = static_cast<size_t>(struct_entry->x_coord() / 0x100);
+                        auto y = static_cast<size_t>(struct_entry->y_coord() / 0x100);
+
+                        auto u = static_cast<uint8_t>((struct_entry->x_coord() & 0xFF) / 8);
+                        auto v = static_cast<uint8_t>((struct_entry->y_coord() & 0xFF) / 8);
+
+                        auto xx = tile_map_ptr_->get_x_at_tile(x, y, u, v);
+                        auto yy = tile_map_ptr_->get_y_at_tile(x, y, u, v);
+
+                        const auto& meta_entry = struct_info[static_cast<size_t>(real_id)];
+
+                        if(meta_entry.full_height > meta_entry.tile_height) {
+                            yy -= 32 * (meta_entry.full_height - meta_entry.tile_height);
+                        }
+
+                        int32_t cur_phase;
+                        int32_t phase_time;
+
+                        if(meta_entry.anim_frames.size() >= 1 && meta_entry.anim_times.size() >= 1) {
+                            auto frame = static_cast<size_t>(rand()) % meta_entry.anim_frames.size();
+                            cur_phase = meta_entry.anim_frames[frame];
+                            phase_time = meta_entry.anim_times[frame];
+                        } else {
+                            cur_phase = 0;
+                            phase_time = -1;
+                        }
+
+                        auto sprite = const_cast<std::shared_ptr<Sprite256>&>(struct_sprites[static_cast<size_t>(real_id)]);
+
+                        structures_.emplace_back(
+                            xx,
+                            yy,
+                            y,
+                            phase_time,
+                            cur_phase,
+                            real_id,
+                            sprite
+                        );
                     }
 
                 } catch (const std::exception& ex) {
@@ -949,9 +1014,19 @@ namespace Game {
         }
 
         void Stage::render(SOASpriteRGB &background_sprite) {
+            //auto start = std::chrono::high_resolution_clock::now();
             draw_tiles(background_sprite);
+            //auto end = std::chrono::high_resolution_clock::now();
+            //std::chrono::duration<double, std::milli> elapsed = end-start;
+            //LOG("tiles drawn in " << elapsed.count() << " ms");
             //draw_wireframe(background_sprite);
+            //start = std::chrono::high_resolution_clock::now();
             send_objects_to_render();
+            send_structures_to_render();
+            //end = std::chrono::high_resolution_clock::now();
+            //elapsed = end-start;
+            //LOG("objects sent in " << elapsed.count() << " ms");
+            //start = std::chrono::high_resolution_clock::now();
             while (!render_queue_.empty()) {
                 auto[priority, id, kind] = render_queue_.top();
                 render_queue_.pop();
@@ -977,7 +1052,47 @@ namespace Game {
                         break;
                     case renderer_kind::structure:{
                             //TODO: render structures
+                        auto& struct_entry = structures_[id];
+                        const auto& meta = Game::Meta::Structures().info()[static_cast<size_t>(struct_entry.meta_id)];
+
+                        auto obj_x = struct_entry.coord_x - static_cast<int32_t>(render_shared_.camera_x);
+                        auto obj_y = struct_entry.coord_y - static_cast<int32_t>(render_shared_.camera_y);
+
+                        uint8_t offs = 0;
+                        for(int8_t iy = 0; iy < std::max(meta.tile_height, 1); ++iy){
+                            for(int8_t ix = 0; ix < std::max(meta.tile_width, 1); ++ix) {
+                                struct_entry.sprite->blit_on_sprite_centered(
+                                    background_sprite,
+                                    obj_x + ix * 32,
+                                    obj_y + iy * 32,
+                                    offs++,//static_cast<uint16_t>(struct_entry.current_phase),
+                                    127, 127,
+                                    256, 256);
+                            }
                         }
+                    }
+                        break;
+                    case renderer_kind::structure_bottom:{
+                            //TODO: render structures
+                        auto& struct_entry = structures_[id];
+                        const auto& meta = Game::Meta::Structures().info()[static_cast<size_t>(struct_entry.meta_id)];
+
+                        auto obj_x = struct_entry.coord_x - static_cast<int32_t>(render_shared_.camera_x);
+                        auto obj_y = struct_entry.coord_y - static_cast<int32_t>(render_shared_.camera_y);
+
+                        uint8_t offs = static_cast<uint8_t>(meta.tile_width*meta.tile_height);
+                        for(int32_t iy = meta.tile_height; iy < meta.full_height; ++iy){
+                            for(int8_t ix = 0; ix < std::max(meta.tile_width, 1); ++ix) {
+                                struct_entry.sprite->blit_on_sprite_centered(
+                                    background_sprite,
+                                    obj_x + ix * 32,
+                                    obj_y + iy * 32,
+                                    offs++,//static_cast<uint16_t>(struct_entry.current_phase),
+                                    127, 127,
+                                    256, 256);
+                            }
+                        }
+                    }
                         break;
                     case renderer_kind::object_shadow:
                             //TODO: render object shadows
@@ -992,6 +1107,9 @@ namespace Game {
                         break;
                 }
             }
+            //end = std::chrono::high_resolution_clock::now();
+            //elapsed = end-start;
+            //LOG("rendering kept " << elapsed.count() << " ms");
         }
 
         void Stage::on_enter() {
@@ -1005,9 +1123,39 @@ namespace Game {
                 //we sort on depth, but additionally on obj.meta_id to "batch" similar sprites in a row together
                 //we should do this coherently for all types of renderers so they all nicely sort together
                 //TODO: check if this is a better way to make a priority or may be there is a better solution exists
+
+                auto tr_x = (obj.coord_x - static_cast<int32_t>(render_shared_.camera_x)) / 32;
+                auto tr_y = (obj.coord_y - static_cast<int32_t>(render_shared_.camera_y)) / 32;
+
+                if(tr_x < 0 || tr_y > window_width_ / 32) continue;
+                if(tr_y < 0 || tr_y > window_height_ / 32) continue;
+
                 size_t priority = static_cast<size_t>(obj.depth * 0x200000 + obj.meta_id * 0x100 + 0x10);
                 render_queue_.push(std::make_tuple(priority, i, renderer_kind::object_shadow));
                 render_queue_.push(std::make_tuple(priority, i, renderer_kind::object));
+            }
+        }
+
+        void Stage::send_structures_to_render() {
+            //TODO: do this smarter with spatial partition
+            for(size_t i = 0; i < structures_.size(); ++i) {
+                const auto& struct_entry = structures_[i];
+                //we sort on depth, but additionally on obj.meta_id to "batch" similar sprites in a row together
+                //we should do this coherently for all types of renderers so they all nicely sort together
+                //additionally for structures there is a check if a structure is "flat"
+                //as long as "bottom" part of a sprite being rendered separately as if it would be flat
+                //TODO: check if this is a better way to make a priority or may be there is a better solution exists
+
+                const auto& meta = Game::Meta::Structures().info()[static_cast<size_t>(struct_entry.meta_id)];
+                size_t priority =
+                   meta.flat == -1
+                       ? static_cast<size_t>((struct_entry.depth/* + meta.full_height-1*/) * 0x200000 + struct_entry.meta_id * 0x100 + 0x05):
+                         static_cast<size_t>(struct_entry.meta_id * 0x100 + 0x05);
+                render_queue_.push(std::make_tuple(priority, i, renderer_kind::structure_shadow));
+                render_queue_.push(std::make_tuple(priority, i, renderer_kind::structure));
+                if(meta.full_height > meta.tile_height) {
+                    render_queue_.push(std::make_tuple(priority % 0x100, i, renderer_kind::structure_bottom));
+                }
             }
         }
 
@@ -1154,12 +1302,12 @@ namespace Game {
         }
 
         void Stage::draw_tiles(SOASpriteRGB& back_sprite) {
-            uint8_t terrain_id = 255;
-            uint8_t col_id = 255;
-            uint8_t* tr;
-            uint8_t* tg;
-            uint8_t* tb;
-            uint8_t* tbuf;
+            uint8_t terrain_id = NO_ID;
+            uint8_t col_id = NO_ID;
+            const uint8_t* tr = tiles_[0][0]->red_palette();
+            const uint8_t* tg = tiles_[0][0]->green_palette();
+            const uint8_t* tb = tiles_[0][0]->blue_palette();
+            const uint8_t* tbuf;
 
             back_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
                 uint8_t* ub = render_shared_.terrain_tile_u_cache;
@@ -1192,12 +1340,7 @@ namespace Game {
                         terrain_id = terrain_id_;
                         col_id = col_id_;
                         auto tile_sprite = tiles_[terrain_id_][col_id_];
-                        tile_sprite->lock([&](auto tw, auto th, auto tbuf_, auto tr_, auto tg_, auto tb_) {
-                            tr = tr_;
-                            tg = tg_;
-                            tb = tb_;
-                            tbuf = tbuf_;
-                        });
+                        tbuf = tile_sprite->buffer();
                     }
 
                     uint8_t u = *ub++;
@@ -1208,26 +1351,21 @@ namespace Game {
                     uint8_t i = *ib++;
                     uint8_t j = *jb++;
                     uint32_t loffs = j * 256 + i;
+                    uint32_t loffs2 = loffs + 256;
 
-                    uint8_t l0 = lightness_map[loffs++];
-                    uint8_t l1 = lightness_map[loffs];
-                    loffs += 255;
-                    uint8_t l2 = lightness_map[loffs++];
-                    uint8_t l3 = lightness_map[loffs];
+                    uint8_t l0 = lightness_map[loffs++] / 16;
+                    uint8_t l1 = lightness_map[loffs] / 16;
+                    uint8_t l2 = lightness_map[loffs2++] / 16;
+                    uint8_t l3 = lightness_map[loffs2] / 16;
 
-                    uint8_t one_minus_u = 31 - u;
+                    uint16_t lt = 32 * l0 + (l1 - l0) * u;
+                    uint16_t lb = 32 * l2 + (l3 - l2) * u;
+                    uint8_t lc = (32 * lt + (lb - lt) * v) / 1024;
 
-                    uint16_t lt = (l0 * one_minus_u + l1 * u);
-                    uint16_t lb = (l2 * one_minus_u + l3 * u);
-                    uint8_t lc = (lt * (31 - v) + lb * v) / 1024 / 16;
-                    if(lc > 15) lc = 15;
-
-                    uint32_t pal_stride = 256 * lc;
-
-                    uint8_t idx = tbuf[tile_stride];
-                    *rb++ = tr[pal_stride + idx];
-                    *gb++ = tg[pal_stride + idx];
-                    *bb++ = tb[pal_stride + idx];
+                    uint32_t pal_stride = 256 * lc + tbuf[tile_stride];
+                    *rb++ = tr[pal_stride];
+                    *gb++ = tg[pal_stride];
+                    *bb++ = tb[pal_stride];
                 }
             });
         }

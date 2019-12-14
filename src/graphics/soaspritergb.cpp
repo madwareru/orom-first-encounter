@@ -16,6 +16,19 @@ SOASpritePal::~SOASpritePal() {
     delete [] buffer_raw_;
 }
 
+const uint8_t* SOASpritePal::blue_palette() const {
+    return pal_b_;
+}
+const uint8_t* SOASpritePal::green_palette() const {
+    return pal_g_;
+}
+const uint8_t* SOASpritePal::red_palette() const {
+    return pal_r_;
+}
+const uint8_t* SOASpritePal::buffer() const {
+    return buffer_;
+}
+
 SOASpriteRGB::SOASpriteRGB(size_t w, size_t h): width_{w}, height_{h} {
     r_buffer_raw_ = new uint8_t[w * h + 8];
     g_buffer_raw_ = new uint8_t[w * h + 8];
