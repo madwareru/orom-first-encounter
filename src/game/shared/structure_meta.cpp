@@ -52,7 +52,21 @@ namespace Meta {
         indestructible{p_indestructible},
         flat{p_flat},
         variable_size{p_variable_size}
-    {}
+    {
+        anim_mask_stride = 0;
+        anim_mask_shifts.reserve(anim_mask.size());
+        for(size_t i = 0; i < anim_mask.size(); ++i) {
+            if(anim_mask[i] == '+') {
+                ++anim_mask_stride;
+                anim_mask_shifts.push_back(anim_mask_stride);
+                continue;
+            }
+            anim_mask_shifts.push_back(0);
+        }
+        if(anim_mask_stride > tile_width * full_height) {
+            anim_mask_stride = tile_width * full_height;
+        }
+    }
 
     StructureMeta::StructureMeta() {
         auto& graphic_resources = Game::Resources::Graphics();
