@@ -1035,6 +1035,8 @@ namespace Game {
                         auto& obj = map_objects_[id];
                         const auto& meta = Game::Meta::MapObjects().info()[static_cast<size_t>(obj.meta_id)];
 
+                        uint16_t idx = meta.index != -1 ? static_cast<uint16_t>(meta.index) : 0;
+
                         auto obj_x = obj.coord_x - static_cast<int32_t>(render_shared_.camera_x);
                         auto obj_y = obj.coord_y - static_cast<int32_t>(render_shared_.camera_y);
 
@@ -1042,7 +1044,7 @@ namespace Game {
                             background_sprite,
                             obj_x,
                             obj_y,
-                            static_cast<uint16_t>(obj.current_phase),
+                            static_cast<uint16_t>(obj.current_phase) + idx,
                             meta.center_x, meta.center_y,
                             meta.fixed_w, meta.fixed_h);
                         }
@@ -1127,7 +1129,7 @@ namespace Game {
                 auto tr_x = (obj.coord_x - static_cast<int32_t>(render_shared_.camera_x)) / 32;
                 auto tr_y = (obj.coord_y - static_cast<int32_t>(render_shared_.camera_y)) / 32;
 
-                if(tr_x < 0 || tr_y > window_width_ / 32) continue;
+                if(tr_x < 0 || tr_x > window_width_ / 32) continue;
                 if(tr_y < 0 || tr_y > window_height_ / 32) continue;
 
                 size_t priority = static_cast<size_t>(obj.depth * 0x200000 + obj.meta_id * 0x100 + 0x10);

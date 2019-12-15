@@ -12,6 +12,7 @@ Sprite256::Sprite256(rage_of_mages_1_256_t* data) {
             palette_b_[i] = clr & 0xFF; clr /= 0x100;
             palette_g_[i] = clr & 0xFF; clr /= 0x100;
             palette_r_[i] = clr & 0xFF;
+
             if(palette_b_[i] < 127) {
                 palette_b_[i] = palette_b_[i] * 2;
             } else {

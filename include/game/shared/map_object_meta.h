@@ -15,6 +15,7 @@ struct MapObjectMetaEntry {
     MapObjectMetaEntry(
         int32_t p_id,
         int32_t p_file_id,
+        int32_t p_index,
         int32_t p_parent_id,
         int32_t p_dead_id,
         int32_t p_fixed_w,
@@ -28,6 +29,7 @@ struct MapObjectMetaEntry {
 
     int32_t id;
     int32_t file_id;
+    int32_t index;
     int32_t parent_id;
     int32_t dead_id;
 
