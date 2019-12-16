@@ -30,7 +30,7 @@ namespace Game {
 
         enum class object_state {alive, burning, dead};
 
-        enum class renderer_kind {object, unit, structure, structure_bottom, object_shadow, unit_shadow, structure_shadow};
+        enum class renderer_kind {object, unit, structure, structure_bottom, object_shadow, unit_shadow, structure_shadow, structure_bottom_shadow};
 
         using renderer_entry = std::tuple<size_t, size_t, renderer_kind>;
 
@@ -50,7 +50,8 @@ namespace Game {
                     &&
                     (r_kind == renderer_kind::object_shadow ||
                      r_kind == renderer_kind::unit_shadow ||
-                     r_kind == renderer_kind::structure_shadow
+                     r_kind == renderer_kind::structure_shadow ||
+                     r_kind == renderer_kind::structure_bottom_shadow
                     )
                 );
             }

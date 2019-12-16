@@ -1114,14 +1114,6 @@ namespace Game {
                                 uint16_t real_frame = offs;
                                 if(struct_entry.bridge_info_id != NO_BRIDGE) {
                                     auto[bw, bh] = bridge_info_entries_[struct_entry.bridge_info_id];
-                                    const uint8_t BRIGDE_STRIDE = 3;
-                                    const uint8_t LEFT_BORDER = 0;
-                                    const uint8_t HORIZONTAL_CENTER = 1;
-                                    const uint8_t RIGHT_BORDER = 2;
-
-                                    const uint8_t TOP_BORDER = 0;
-                                    const uint8_t VERTICAL_CENTER = 1;
-                                    const uint8_t BOTTOM_BORDER = 2;
 
                                     auto bridge_x = (ix == 0) ? LEFT_BORDER
                                         : (ix == bw-1) ? RIGHT_BORDER
@@ -1273,6 +1265,7 @@ namespace Game {
                 render_queue_.push(std::make_tuple(priority, i, renderer_kind::structure));
                 if(meta.full_height > meta.tile_height) {
                     render_queue_.push(std::make_tuple(priority % 0x100, i, renderer_kind::structure_bottom));
+                    render_queue_.push(std::make_tuple(priority % 0x100, i, renderer_kind::structure_bottom_shadow));
                 }
             }
         }
