@@ -501,7 +501,7 @@ namespace Game {
             case event::start_adventure: {
                     auto hero = param0;
                     auto difficulty = param1;
-                    start_level(50, hero, difficulty);
+                    start_level(10, hero, difficulty);
                 }
                 break;
             default: break;

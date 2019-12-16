@@ -49,6 +49,8 @@ struct StructureMetaEntry {
     int32_t shadow_y;
     int32_t phases_count;
     std::string anim_mask;
+    uint8_t anim_mask_stride;
+    std::vector<int32_t> anim_mask_shifts;
     std::vector<int32_t> anim_frames;
     std::vector<int32_t> anim_times;
     std::string picture;

@@ -16,6 +16,7 @@ namespace Meta {
     MapObjectMetaEntry::MapObjectMetaEntry(
         int32_t p_id,
         int32_t p_file_id,
+        int32_t p_index,
         int32_t p_parent_id,
         int32_t p_dead_id,
         int32_t p_fixed_w,
@@ -27,6 +28,7 @@ namespace Meta {
         std::vector<int32_t>&& p_anim_frames
     ) : id{p_id},
         file_id{p_file_id},
+        index{p_index},
         parent_id{p_parent_id},
         dead_id{p_dead_id},
         fixed_w{p_fixed_w},
@@ -55,6 +57,7 @@ namespace Meta {
 
         ENSURE_INT(dead_id);
         ENSURE_INT(file_id);
+        ENSURE_INT(index);
         ENSURE_INT(fixed_w);
         ENSURE_INT(fixed_h);
         ENSURE_INT(center_x);
@@ -127,11 +130,12 @@ namespace Meta {
             for(int32_t i = 0; i < obj_count; ++i) {
                 char buffer[16];
                 sprintf(buffer, "Object%d/", i);
-                auto [id, file_id, parent_id, dead_id] =
+                auto [id, file_id, index, parent_id, dead_id] =
                     objects_reg->read_record(
                         buffer,
                         IntField{"ID"},
                         IntField{"File"},
+                        IntField{"Index"},
                         IntField{"Parent"},
                         IntField{"DeadObject"}
                     );
@@ -156,6 +160,7 @@ namespace Meta {
                 entries_.emplace_back(
                     id.exists ? id.content : -1,
                     file_id.exists ? file_id.content : -1,
+                    index.exists ? index.content : -1,
                     parent_id.exists ? parent_id.content : -1,
                     dead_id.exists ? dead_id.content : -1,
                     fixed_w.exists ? fixed_w.content : -1,

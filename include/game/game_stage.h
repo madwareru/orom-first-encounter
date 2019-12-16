@@ -11,6 +11,7 @@ struct ResourceFile;
 struct SOASpriteRGB;
 struct SOASpritePal;
 struct Sprite256;
+struct Font16;
 struct TileMap;
 
 namespace Game {
@@ -139,6 +140,7 @@ namespace Game {
             std::unique_ptr<TileMap> tile_map_ptr_;
             std::vector<MapObject> map_objects_;
             std::vector<Structure> structures_;
+            std::shared_ptr<Font16> debug_font_;
 
             std::priority_queue<renderer_entry, std::vector<renderer_entry>, compare_renderer_entry> render_queue_;
             //void handle_button_click(uint8_t button_id);

@@ -6,6 +6,7 @@
 #include <loaders/resource_file.h>
 #include <graphics/soaspritergb.h>
 #include <graphics/Sprite256.h>
+#include <graphics/font_rendering.h>
 #include <graphics/tilemap/tilemap.h>
 #include <loaders/ksy/rage_of_mages_1_alm.h>
 #include <util/macro_shared.h>
@@ -437,6 +438,12 @@ namespace Game {
             for(size_t i = 0; i < 256 * 256; i+= 3) {
                 lightness_map[i] = 255;
             }
+
+            auto [font_success, font] = Game::Resources::Graphics().read_font_16_shared("font2/font2.16", "font2/font2.dat");
+            if(!font_success) {
+                throw std::runtime_error("failed on loading font");
+            }
+            debug_font_ = font;
         }
 
         void Stage::load_level(uint8_t level_id) {
@@ -732,9 +739,8 @@ namespace Game {
                         int32_t phase_time;
 
                         if(meta_entry.anim_frames.size() >= 1 && meta_entry.anim_times.size() >= 1) {
-                            auto frame = static_cast<size_t>(rand()) % meta_entry.anim_frames.size();
-                            cur_phase = meta_entry.anim_frames[frame];
-                            phase_time = meta_entry.anim_times[frame];
+                            cur_phase = static_cast<int32_t>(static_cast<uint16_t>(rand()) % meta_entry.anim_frames.size());
+                            phase_time = meta_entry.anim_times[static_cast<uint16_t>(cur_phase)];
                         } else {
                             cur_phase = 0;
                             phase_time = -1;
@@ -824,15 +830,11 @@ namespace Game {
                             yy -= 32 * (meta_entry.full_height - meta_entry.tile_height);
                         }
 
-                        int32_t cur_phase;
                         int32_t phase_time;
 
                         if(meta_entry.anim_frames.size() >= 1 && meta_entry.anim_times.size() >= 1) {
-                            auto frame = static_cast<size_t>(rand()) % meta_entry.anim_frames.size();
-                            cur_phase = meta_entry.anim_frames[frame];
-                            phase_time = meta_entry.anim_times[frame];
+                            phase_time = meta_entry.anim_times[0];
                         } else {
-                            cur_phase = 0;
                             phase_time = -1;
                         }
 
@@ -843,7 +845,7 @@ namespace Game {
                             yy,
                             y,
                             phase_time,
-                            cur_phase,
+                            0,
                             real_id,
                             sprite
                         );
@@ -890,55 +892,80 @@ namespace Game {
             delete [] terrain_cache_;
         }
 
+
+
         void Stage::update(const MouseState &mouse_state) {
-            ++water_offset_;
-            for(size_t i = 0; i < map_objects_.size(); ++i) {
-                if(map_objects_[i].phase_ticks_remain < 0) continue;
-                if(map_objects_[i].phase_ticks_remain == 1) {
-                    const auto& meta = Game::Meta::MapObjects().info()[static_cast<size_t>(map_objects_[i].meta_id)];
-                    map_objects_[i].current_phase = (map_objects_[i].current_phase + 1) % meta.phases_count;
-                    map_objects_[i].phase_ticks_remain = meta.anim_times[static_cast<size_t>(map_objects_[i].current_phase)];
-                    continue;
+            //update_world
+            {
+
+                ++water_offset_;
+                for(size_t i = 0; i < map_objects_.size(); ++i) {
+                    if(map_objects_[i].phase_ticks_remain < 0) continue;
+                    if(map_objects_[i].phase_ticks_remain == 1) {
+                        const auto& meta = Game::Meta::MapObjects().info()[static_cast<size_t>(map_objects_[i].meta_id)];
+                        map_objects_[i].current_phase = (map_objects_[i].current_phase + 1) % meta.phases_count;
+                        map_objects_[i].phase_ticks_remain = meta.anim_times[static_cast<size_t>(map_objects_[i].current_phase)];
+                        continue;
+                    }
+                    --map_objects_[i].phase_ticks_remain;
                 }
-                --map_objects_[i].phase_ticks_remain;
+                for(size_t i = 0; i < structures_.size(); ++i) {
+                    if(structures_[i].phase_ticks_remain < 0) continue;
+                    if(structures_[i].phase_ticks_remain == 1) {
+                        const auto& meta = Game::Meta::Structures().info()[static_cast<size_t>(structures_[i].meta_id)];
+                        if(meta.phases_count == -1 || meta.anim_frames.size() == 0) continue;
+                        ++structures_[i].current_phase;
+                        if(static_cast<uint16_t>(structures_[i].current_phase) >= meta.anim_frames.size()){
+                            structures_[i].current_phase = 0;
+                        }
+                        structures_[i].phase_ticks_remain = meta.anim_times[static_cast<size_t>(structures_[i].current_phase)];
+                        continue;
+                    }
+                    --structures_[i].phase_ticks_remain;
+                }
             }
 
-            if(mouse_state.mouse_x < 16 && render_shared_.camera_x >= SCROLL_SPEED) {
-                render_shared_.camera_x -= SCROLL_SPEED;
-                for(int j = 0; j < window_height_ * 6; ++j) {
-                    const auto stride = j * window_width_;
-                    const size_t size = window_width_-SCROLL_SPEED;
-                    memmove(&terrain_cache_[stride+SCROLL_SPEED], &terrain_cache_[stride], size);
+            //process_scrolling
+            {
+                if(mouse_state.mouse_x < 16 && render_shared_.camera_x >= SCROLL_SPEED) {
+                    render_shared_.camera_x -= SCROLL_SPEED;
+                    for(int j = 0; j < window_height_ * 6; ++j) {
+                        const auto stride = j * window_width_;
+                        const size_t size = window_width_-SCROLL_SPEED;
+                        memmove(&terrain_cache_[stride+SCROLL_SPEED], &terrain_cache_[stride], size);
+                    }
+                    update_scrolling(0, SCROLL_SPEED, 0, window_height_);
+                } else if(mouse_state.mouse_x >= (window_width_ - 16) && render_shared_.camera_x < (max_camera_x_ - SCROLL_SPEED - 1)) {
+                    render_shared_.camera_x += SCROLL_SPEED;
+                    for(int j = 0; j < window_height_ * 6; ++j) {
+                        const auto stride = j * window_width_;
+                        const size_t size = window_width_-SCROLL_SPEED;
+                        memmove(&terrain_cache_[stride], &terrain_cache_[stride+SCROLL_SPEED], size);
+                    }
+                    update_scrolling(window_width_ - SCROLL_SPEED, window_width_, 0, window_height_);
                 }
-                update_scrolling(0, SCROLL_SPEED, 0, window_height_);
-            } else if(mouse_state.mouse_x >= (window_width_ - 16) && render_shared_.camera_x < (max_camera_x_ - SCROLL_SPEED - 1)) {
-                render_shared_.camera_x += SCROLL_SPEED;
-                for(int j = 0; j < window_height_ * 6; ++j) {
-                    const auto stride = j * window_width_;
-                    const size_t size = window_width_-SCROLL_SPEED;
-                    memmove(&terrain_cache_[stride], &terrain_cache_[stride+SCROLL_SPEED], size);
+                if(mouse_state.mouse_y < 16 && render_shared_.camera_y >= SCROLL_SPEED) {
+                    render_shared_.camera_y -= SCROLL_SPEED;
+                    const size_t offset = window_width_*SCROLL_SPEED;
+                    size_t base_offset = 0;
+                    for(uint16_t i = 0; i < 6; ++i){
+                        memmove(&terrain_cache_[base_offset+offset], &terrain_cache_[base_offset], window_width_*(window_height_-SCROLL_SPEED));
+                        base_offset += window_width_*window_height_;
+                    }
+                    update_scrolling(0, window_width_, 0, SCROLL_SPEED);
+                } else if(mouse_state.mouse_y >= (window_height_ - 16) && render_shared_.camera_y < (max_camera_y_ - SCROLL_SPEED - 1)) {
+                    render_shared_.camera_y += SCROLL_SPEED;
+                    const size_t offset = window_width_*SCROLL_SPEED;
+                    size_t base_offset = 0;
+                    for(uint16_t i = 0; i < 6; ++i){
+                        memmove(&terrain_cache_[base_offset], &terrain_cache_[base_offset+offset], window_width_*(window_height_-SCROLL_SPEED));
+                        base_offset += window_width_*window_height_;
+                    }
+                    update_scrolling(0, window_width_, window_height_-SCROLL_SPEED, window_height_);
                 }
-                update_scrolling(window_width_ - SCROLL_SPEED, window_width_, 0, window_height_);
             }
-            if(mouse_state.mouse_y < 16 && render_shared_.camera_y >= SCROLL_SPEED) {
-                render_shared_.camera_y -= SCROLL_SPEED;
-                const size_t offset = window_width_*SCROLL_SPEED;
-                size_t base_offset = 0;
-                for(uint16_t i = 0; i < 6; ++i){
-                    memmove(&terrain_cache_[base_offset+offset], &terrain_cache_[base_offset], window_width_*(window_height_-SCROLL_SPEED));
-                    base_offset += window_width_*window_height_;
-                }
-                update_scrolling(0, window_width_, 0, SCROLL_SPEED);
-            } else if(mouse_state.mouse_y >= (window_height_ - 16) && render_shared_.camera_y < (max_camera_y_ - SCROLL_SPEED - 1)) {
-                render_shared_.camera_y += SCROLL_SPEED;
-                const size_t offset = window_width_*SCROLL_SPEED;
-                size_t base_offset = 0;
-                for(uint16_t i = 0; i < 6; ++i){
-                    memmove(&terrain_cache_[base_offset], &terrain_cache_[base_offset+offset], window_width_*(window_height_-SCROLL_SPEED));
-                    base_offset += window_width_*window_height_;
-                }
-                update_scrolling(0, window_width_, window_height_-SCROLL_SPEED, window_height_);
-            }
+
+
 
             //todo : game object selection etc here
 
@@ -1035,14 +1062,20 @@ namespace Game {
                         auto& obj = map_objects_[id];
                         const auto& meta = Game::Meta::MapObjects().info()[static_cast<size_t>(obj.meta_id)];
 
+                        uint16_t idx = meta.index != -1 ? static_cast<uint16_t>(meta.index) : 0;
+
                         auto obj_x = obj.coord_x - static_cast<int32_t>(render_shared_.camera_x);
                         auto obj_y = obj.coord_y - static_cast<int32_t>(render_shared_.camera_y);
+
+                        uint16_t real_idx = (static_cast<uint16_t>(obj.current_phase) + idx) % meta.phases_count;
+
+                        auto frame = real_idx < meta.anim_frames.size() ? meta.anim_frames[real_idx] : idx;
 
                         obj.sprite->blit_on_sprite_centered(
                             background_sprite,
                             obj_x,
                             obj_y,
-                            static_cast<uint16_t>(obj.current_phase),
+                            static_cast<uint16_t>(frame),
                             meta.center_x, meta.center_y,
                             meta.fixed_w, meta.fixed_h);
                         }
@@ -1051,21 +1084,41 @@ namespace Game {
                             //TODO: render units
                         break;
                     case renderer_kind::structure:{
-                            //TODO: render structures
                         auto& struct_entry = structures_[id];
                         const auto& meta = Game::Meta::Structures().info()[static_cast<size_t>(struct_entry.meta_id)];
 
                         auto obj_x = struct_entry.coord_x - static_cast<int32_t>(render_shared_.camera_x);
                         auto obj_y = struct_entry.coord_y - static_cast<int32_t>(render_shared_.camera_y);
 
-                        uint8_t offs = 0;
+                        uint16_t cur_frame = static_cast<uint16_t>(meta.anim_frames.size() > 0
+                            ? meta.anim_frames[static_cast<uint16_t>(struct_entry.current_phase)]
+                            : 0);
+
+                        auto full_size = meta.tile_width * meta.full_height;
+
+                        uint16_t offs = 0;
+                        uint16_t help_stride = cur_frame == 0 ? 0 : meta.anim_mask_stride * (cur_frame - 1) - 1;
+
                         for(int8_t iy = 0; iy < std::max(meta.tile_height, 1); ++iy){
                             for(int8_t ix = 0; ix < std::max(meta.tile_width, 1); ++ix) {
+                                uint16_t real_frame = offs;
+                                if(cur_frame > 0) {
+                                    if(full_size == 1) {
+                                        real_frame = cur_frame;
+                                    } else if(meta.anim_mask[offs] == '+') {
+                                        real_frame = static_cast<uint16_t>(
+                                            full_size +
+                                            help_stride +
+                                            meta.anim_mask_shifts[offs]
+                                        );
+                                    }
+                                }
+                                ++offs;
                                 struct_entry.sprite->blit_on_sprite_centered(
                                     background_sprite,
                                     obj_x + ix * 32,
                                     obj_y + iy * 32,
-                                    offs++,//static_cast<uint16_t>(struct_entry.current_phase),
+                                    real_frame,
                                     127, 127,
                                     256, 256);
                             }
@@ -1073,21 +1126,40 @@ namespace Game {
                     }
                         break;
                     case renderer_kind::structure_bottom:{
-                            //TODO: render structures
                         auto& struct_entry = structures_[id];
                         const auto& meta = Game::Meta::Structures().info()[static_cast<size_t>(struct_entry.meta_id)];
 
                         auto obj_x = struct_entry.coord_x - static_cast<int32_t>(render_shared_.camera_x);
                         auto obj_y = struct_entry.coord_y - static_cast<int32_t>(render_shared_.camera_y);
 
+                        uint16_t cur_frame = static_cast<uint16_t>(meta.anim_frames.size() > 0
+                            ? meta.anim_frames[static_cast<uint16_t>(struct_entry.current_phase)]
+                            : 0);
+
+                        auto full_size = meta.tile_width * meta.full_height;
+
                         uint8_t offs = static_cast<uint8_t>(meta.tile_width*meta.tile_height);
+                        uint16_t help_stride = cur_frame == 0 ? 0 : meta.anim_mask_stride * (cur_frame - 1) - 1;
                         for(int32_t iy = meta.tile_height; iy < meta.full_height; ++iy){
                             for(int8_t ix = 0; ix < std::max(meta.tile_width, 1); ++ix) {
+                                uint16_t real_frame = offs;
+                                if(cur_frame > 0) {
+                                    if(full_size == 1) {
+                                        real_frame = cur_frame;
+                                    } else if(meta.anim_mask[offs] == '+') {
+                                        real_frame = static_cast<uint16_t>(
+                                            full_size +
+                                            help_stride +
+                                            meta.anim_mask_shifts[offs]
+                                        );
+                                    }
+                                }
+                                ++offs;
                                 struct_entry.sprite->blit_on_sprite_centered(
                                     background_sprite,
                                     obj_x + ix * 32,
                                     obj_y + iy * 32,
-                                    offs++,//static_cast<uint16_t>(struct_entry.current_phase),
+                                    real_frame,
                                     127, 127,
                                     256, 256);
                             }
@@ -1126,8 +1198,9 @@ namespace Game {
 
                 auto tr_x = (obj.coord_x - static_cast<int32_t>(render_shared_.camera_x)) / 32;
                 auto tr_y = (obj.coord_y - static_cast<int32_t>(render_shared_.camera_y)) / 32;
+                if(tr_y >= 2) tr_y -= 2;
 
-                if(tr_x < 0 || tr_y > window_width_ / 32) continue;
+                if(tr_x < 0 || tr_x > window_width_ / 32) continue;
                 if(tr_y < 0 || tr_y > window_height_ / 32) continue;
 
                 size_t priority = static_cast<size_t>(obj.depth * 0x200000 + obj.meta_id * 0x100 + 0x10);
