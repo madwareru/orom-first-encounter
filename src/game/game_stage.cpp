@@ -463,12 +463,7 @@ namespace Game {
             kaitai::kstream ks(bytes);
             rage_of_mages_1_alm_t alm{&ks};
 
-            auto alm_header = alm.alm_header();
             auto general_map_info = alm.general_map_info();
-
-            LOG("SECTION COUNT: " << alm_header->section_count());
-            LOG("W: " << general_map_info->width());
-            LOG("H: " << general_map_info->height());
 
             float sun_angle = 3.1231231f; //-general_map_info->negative_sun_angle();
 
@@ -485,15 +480,15 @@ namespace Game {
                 general_map_info->height()
             );
 
-            uint8_t tiles_id      = 255;
-            uint8_t height_map_id = 255;
-            uint8_t trigger_id    = 255;
-            uint8_t map_obj_id    = 255;
-            uint8_t fractions_id  = 255;
-            uint8_t units_id      = 255;
-            uint8_t structures_id = 255;
-            uint8_t sacks_id      = 255;
-            uint8_t effects_id    = 255;
+            uint8_t tiles_id      = NO_ID;
+            uint8_t height_map_id = NO_ID;
+            uint8_t trigger_id    = NO_ID;
+            uint8_t map_obj_id    = NO_ID;
+            uint8_t fractions_id  = NO_ID;
+            uint8_t units_id      = NO_ID;
+            uint8_t structures_id = NO_ID;
+            uint8_t sacks_id      = NO_ID;
+            uint8_t effects_id    = NO_ID;
 
             LOG("READING SECTION HEADERS. SEARCHING CONCRETE SECTION LOCATIONS");
             for(uint8_t i = 0; i < alm.sections()->size(); ++i) {
@@ -533,7 +528,7 @@ namespace Game {
 
             LOG("LOADING TILEMAP DATA");
             {
-                if(tiles_id == 255 || height_map_id == 255) {
+                if(tiles_id == NO_ID || height_map_id == NO_ID) {
                     LOG_ERROR("there was an error while retrieving tilemap data");
                     return;
                 }
@@ -564,30 +559,6 @@ namespace Game {
 
                 size_t t_offset = 0;
                 size_t h_offset = 0;
-
-                for(uint8_t j = 1; j < general_map_info->height() - 1; ++j) {
-                    size_t stride = (j * 256 + 1) * 3;
-                    for(uint8_t i = 1; i < general_map_info->width() - 1; ++i) {
-
-//                        float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i + 1]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
-//                        float y = 32.0f * 2; /*2.0f*eps*/
-//                        float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i + h_stride]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
-                        float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
-                        float y = 16.0f * 2; /*2.0f*eps*/
-                        float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
-                        float d = std::sqrtf(x*x + y*y + z*z);
-
-                        x /= d;
-                        y /= d;
-                        z /= d;
-
-                        normal_map[stride++] = x;
-                        normal_map[stride++] = y;
-                        normal_map[stride++] = z;
-
-                        lightness_map[256 * j + i] = static_cast<uint8_t>((sun_x * x + sun_y * y + sun_z * z) * 65.0f + 160.0f);
-                    }
-                }
 
                 for(uint16_t y = 0; y < general_map_info->height(); ++y) {
                     int16_t min_y = (static_cast<int16_t>(y) - 8) * 32;
@@ -641,11 +612,38 @@ namespace Game {
                     t_offset += t_stride;
                     h_offset += h_stride;
                 }
+
+                LOG("CALC STATIC LIGHTING");
+                {
+                    for(uint8_t j = 1; j < general_map_info->height() - 1; ++j) {
+                        size_t stride = (j * 256 + 1) * 3;
+                        for(uint8_t i = 1; i < general_map_info->width() - 1; ++i) {
+
+    //                        float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i + 1]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
+    //                        float y = 32.0f * 2; /*2.0f*eps*/
+    //                        float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i + h_stride]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
+                            float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
+                            float y = 16.0f * 2; /*2.0f*eps*/
+                            float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
+                            float d = std::sqrtf(x*x + y*y + z*z);
+
+                            x /= d;
+                            y /= d;
+                            z /= d;
+
+                            normal_map[stride++] = x;
+                            normal_map[stride++] = y;
+                            normal_map[stride++] = z;
+
+                            lightness_map[256 * j + i] = static_cast<uint8_t>((sun_x * x + sun_y * y + sun_z * z) * 65.0f + 160.0f);
+                        }
+                    }
+                }
             }
 
             LOG("SEARCHING FOR DROP LOCATION");
             {
-                if(trigger_id == 255) {
+                if(trigger_id == NO_ID) {
                     LOG_ERROR("there was an error while retrieving trigger data");
                     return;
                 }
@@ -686,6 +684,7 @@ namespace Game {
                     }
                 }
             }
+
             update_scrolling();
 
             LOG("LOADING MAP OBJECTS");
@@ -695,7 +694,7 @@ namespace Game {
                     const auto& obj_info = map_object_meta.info();
                     const auto& obj_sprites = map_object_meta.sprites();
 
-                    if(map_obj_id == 255) {
+                    if(map_obj_id == NO_ID) {
                         LOG_ERROR("there was an error while retrieving map object data");
                         return;
                     }
@@ -871,7 +870,6 @@ namespace Game {
 
             }
 
-
             LOG("TODO: LOADING FRACTIONS");
             {
 
@@ -891,18 +889,11 @@ namespace Game {
             {
 
             }
-
-            LOG("TODO: CALC STATIC LIGHTING");
-            {
-
-            }
         }
 
         Stage::~Stage() {
             delete [] terrain_cache_;
         }
-
-
 
         void Stage::update(const MouseState &mouse_state) {
             //update_world
@@ -974,8 +965,6 @@ namespace Game {
                     update_scrolling(0, window_width_, window_height_-SCROLL_SPEED, window_height_);
                 }
             }
-
-
 
             //todo : game object selection etc here
 
@@ -1051,19 +1040,11 @@ namespace Game {
         }
 
         void Stage::render(SOASpriteRGB &background_sprite) {
-            //auto start = std::chrono::high_resolution_clock::now();
             draw_tiles(background_sprite);
-            //auto end = std::chrono::high_resolution_clock::now();
-            //std::chrono::duration<double, std::milli> elapsed = end-start;
-            //LOG("tiles drawn in " << elapsed.count() << " ms");
-            //draw_wireframe(background_sprite);
-            //start = std::chrono::high_resolution_clock::now();
+
             send_objects_to_render();
             send_structures_to_render();
-            //end = std::chrono::high_resolution_clock::now();
-            //elapsed = end-start;
-            //LOG("objects sent in " << elapsed.count() << " ms");
-            //start = std::chrono::high_resolution_clock::now();
+
             while (!render_queue_.empty()) {
                 auto[priority, id, kind] = render_queue_.top();
                 render_queue_.pop();
@@ -1214,11 +1195,12 @@ namespace Game {
                             //TODO: render structure shadows
                         }
                         break;
+                    case renderer_kind::structure_bottom_shadow:{
+                            //TODO: render structure shadows
+                        }
+                        break;
                 }
             }
-            //end = std::chrono::high_resolution_clock::now();
-            //elapsed = end-start;
-            //LOG("rendering kept " << elapsed.count() << " ms");
         }
 
         void Stage::on_enter() {
@@ -1250,11 +1232,6 @@ namespace Game {
             //TODO: do this smarter with spatial partition
             for(size_t i = 0; i < structures_.size(); ++i) {
                 const auto& struct_entry = structures_[i];
-                //we sort on depth, but additionally on obj.meta_id to "batch" similar sprites in a row together
-                //we should do this coherently for all types of renderers so they all nicely sort together
-                //additionally for structures there is a check if a structure is "flat"
-                //as long as "bottom" part of a sprite being rendered separately as if it would be flat
-                //TODO: check if this is a better way to make a priority or may be there is a better solution exists
 
                 const auto& meta = Game::Meta::Structures().info()[static_cast<size_t>(struct_entry.meta_id)];
                 size_t priority =
