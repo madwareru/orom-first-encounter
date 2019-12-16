@@ -86,6 +86,9 @@ namespace Game {
                 int32_t p_phase_ticks_remain,
                 int32_t p_current_phase,
                 int32_t p_meta_id,
+                uint16_t p_bridge_info_id,
+                uint16_t p_fraction_id,
+                uint16_t p_health,
                 std::shared_ptr<Sprite256> p_sprite
             );
 
@@ -95,6 +98,9 @@ namespace Game {
             int32_t phase_ticks_remain;
             int32_t current_phase;
             int32_t meta_id;
+            uint16_t bridge_info_id;
+            uint16_t fraction_id;
+            uint16_t health;
             std::shared_ptr<Sprite256> sprite;
         };
 
@@ -118,7 +124,15 @@ namespace Game {
             void draw_wireframe(SOASpriteRGB& back_sprite);
 
             enum {
-                NO_ID = 255
+                NO_ID = 255,
+                NO_BRIDGE = 65535,
+                BRIGDE_STRIDE = 3,
+                LEFT_BORDER = 0,
+                HORIZONTAL_CENTER = 1,
+                RIGHT_BORDER = 2,
+                TOP_BORDER = 0,
+                VERTICAL_CENTER = 1,
+                BOTTOM_BORDER = 2
             };
 
             uint8_t water_offset_;
@@ -140,6 +154,7 @@ namespace Game {
             std::unique_ptr<TileMap> tile_map_ptr_;
             std::vector<MapObject> map_objects_;
             std::vector<Structure> structures_;
+            std::vector<std::tuple<uint8_t, uint8_t>> bridge_info_entries_;
             std::shared_ptr<Font16> debug_font_;
 
             std::priority_queue<renderer_entry, std::vector<renderer_entry>, compare_renderer_entry> render_queue_;

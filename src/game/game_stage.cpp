@@ -381,11 +381,15 @@ namespace Game {
                              int32_t p_phase_ticks_remain,
                              int32_t p_current_phase,
                              int32_t p_meta_id,
+                             uint16_t p_bridge_info_id,
+                             uint16_t p_fraction_id,
+                             uint16_t p_health,
                              std::shared_ptr<Sprite256> p_sprite):
             coord_x{p_coord_x}, coord_y{p_coord_y},
             depth{p_depth}, phase_ticks_remain{p_phase_ticks_remain},
             current_phase{p_current_phase}, meta_id{p_meta_id},
-            sprite{p_sprite}{}
+            bridge_info_id{p_bridge_info_id}, fraction_id{p_fraction_id},
+            health{p_health}, sprite{p_sprite}{}
 
         Stage::Stage(uint16_t window_width,
                      uint16_t window_height) :
@@ -764,14 +768,14 @@ namespace Game {
                 }
             }
 
-            LOG("TODO: LOADING STRUCTURES");
+            LOG("LOADING STRUCTURES");
             {
                 try {
                     const auto& structure_meta = Game::Meta::Structures();
                     const auto& struct_info = structure_meta.info();
                     const auto& struct_sprites = structure_meta.sprites();
 
-                    if(structures_id == 255) {
+                    if(structures_id == NO_ID) {
                         LOG_ERROR("there was an error while retrieving structure data");
                         return;
                     }
@@ -787,19 +791,22 @@ namespace Game {
                     }
 
                     const auto count = structure_data->structures()->size();
+                    bridge_info_entries_.clear();
                     structures_.clear();
                     structures_.reserve(count);
 
                     for(size_t i = 0; i < count; ++i) {
                         auto struct_entry = structure_data->structures()->at(i);
-                        LOG("structure:");
-                        LOG("    id: " << struct_entry->id());
-                        LOG("    x: " << static_cast<int32_t>(struct_entry->x_coord() / 0x100));
-                        LOG("    y: " << static_cast<int32_t>(struct_entry->y_coord() / 0x100));
-                        LOG("    type id: " << static_cast<int32_t>(struct_entry->type_id()));
-                        LOG("    health: " << static_cast<int32_t>(struct_entry->health()));
-                        LOG("    fraction: " << static_cast<int32_t>(struct_entry->fraction_id()));
+                        uint16_t brindge_info_id = NO_BRIDGE;
+
                         if(!struct_entry->_is_null_bridge_details()) {
+                            brindge_info_id = static_cast<uint16_t>(bridge_info_entries_.size());
+                            bridge_info_entries_.push_back(
+                                std::make_tuple(
+                                    static_cast<uint8_t>(struct_entry->bridge_details()->width()),
+                                    static_cast<uint8_t>(struct_entry->bridge_details()->height())
+                                )
+                            );
                             LOG("    bridge width: " << static_cast<int32_t>(struct_entry->bridge_details()->width()));
                             LOG("    bridge height: " << static_cast<int32_t>(struct_entry->bridge_details()->height()));
                         }
@@ -847,6 +854,9 @@ namespace Game {
                             phase_time,
                             0,
                             real_id,
+                            brindge_info_id,
+                            static_cast<uint16_t>(struct_entry->fraction_id()),
+                            static_cast<uint16_t>(struct_entry->health()),
                             sprite
                         );
                     }
@@ -1102,7 +1112,29 @@ namespace Game {
                         for(int8_t iy = 0; iy < std::max(meta.tile_height, 1); ++iy){
                             for(int8_t ix = 0; ix < std::max(meta.tile_width, 1); ++ix) {
                                 uint16_t real_frame = offs;
-                                if(cur_frame > 0) {
+                                if(struct_entry.bridge_info_id != NO_BRIDGE) {
+                                    auto[bw, bh] = bridge_info_entries_[struct_entry.bridge_info_id];
+                                    const uint8_t BRIGDE_STRIDE = 3;
+                                    const uint8_t LEFT_BORDER = 0;
+                                    const uint8_t HORIZONTAL_CENTER = 1;
+                                    const uint8_t RIGHT_BORDER = 2;
+
+                                    const uint8_t TOP_BORDER = 0;
+                                    const uint8_t VERTICAL_CENTER = 1;
+                                    const uint8_t BOTTOM_BORDER = 2;
+
+                                    auto bridge_x = (ix == 0) ? LEFT_BORDER
+                                        : (ix == bw-1) ? RIGHT_BORDER
+                                        : HORIZONTAL_CENTER;
+
+                                    auto bridge_y = (iy == 0) ? TOP_BORDER
+                                        : (iy == bh-1) ? BOTTOM_BORDER
+                                        : VERTICAL_CENTER;
+
+                                    real_frame = bridge_y * BRIGDE_STRIDE + bridge_x;
+                                } else if(struct_entry.health == 0) {
+                                    real_frame = static_cast<uint16_t>(struct_entry.sprite->frame_count() - full_size + real_frame);
+                                } else if(cur_frame > 0) {
                                     if(full_size == 1) {
                                         real_frame = cur_frame;
                                     } else if(meta.anim_mask[offs] == '+') {
@@ -1143,7 +1175,20 @@ namespace Game {
                         for(int32_t iy = meta.tile_height; iy < meta.full_height; ++iy){
                             for(int8_t ix = 0; ix < std::max(meta.tile_width, 1); ++ix) {
                                 uint16_t real_frame = offs;
-                                if(cur_frame > 0) {
+                                if(struct_entry.bridge_info_id != NO_BRIDGE) {
+                                    auto[bw, bh] = bridge_info_entries_[struct_entry.bridge_info_id];
+
+                                    auto bridge_x = (ix == 0) ? LEFT_BORDER
+                                        : (ix == bw-1) ? RIGHT_BORDER
+                                        : HORIZONTAL_CENTER;
+                                    auto bridge_y = (iy == 0) ? TOP_BORDER
+                                        : (iy == bh-1) ? BOTTOM_BORDER
+                                        : VERTICAL_CENTER;
+
+                                    real_frame = bridge_y * BRIGDE_STRIDE + bridge_x;
+                                } else if(struct_entry.health == 0) {
+                                    real_frame = static_cast<uint16_t>(struct_entry.sprite->frame_count() - full_size + real_frame);
+                                } else if(cur_frame > 0) {
                                     if(full_size == 1) {
                                         real_frame = cur_frame;
                                     } else if(meta.anim_mask[offs] == '+') {
