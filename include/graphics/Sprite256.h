@@ -16,6 +16,23 @@ struct Sprite256
     ~Sprite256();
     void blit_on_sprite_centered(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number, int32_t off_x, int32_t off_y, int32_t fixed_w, int32_t fixed_h);
     void blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number);
+    void blit_shadow_centered(SOASpriteRGB& other,
+        int32_t x, int32_t y,
+        uint16_t frame_number,
+        int32_t off_x,
+        int32_t off_y,
+        int32_t fixed_w,
+        int32_t fixed_h,
+        uint16_t bottom_y,
+        uint8_t y_scale,
+        int32_t shift_amount
+    );
+    void blit_shadow(SOASpriteRGB& other,
+        int32_t x, int32_t y,
+        uint16_t frame_number,
+        uint16_t bottom_y, uint8_t y_scale,
+        int32_t shift_amount
+    );
     uint16_t frame_count() const;
 private:
     uint8_t palette_r_[256];

@@ -78,6 +78,104 @@ void Sprite256::blit_on_sprite_centered(SOASpriteRGB& other, int32_t x, int32_t 
     );
 }
 
+void Sprite256::blit_shadow_centered(SOASpriteRGB& other,
+        int32_t x, int32_t y,
+        uint16_t frame_number,
+        int32_t off_x,
+        int32_t off_y,
+        int32_t fixed_w,
+        int32_t fixed_h,
+        uint16_t bottom_y,
+        uint8_t y_scale,
+        int32_t shift_amount) {
+    auto [__, width, height, ___] = frame_info_vector_[frame_number];
+    blit_shadow(
+        other,
+        x - (width * off_x) / fixed_w,
+        y - (height * off_y) / fixed_h,
+        frame_number,
+        bottom_y,
+        y_scale,
+        shift_amount
+    );
+}
+
+void Sprite256::blit_shadow(SOASpriteRGB& other,
+        int32_t x, int32_t y,
+        uint16_t frame_number,
+        uint16_t bottom_y, uint8_t y_scale,
+        int32_t shift_amount){
+        const uint8_t BLANK_LINE = 0x40;
+        const uint8_t EMPTY_AREA_BITS = 0xC0;
+        const uint8_t CHUNK_SIZE_BITS = 0x3F;
+
+        if(frame_number >= frame_count_) {
+            frame_number %= frame_count_;
+        }
+        auto [offset, width, height, data_size] = frame_info_vector_[frame_number];
+        bottom_y = (bottom_y * height) / y_scale;
+        auto sw = width;
+        auto raw = &buffer_raw_[offset];
+        auto raw_size = data_size;
+        other.lock([&](auto w, auto h, auto rbuf, auto gbuf, auto bbuf){
+            uint8_t* buf = &raw[0];
+            uint16_t w_drawn = 0;
+
+            auto xx = x;
+            auto yy = y;
+            int i = 0;
+            while(i < raw_size) {
+                uint8_t ipx = *buf++;
+                uint8_t is_empty_area_mask = ipx & EMPTY_AREA_BITS;
+                uint8_t chunk_size = ipx & CHUNK_SIZE_BITS;
+                ++i;
+
+                if(is_empty_area_mask > 0) {
+                    if(is_empty_area_mask == BLANK_LINE) {
+                        yy += chunk_size;
+                    } else {
+                        w_drawn += chunk_size;
+                        xx += chunk_size;
+                        if(w_drawn >= sw) {
+                            yy++;
+                            xx -= sw;
+                            w_drawn -= sw;
+                        }
+                    }
+                    continue;
+                }
+
+                for(uint8_t j = 0; j < chunk_size; ++j) {
+                    buf++; // we skip palette indexes
+
+                    if(w_drawn >= sw) {
+                        yy++;
+                        if((yy - y) >= bottom_y) {
+                            break;
+                        }
+                        xx -= sw;
+                        w_drawn -= sw;
+                    }
+
+                    int32_t x_shifted = xx + ((shift_amount * (bottom_y - (yy - y))) / 256);
+
+                    if(x_shifted >= 0 && yy >= 0 && static_cast<size_t>(x_shifted) < w && static_cast<size_t>(yy) < h) {
+                        size_t offset = static_cast<size_t>(yy * w + x_shifted);
+                        rbuf[offset] = (rbuf[offset] * 19) / 30;
+                        gbuf[offset] = (gbuf[offset] * 19) / 30;
+                        bbuf[offset] = (bbuf[offset] * 3) / 4;
+                    }
+                    xx++;
+                    w_drawn++;
+                }
+                if((yy - y) >= bottom_y) {
+                    break;
+                }
+                i += chunk_size;
+            }
+        });
+}
+
 void Sprite256::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16_t frame_number) {
     const uint8_t BLANK_LINE = 0x40;
     const uint8_t EMPTY_AREA_BITS = 0xC0;
@@ -175,7 +273,7 @@ void Sprite256::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
                 }
 
                 if(xx >= 0 && yy >= 0 && static_cast<size_t>(xx) < w && static_cast<size_t>(yy) < h) {
-                    size_t offset = static_cast<size_t>(yy) * w + static_cast<size_t>(xx);
+                    size_t offset = static_cast<size_t>(yy * w + xx);
                     rbuf[offset] = palette_r_[palette_id];
                     gbuf[offset] = palette_g_[palette_id];
                     bbuf[offset] = palette_b_[palette_id];

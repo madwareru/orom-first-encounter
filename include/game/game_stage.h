@@ -118,6 +118,7 @@ namespace Game {
         private:
             void update_scrolling();
             void update_scrolling(uint16_t left, uint16_t right, uint16_t top, uint16_t bottom);
+            void recalc_lighting();
 
             void draw_tiles(SOASpriteRGB& back_sprite);
             void send_objects_to_render();
@@ -159,6 +160,7 @@ namespace Game {
             std::shared_ptr<Font16> debug_font_;
 
             std::priority_queue<renderer_entry, std::vector<renderer_entry>, compare_renderer_entry> render_queue_;
+            int32_t shadow_offset_;
             //void handle_button_click(uint8_t button_id);
 
             //bool mouse_down_;
