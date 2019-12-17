@@ -41,7 +41,7 @@ namespace Game {
                 if(l_priority != r_priority) {
                     return l_priority > r_priority;
                 }
-                return (
+                if (
                     (l_kind == renderer_kind::object ||
                      l_kind == renderer_kind::unit ||
                      l_kind == renderer_kind::structure ||
@@ -52,8 +52,10 @@ namespace Game {
                      r_kind == renderer_kind::unit_shadow ||
                      r_kind == renderer_kind::structure_shadow ||
                      r_kind == renderer_kind::structure_bottom_shadow
-                    )
-                );
+                     )) {
+                    return true;
+                }
+                return false;
             }
         };
 

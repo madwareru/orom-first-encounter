@@ -1173,7 +1173,7 @@ namespace Game {
 
                         auto full_size = meta.tile_width * meta.full_height;
 
-                        auto h = std::max(meta.tile_height, 1);
+                        auto h = std::max(meta.full_height, 1);
                         auto w = std::max(meta.tile_width, 1);
 
                         if(struct_entry.bridge_info_id != NO_BRIDGE) {
@@ -1183,7 +1183,7 @@ namespace Game {
                         uint8_t offs = static_cast<uint8_t>(meta.tile_width*meta.tile_height);
                         uint16_t help_stride = cur_frame == 0 ? 0 : meta.anim_mask_stride * (cur_frame - 1) - 1;
 
-                        for(int8_t iy = 0; iy < h; ++iy){
+                        for(int8_t iy = static_cast<int8_t>(meta.tile_height); iy < h; ++iy){
                             for(int8_t ix = 0; ix < w; ++ix) {
                                 uint16_t real_frame = offs;
                                 if(struct_entry.health == 0) {
@@ -1417,7 +1417,7 @@ namespace Game {
 
                 size_t priority = static_cast<size_t>(obj.depth * 0x200000 + obj.meta_id * 0x100 + 0x10);
                 render_queue_.push(std::make_tuple(priority, i, renderer_kind::object_shadow));
-                render_queue_.push(std::make_tuple(priority, i, renderer_kind::object));
+                render_queue_.push(std::make_tuple(priority + static_cast<uint8_t>(tr_x), i, renderer_kind::object));
             }
         }
 
