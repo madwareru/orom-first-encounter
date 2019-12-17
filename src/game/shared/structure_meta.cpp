@@ -157,6 +157,10 @@ namespace Meta {
                 sprites_.push_back(sprite); // there are some files that are missing in a .res file,
                                             // this is how it was in original, so we forced to ignore sprite_res content
 
+                if(flat.exists) {
+                    LOG("FLAT: " << id.content << " (" << file_name.content << ")");
+                }
+
                 entries_.emplace_back(
                     id.exists ? id.content : -1,
                     file_name.exists ? std::move(file_name.content) : "",
