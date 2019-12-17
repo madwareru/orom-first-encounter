@@ -466,13 +466,6 @@ namespace Game {
 
             auto general_map_info = alm.general_map_info();
 
-            float sun_angle = 3.141615f * (-shadow_offset_) / 512.0f + 3.141615f / 4.0f; //-general_map_info->negative_sun_angle();
-
-            float sun_x = std::cos(sun_angle);
-            float sun_y = -0.8f;
-            float sun_z = std::sin(sun_angle);
-
-
             max_camera_x_ = static_cast<uint32_t>((general_map_info->width() - 16) * 32 - window_width_);
             max_camera_y_ = static_cast<uint32_t>((general_map_info->height() - 16) * 32 - window_height_);
 
@@ -621,9 +614,6 @@ namespace Game {
                         size_t stride = (j * 256 + 1) * 3;
                         for(uint8_t i = 1; i < general_map_info->width() - 1; ++i) {
 
-    //                        float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i + 1]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
-    //                        float y = 32.0f * 2; /*2.0f*eps*/
-    //                        float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i + h_stride]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
                             float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
                             float y = 16.0f * 2; /*2.0f*eps*/
                             float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
@@ -642,7 +632,7 @@ namespace Game {
                 }
             }
 
-            LOG("SEARCHING FOR DROP LOCATION");
+            LOG("SEARCHING FOR START LOCATION");
             {
                 if(trigger_id == NO_ID) {
                     LOG_ERROR("there was an error while retrieving trigger data");
@@ -867,12 +857,12 @@ namespace Game {
                 }
             }
 
-            LOG("TODO: LOADING UNITS");
+            LOG("TODO: LOADING FRACTIONS");
             {
 
             }
 
-            LOG("TODO: LOADING FRACTIONS");
+            LOG("TODO: LOADING UNITS");
             {
 
             }
@@ -1319,7 +1309,7 @@ namespace Game {
                                         real_frame,
                                         127, 127,
                                         256, 256,
-                                        32 * meta.full_height, 32,
+                                        static_cast<uint16_t>(32 * meta.full_height), 32,
                                         shadow_offset_);
                                 }
                             }
@@ -1381,7 +1371,7 @@ namespace Game {
                                     real_frame,
                                     127, 127,
                                     256, 256,
-                                    32 * meta.full_height, 32,
+                                    static_cast<uint16_t>(32 * meta.full_height), 32,
                                     shadow_offset_);
                             }
                         }
