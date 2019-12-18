@@ -291,20 +291,21 @@ std::tuple<bool, std::shared_ptr<SOASpritePal>> ResourceFile::read_pal_bmp_share
                 for(size_t i = 0; i < 0x1000; ++i) {
                     auto clr = palette[i & 0xFF];
                     uint8_t lightness = (i / 0x100) & 0xFF;
+                    auto bboost = 15 - lightness;
+                    auto gboost = (lightness * 10) / 9;
+                    auto rboost = (lightness * 10) / 5;
 
                     bpal[i] = (clr & 0xFF); clr = clr / 0x100;
                     gpal[i] = (clr & 0xFF); clr = clr / 0x100;
                     rpal[i] = (clr & 0xFF);
 
-                    bpal[i] = ((bpal[i] / 2) * 0x10 + (bpal[i] + bpal[i] / 2) * lightness) / 0x10;
-                    gpal[i] = ((gpal[i] / 2) * 0x10 + (gpal[i] + gpal[i] / 2) * lightness) / 0x10;
-                    rpal[i] = ((rpal[i] / 2) * 0x10 + (rpal[i] + rpal[i] / 2) * lightness) / 0x10;
-                    auto bboost = 15 - lightness;
-                    auto gboost = (lightness * 10) / 9;
-                    auto rboost = (lightness * 10) / 5;
-                    if(bpal[i] + bboost <= 255) bpal[i] += bboost; else bpal[i] = 255;
-                    if(gpal[i] + gboost <= 255) gpal[i] += gboost; else gpal[i] = 255;
-                    if(rpal[i] + rboost <= 255) rpal[i] += rboost; else rpal[i] = 255;
+                    uint16_t b_pal_new = std::min(255, ((bpal[i] / 2) * 0x10 + (bpal[i] + bpal[i] / 2) * lightness) / 0x10 + bboost);
+                    uint16_t g_pal_new = std::min(255, ((gpal[i] / 2) * 0x10 + (gpal[i] + gpal[i] / 2) * lightness) / 0x10 + gboost);
+                    uint16_t r_pal_new = std::min(255, ((rpal[i] / 2) * 0x10 + (rpal[i] + rpal[i] / 2) * lightness) / 0x10 + rboost);
+
+                    bpal[i] = static_cast<uint8_t>(b_pal_new);
+                    gpal[i] = static_cast<uint8_t>(g_pal_new);
+                    rpal[i] = static_cast<uint8_t>(r_pal_new);
                 }
 
                 size_t d_offset = h * w - w;

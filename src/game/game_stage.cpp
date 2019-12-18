@@ -1062,7 +1062,11 @@ namespace Game {
         }
 
         void Stage::render(SOASpriteRGB &background_sprite) {
+//            auto start = std::chrono::high_resolution_clock::now();
             draw_tiles(background_sprite);
+//            auto end = std::chrono::high_resolution_clock::now();
+//            std::chrono::duration<double, std::milli> elapsed = end-start;
+//            LOG("draw tiles: " << elapsed.count() << " ms.");
 
             send_objects_to_render();
             send_structures_to_render();
