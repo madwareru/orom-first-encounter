@@ -15,6 +15,8 @@
 #include <chrono>
 #include <assert.h>
 #include <cmath>
+#include <thread>
+#include <future>
 
 namespace {
     enum {
@@ -1380,19 +1382,6 @@ namespace Game {
                 }
             }
 
-            float sun_angle = 3.141615f * (shadow_offset_) / 512.0f - 3.141615f * 0.5f;
-
-            background_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
-                auto plotter = [&](auto x, auto y) {
-                    if(x < 0 || y < 0 || x >= dw || y >= dh) return;
-                    auto stride = x + y * dw;
-                    rbuf[stride] = 0xFF;
-                    gbuf[stride] = 0x20;
-                    bbuf[stride] = 0x20;
-                };
-                brezenham(window_width_ / 2, window_height_ / 2, window_width_ / 2 + 100 * std::cos(sun_angle), window_height_ / 2 + 100 * std::sin(sun_angle),plotter);
-            });
-
 
         }
 
@@ -1588,13 +1577,6 @@ namespace Game {
         }
 
         void Stage::draw_tiles(SOASpriteRGB& back_sprite) {
-            uint8_t terrain_id = NO_ID;
-            uint8_t col_id = NO_ID;
-            const uint8_t* tr = tiles_[0][0]->red_palette();
-            const uint8_t* tg = tiles_[0][0]->green_palette();
-            const uint8_t* tb = tiles_[0][0]->blue_palette();
-            const uint8_t* tbuf;
-
             back_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
                 uint8_t* ub = render_shared_.terrain_tile_u_cache;
                 uint8_t* vb = render_shared_.terrain_tile_v_cache;
@@ -1609,50 +1591,72 @@ namespace Game {
 
                 const uint8_t WATER_SCROLLING_TICKS = 4;
 
+                const auto quarter_size = dw*dh/4;
+
                 auto woffset = (water_offset_ / WATER_SCROLLING_TICKS) * 4;
 
-                for(size_t offs = dw*dh; offs; --offs) {
+                auto d_func = [&](auto soffs, auto size) {
+                    const uint8_t* tr = tiles_[0][0]->red_palette();
+                    const uint8_t* tg = tiles_[0][0]->green_palette();
+                    const uint8_t* tb = tiles_[0][0]->blue_palette();
 
-                    uint8_t terrain_id_ = *hb++;
-                    uint8_t low_byte = *lb++;
-                    uint8_t col_id_ = low_byte / 0x10;
-                    uint8_t row_id = low_byte & 0xF;
+                    uint8_t terrain_id = NO_ID;
+                    uint8_t col_id = NO_ID;
+                    const uint8_t* tbuf;
 
-                    if(terrain_id_ == 2) {
-                        col_id_ = (col_id_ + woffset) % 16;
+                    const size_t high_p = soffs + size;
+
+                    for(size_t offset = soffs; offset < high_p; ++offset) {
+
+                        uint8_t terrain_id_ = hb[offset];
+                        uint8_t low_byte = lb[offset];
+                        uint8_t col_id_ = low_byte / 0x10;
+                        uint8_t row_id = low_byte & 0xF;
+
+                        if(terrain_id_ == 2) {
+                            col_id_ = (col_id_ + woffset) % 16;
+                        }
+
+                        if(terrain_id_ != terrain_id || col_id_ != col_id) {
+                            terrain_id = terrain_id_;
+                            col_id = col_id_;
+                            auto tile_sprite = tiles_[terrain_id_][col_id_];
+                            tbuf = tile_sprite->buffer();
+                        }
+
+                        uint8_t u = ub[offset];
+                        uint8_t v = vb[offset];
+
+                        auto tile_stride = 32 * (row_id * 32 + v) + u;
+                        uint8_t i = ib[offset];
+                        uint8_t j = jb[offset];
+                        uint32_t loffs = j * 256 + i;
+                        uint32_t loffs2 = loffs + 256;
+                        uint8_t l0 = lightness_map[loffs++];
+                        uint8_t l1 = lightness_map[loffs];
+                        uint8_t l2 = lightness_map[loffs2++];
+                        uint8_t l3 = lightness_map[loffs2];
+
+                        uint16_t lt = 32 * l0 + (l1 - l0) * u;
+                        uint16_t lb = 32 * l2 + (l3 - l2) * u;
+                        uint8_t lc = (32 * lt + (lb - lt) * v) / 1024;
+
+                        uint32_t pal_stride = 256 * lc + tbuf[tile_stride];
+                        rb[offset] = tr[pal_stride];
+                        gb[offset] = tg[pal_stride];
+                        bb[offset] = tb[pal_stride];
                     }
+                };
 
-                    if(terrain_id_ != terrain_id || col_id_ != col_id) {
-                        terrain_id = terrain_id_;
-                        col_id = col_id_;
-                        auto tile_sprite = tiles_[terrain_id_][col_id_];
-                        tbuf = tile_sprite->buffer();
-                    }
+                auto f_0 = std::async(std::launch::async, [&]{ d_func(0, quarter_size); });
+                auto f_1 = std::async(std::launch::async, [&]{ d_func(quarter_size, quarter_size); });
+                auto f_2 = std::async(std::launch::async, [&]{ d_func(quarter_size * 2, quarter_size); });
+                auto f_3 = std::async(std::launch::async, [&]{ d_func(quarter_size * 3, quarter_size); });
 
-                    uint8_t u = *ub++;
-                    uint8_t v = *vb++;
-
-                    auto tile_stride = 32 * (row_id * 32 + v) + u;
-
-                    uint8_t i = *ib++;
-                    uint8_t j = *jb++;
-                    uint32_t loffs = j * 256 + i;
-                    uint32_t loffs2 = loffs + 256;
-
-                    uint8_t l0 = lightness_map[loffs++];
-                    uint8_t l1 = lightness_map[loffs];
-                    uint8_t l2 = lightness_map[loffs2++];
-                    uint8_t l3 = lightness_map[loffs2];
-
-                    uint16_t lt = 32 * l0 + (l1 - l0) * u;
-                    uint16_t lb = 32 * l2 + (l3 - l2) * u;
-                    uint8_t lc = (32 * lt + (lb - lt) * v) / 1024;
-
-                    uint32_t pal_stride = 256 * lc + tbuf[tile_stride];
-                    *rb++ = tr[pal_stride];
-                    *gb++ = tg[pal_stride];
-                    *bb++ = tb[pal_stride];
-                }
+                f_0.wait();
+                f_1.wait();
+                f_2.wait();
+                f_3.wait();
             });
         }
 
