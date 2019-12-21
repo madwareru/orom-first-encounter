@@ -5,6 +5,7 @@
 
 #include <loaders/resource_file.h>
 #include <graphics/soaspritergb.h>
+#include <graphics/soaspritergba.h>
 #include <graphics/Sprite256.h>
 #include <graphics/font_rendering.h>
 #include <graphics/tilemap/tilemap.h>
@@ -325,6 +326,10 @@ namespace {
 
     float normal_map[3 * 256 * 256];
     uint8_t lightness_map[256*256];
+    uint8_t fov_map[256*256];
+    uint8_t fov_map_shifted[256*256];
+    uint8_t tile_selection_x = 255;
+    uint8_t tile_selection_y = 255;
 
     void init_height_scaler_lookup() {
         for(size_t i = 0; i < STANDART_TILE_HEIGHT * (MAX_COLUMN_HEIGHT + 1); ++i) {
@@ -398,6 +403,7 @@ namespace Game {
                 water_offset_{0},
                 window_width_{window_width},
                 window_height_{window_height},
+                fov_sprite_{window_width, window_height},
                 shadow_offset_{128} {
             terrain_cache_ = new uint8_t[6 * window_width_ * window_height_];
             size_t offset = 0;
@@ -444,7 +450,19 @@ namespace Game {
 
             for(size_t i = 0; i < 256 * 256; i+= 3) {
                 lightness_map[i] = 255;
+                fov_map[i] = 0;
+                fov_map_shifted[i] = 0;
             }
+
+            fov_sprite_.lock([&](auto dw, auto dh, auto rb, auto gb, auto bb, auto ab){
+                for(size_t i = 0; i < dw*dh; ++i) {
+                    rb[i] = 0x07;
+                    gb[i] = 0x02;
+                    bb[i] = 0x13;
+                    ab[i] = 0;
+                }
+                screen_space_fov_ = ab;
+            });
 
             auto [font_success, font] = Game::Resources::Graphics().read_font_16_shared("font2/font2.16", "font2/font2.dat");
             if(!font_success) {
@@ -454,6 +472,10 @@ namespace Game {
         }
 
         void Stage::load_level(uint8_t level_id) {
+            for(size_t i = 0; i < 256 * 256; i+= 3) {
+                fov_map[i] = 0;
+            }
+
             char buffer[16];
             sprintf(buffer, "%u.alm", level_id);
             auto resource_header = Game::Resources::Scenario().get_resource(buffer);
@@ -659,6 +681,40 @@ namespace Game {
                         LOG("FOUND DROP LOCATION INSTANCE!");
                         auto drop_x = static_cast<int32_t>(current_instance->argument_values()->at(0));
                         auto drop_y = static_cast<int32_t>(current_instance->argument_values()->at(1));
+
+                        for(int32_t j = drop_y - 16; j < drop_y + 16; ++j) {
+                            for(int32_t i = drop_x - 16; i < drop_x + 16; ++i) {
+                                if(j < 0 || j > 255) {
+                                    continue;
+                                }
+                                if(i < 0 || i > 255) {
+                                    continue;
+                                }
+                                const auto offs = i + j * 256;
+
+                                fov_map[offs] =
+                                    std::max(
+                                         std::abs(i - drop_x),
+                                         std::abs(j - drop_y)
+                                    ) <= 6 ? 255 : 196;
+                            }
+                        }
+
+                        for(int32_t j = drop_y - 16; j < drop_y + 16; ++j) {
+                            for(int32_t i = drop_x - 16; i < drop_x + 16; ++i) {
+                                if(j < 1 || j >= 255) {
+                                    continue;
+                                }
+                                if(i < 1 || i >= 255) {
+                                    continue;
+                                }
+                                const auto offs = i + j * 256;
+
+                                fov_map_shifted[offs] =
+                                    (fov_map[offs] + fov_map[offs + 1] + fov_map[offs - 256] + fov_map[offs - 255]) / 4;
+                            }
+                        }
+
 
                         int32_t desired_x = (drop_x * 64 - window_width_) / 2;
                         int32_t desired_y = (drop_y * 64 - window_height_) / 2;
@@ -915,7 +971,91 @@ namespace Game {
             }
         }
 
+        void Stage::update_fog_of_war_rendition() {
+            for(int32_t j = 1; j < 255; ++j) {
+                for(int32_t i = 1; i < 255; ++i) {
+                    auto dj = j - tile_selection_y;
+                    auto di = i - tile_selection_x;
+
+                    if((di*di + dj * dj) <= 48) {
+                        fov_map[i + j * 256] = 255;
+                    } else if(fov_map[i + j * 256] == 255) {
+                        fov_map[i + j * 256] = 196;
+                    }
+                }
+            }
+            for(int32_t j = 1; j < 255; ++j) {
+                for(int32_t i = 1; i < 255; ++i) {
+
+                    const auto offs = i + j * 256;
+
+                    fov_map_shifted[offs] =
+                        (fov_map[offs] + fov_map[offs - 1] + fov_map[offs - 257] + fov_map[offs - 256]) / 4;
+//                    if(fov_map_shifted[offs] > 196) fov_map_shifted[offs] = 255;
+//                    else if(fov_map_shifted[offs] > 0) fov_map_shifted[offs] = 196;
+                }
+            }
+        }
+
         void Stage::update(const MouseState &mouse_state) {
+            //process_scrolling
+            {
+                bool is_scrolled = false;
+                if(mouse_state.mouse_x < 16 && render_shared_.camera_x >= SCROLL_SPEED) {
+                    is_scrolled = true;
+                    render_shared_.camera_x -= SCROLL_SPEED;
+                    for(int j = 0; j < window_height_ * 6; ++j) {
+                        const auto stride = j * window_width_;
+                        const size_t size = window_width_-SCROLL_SPEED;
+                        memmove(&terrain_cache_[stride+SCROLL_SPEED], &terrain_cache_[stride], size);
+                    }
+                    update_scrolling(0, SCROLL_SPEED, 0, window_height_);
+                } else if(mouse_state.mouse_x >= (window_width_ - 16) && render_shared_.camera_x < (max_camera_x_ - SCROLL_SPEED - 1)) {
+                    is_scrolled = true;
+                    render_shared_.camera_x += SCROLL_SPEED;
+                    for(int j = 0; j < window_height_ * 6; ++j) {
+                        const auto stride = j * window_width_;
+                        const size_t size = window_width_-SCROLL_SPEED;
+                        memmove(&terrain_cache_[stride], &terrain_cache_[stride+SCROLL_SPEED], size);
+                    }
+                    update_scrolling(window_width_ - SCROLL_SPEED, window_width_, 0, window_height_);
+                }
+                if(mouse_state.mouse_y < 16 && render_shared_.camera_y >= SCROLL_SPEED) {
+                    is_scrolled = true;
+                    render_shared_.camera_y -= SCROLL_SPEED;
+                    const size_t offset = window_width_*SCROLL_SPEED;
+                    size_t base_offset = 0;
+                    for(uint16_t i = 0; i < 6; ++i){
+                        memmove(&terrain_cache_[base_offset+offset], &terrain_cache_[base_offset], window_width_*(window_height_-SCROLL_SPEED));
+                        base_offset += window_width_*window_height_;
+                    }
+                    update_scrolling(0, window_width_, 0, SCROLL_SPEED);
+                } else if(mouse_state.mouse_y >= (window_height_ - 16) && render_shared_.camera_y < (max_camera_y_ - SCROLL_SPEED - 1)) {
+                    is_scrolled = true;
+                    render_shared_.camera_y += SCROLL_SPEED;
+                    const size_t offset = window_width_*SCROLL_SPEED;
+                    size_t base_offset = 0;
+                    for(uint16_t i = 0; i < 6; ++i){
+                        memmove(&terrain_cache_[base_offset], &terrain_cache_[base_offset+offset], window_width_*(window_height_-SCROLL_SPEED));
+                        base_offset += window_width_*window_height_;
+                    }
+                    update_scrolling(0, window_width_, window_height_-SCROLL_SPEED, window_height_);
+                }
+                if(is_scrolled) return;
+            }
+
+            //update fov
+            {
+                auto tile_offs = mouse_state.mouse_x + mouse_state.mouse_y * window_width_;
+                auto tile_y_selected = render_shared_.terrain_tile_j_cache[tile_offs];
+                auto tile_x_selected = render_shared_.terrain_tile_i_cache[tile_offs];
+                if(tile_selection_x != tile_x_selected || tile_selection_y != tile_y_selected) {
+                    tile_selection_x = tile_x_selected;
+                    tile_selection_y = tile_y_selected;
+                    update_fog_of_war_rendition();
+                }
+            }
+
             //update_world
             {
                 shadow_offset_ = ((shadow_offset_ + 129) % 256) - 128;
@@ -948,45 +1088,7 @@ namespace Game {
                 }
             }
 
-            //process_scrolling
-            {
-                if(mouse_state.mouse_x < 16 && render_shared_.camera_x >= SCROLL_SPEED) {
-                    render_shared_.camera_x -= SCROLL_SPEED;
-                    for(int j = 0; j < window_height_ * 6; ++j) {
-                        const auto stride = j * window_width_;
-                        const size_t size = window_width_-SCROLL_SPEED;
-                        memmove(&terrain_cache_[stride+SCROLL_SPEED], &terrain_cache_[stride], size);
-                    }
-                    update_scrolling(0, SCROLL_SPEED, 0, window_height_);
-                } else if(mouse_state.mouse_x >= (window_width_ - 16) && render_shared_.camera_x < (max_camera_x_ - SCROLL_SPEED - 1)) {
-                    render_shared_.camera_x += SCROLL_SPEED;
-                    for(int j = 0; j < window_height_ * 6; ++j) {
-                        const auto stride = j * window_width_;
-                        const size_t size = window_width_-SCROLL_SPEED;
-                        memmove(&terrain_cache_[stride], &terrain_cache_[stride+SCROLL_SPEED], size);
-                    }
-                    update_scrolling(window_width_ - SCROLL_SPEED, window_width_, 0, window_height_);
-                }
-                if(mouse_state.mouse_y < 16 && render_shared_.camera_y >= SCROLL_SPEED) {
-                    render_shared_.camera_y -= SCROLL_SPEED;
-                    const size_t offset = window_width_*SCROLL_SPEED;
-                    size_t base_offset = 0;
-                    for(uint16_t i = 0; i < 6; ++i){
-                        memmove(&terrain_cache_[base_offset+offset], &terrain_cache_[base_offset], window_width_*(window_height_-SCROLL_SPEED));
-                        base_offset += window_width_*window_height_;
-                    }
-                    update_scrolling(0, window_width_, 0, SCROLL_SPEED);
-                } else if(mouse_state.mouse_y >= (window_height_ - 16) && render_shared_.camera_y < (max_camera_y_ - SCROLL_SPEED - 1)) {
-                    render_shared_.camera_y += SCROLL_SPEED;
-                    const size_t offset = window_width_*SCROLL_SPEED;
-                    size_t base_offset = 0;
-                    for(uint16_t i = 0; i < 6; ++i){
-                        memmove(&terrain_cache_[base_offset], &terrain_cache_[base_offset+offset], window_width_*(window_height_-SCROLL_SPEED));
-                        base_offset += window_width_*window_height_;
-                    }
-                    update_scrolling(0, window_width_, window_height_-SCROLL_SPEED, window_height_);
-                }
-            }
+
 
             //todo : game object selection etc here
 
@@ -1062,11 +1164,9 @@ namespace Game {
         }
 
         void Stage::render(SOASpriteRGB &background_sprite) {
-//            auto start = std::chrono::high_resolution_clock::now();
             draw_tiles(background_sprite);
-//            auto end = std::chrono::high_resolution_clock::now();
-//            std::chrono::duration<double, std::milli> elapsed = end-start;
-//            LOG("draw tiles: " << elapsed.count() << " ms.");
+
+            //draw_wireframe(background_sprite);
 
             send_objects_to_render();
             send_structures_to_render();
@@ -1385,8 +1485,11 @@ namespace Game {
                         break;
                 }
             }
-
-
+            auto start = std::chrono::high_resolution_clock::now();
+            fov_sprite_.blit_on_sprite(background_sprite, 0, 0);
+            auto end = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> elapsed = end-start;
+            LOG("draw fog: " << elapsed.count() << " ms.");
         }
 
         void Stage::on_enter() {
@@ -1610,6 +1713,12 @@ namespace Game {
 
                     const size_t high_p = soffs + size;
 
+                    uint16_t lside[8] = {0,0,0,0,0,0,0,0};
+                    uint16_t rside[8] = {0,0,0,0,0,0,0,0};
+
+                    __m128i ls;
+                    __m128i rs;
+
                     for(size_t offset = soffs; offset < high_p; ++offset) {
 
                         uint8_t terrain_id_ = hb[offset];
@@ -1631,24 +1740,44 @@ namespace Game {
                         uint8_t u = ub[offset];
                         uint8_t v = vb[offset];
 
+                        __m128i u_vect = _mm_set1_epi16(u);
+
                         auto tile_stride = 32 * (row_id * 32 + v) + u;
                         uint8_t i = ib[offset];
                         uint8_t j = jb[offset];
                         uint32_t loffs = j * 256 + i;
                         uint32_t loffs2 = loffs + 256;
-                        uint8_t l0 = lightness_map[loffs++];
-                        uint8_t l1 = lightness_map[loffs];
-                        uint8_t l2 = lightness_map[loffs2++];
-                        uint8_t l3 = lightness_map[loffs2];
 
-                        uint16_t lt = 32 * l0 + (l1 - l0) * u;
-                        uint16_t lb = 32 * l2 + (l3 - l2) * u;
-                        uint8_t lc = (32 * lt + (lb - lt) * v) / 1024;
+                        lside[0] = lightness_map[loffs];
+                        lside[1] = fov_map_shifted[loffs++];
+
+                        rside[0] = lightness_map[loffs];
+                        rside[1] = fov_map_shifted[loffs];
+
+                        lside[2] = lightness_map[loffs2];
+                        lside[3] = fov_map_shifted[loffs2++];
+
+                        rside[2] = lightness_map[loffs2];
+                        rside[3] = fov_map_shifted[loffs2];
+
+                        ls = _mm_loadu_si128(reinterpret_cast<__m128i*>(lside));
+                        rs = _mm_loadu_si128(reinterpret_cast<__m128i*>(rside));
+                        _mm_storeu_si128(reinterpret_cast<__m128i*>(lside),
+                            _mm_add_epi16(
+                                _mm_mullo_epi16(u_vect, _mm_sub_epi16(rs, ls)),
+                                _mm_slli_epi16(ls, 5)
+                            )
+                        );
+
+                        uint8_t lc = (32 * lside[0] + (lside[2] - lside[0]) * v) / 1024;
+                        uint8_t fc = (32 * lside[1] + (lside[3] - lside[1]) * v) / 1024;
+                        fc = (fc*fc) / 256;
 
                         uint32_t pal_stride = 256 * lc + tbuf[tile_stride];
                         rb[offset] = tr[pal_stride];
                         gb[offset] = tg[pal_stride];
                         bb[offset] = tb[pal_stride];
+                        screen_space_fov_[offset] = ((255 - fc) / 16) * 17;
                     }
                 };
 

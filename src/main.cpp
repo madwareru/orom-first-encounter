@@ -1,4 +1,5 @@
 #include <vector>
+#include <string>
 
 #include <util/defer_action.h>
 #include <util/macro_shared.h>
@@ -14,16 +15,20 @@ int main(int argc, char** argv) {
             if(param.compare("windowed") == 0) {
                 Game::windowed() = true;
             }
-            else if(param.compare("800") == 0) {
-                Game::window_width() = 800;
-                Game::window_height() = 600;
-            }
             else if(param.compare("640") == 0) {
                 Game::window_width() = 640;
                 Game::window_height() = 480;
             }
+            else if(param.compare("800") == 0) {
+                Game::window_width() = 800;
+                Game::window_height() = 600;
+            }
             else if(param.compare("1280") == 0) {
                 Game::window_width() = 1280;
+                Game::window_height() = 768;
+            }
+            else if(param.compare("1366") == 0) {
+                Game::window_width() = 1366;
                 Game::window_height() = 768;
             }
         }
