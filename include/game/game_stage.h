@@ -6,6 +6,7 @@
 #include <vector>
 #include <queue>
 #include <tuple>
+#include <graphics/soaspritergba.h>
 
 struct ResourceFile;
 struct SOASpriteRGB;
@@ -41,7 +42,7 @@ namespace Game {
                 if(l_priority != r_priority) {
                     return l_priority > r_priority;
                 }
-                return (
+                if (
                     (l_kind == renderer_kind::object ||
                      l_kind == renderer_kind::unit ||
                      l_kind == renderer_kind::structure ||
@@ -52,8 +53,10 @@ namespace Game {
                      r_kind == renderer_kind::unit_shadow ||
                      r_kind == renderer_kind::structure_shadow ||
                      r_kind == renderer_kind::structure_bottom_shadow
-                    )
-                );
+                     )) {
+                    return true;
+                }
+                return false;
             }
         };
 
@@ -119,6 +122,7 @@ namespace Game {
             void update_scrolling();
             void update_scrolling(uint16_t left, uint16_t right, uint16_t top, uint16_t bottom);
             void recalc_lighting();
+            void update_fog_of_war_rendition();
 
             void draw_tiles(SOASpriteRGB& back_sprite);
             void send_objects_to_render();
@@ -145,6 +149,7 @@ namespace Game {
             uint32_t max_camera_y_;
 
             uint8_t* terrain_cache_;
+            uint8_t* screen_space_fov_;
             GameStageShared render_shared_;
 
             std::vector<std::shared_ptr<SOASpritePal>> tiles_[4]{
@@ -160,6 +165,7 @@ namespace Game {
             std::shared_ptr<Font16> debug_font_;
 
             std::priority_queue<renderer_entry, std::vector<renderer_entry>, compare_renderer_entry> render_queue_;
+            SOASpriteRGBA fov_sprite_;
             int32_t shadow_offset_;
             //void handle_button_click(uint8_t button_id);
 

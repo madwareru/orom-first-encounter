@@ -73,7 +73,7 @@ namespace Game {
     }
 
     uint16_t& window_width() {
-       static uint16_t val = 1024;
+       static uint16_t val = 1366;
        return val;
     }
     uint16_t& window_height() {
@@ -501,7 +501,7 @@ namespace Game {
             case event::start_adventure: {
                     auto hero = param0;
                     auto difficulty = param1;
-                    start_level(81, hero, difficulty);
+                    start_level(90, hero, difficulty);
                 }
                 break;
             default: break;
