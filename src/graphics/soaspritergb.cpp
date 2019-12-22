@@ -64,6 +64,46 @@ uint8_t SOASpriteRGB::get_mask_pixel(size_t x, size_t y) const {
     return r_buffer_[x + y * width_];
 }
 
+void SOASpriteRGB::blit_on_opengl_buffer(uint8_t* dest_cbuf, uint16_t dw, uint16_t dh){
+    const size_t sw = width_;
+    const size_t sh = height_;
+    auto bbuf = b_buffer_;
+    auto gbuf = g_buffer_;
+    auto rbuf = r_buffer_;
+
+    size_t span_width = dw;
+    if(span_width > sw) {
+        span_width = sw;
+    }
+
+    size_t span4_count = span_width / 4;
+    span_width %= 4;
+
+    size_t span_count = dh;
+    if(span_count > sh) {
+        span_count = sh;
+    }
+
+    uint8_t* b_data = &bbuf[0];
+    uint8_t* g_data = &gbuf[0];
+    uint8_t* r_data = &rbuf[0];
+
+    uint8_t* d_data = &dest_cbuf[0];
+
+    for(size_t j = span_count; j; --j) {
+        for(size_t i = span4_count; i; --i) {
+            *d_data++ = *b_data++; *d_data++ = *g_data++; *d_data++ = *r_data++;
+            *d_data++ = *b_data++; *d_data++ = *g_data++; *d_data++ = *r_data++;
+            *d_data++ = *b_data++; *d_data++ = *g_data++; *d_data++ = *r_data++;
+            *d_data++ = *b_data++; *d_data++ = *g_data++; *d_data++ = *r_data++;
+        }
+
+        for(size_t i = span_width; i; --i) {
+            *d_data++ = *b_data++; *d_data++ = *g_data++; *d_data++ = *r_data++;
+        }
+    }
+}
+
 void SOASpriteRGB::blit_on_frame_buffer(FrameBuffer& fbuffer, size_t x, size_t y) {
     const size_t sw = width_;
     const size_t sh = height_;

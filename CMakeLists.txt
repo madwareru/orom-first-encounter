@@ -18,6 +18,11 @@ set (INCLUDE_DIRS
 
 find_package(OpenGL REQUIRED)
 
+set(glew-cmake_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(glew-cmake_BUILD_MULTI_CONTEXT OFF CACHE BOOL "" FORCE)
+set(glew-cmake_BUILD_STATIC ON CACHE BOOL "" FORCE)
+add_subdirectory(modules/glew-cmake)
+
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -35,6 +40,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME}
     glfw
+    libglew_static
     kaitai_struct_cpp_stl_runtime
     opengl32)
 

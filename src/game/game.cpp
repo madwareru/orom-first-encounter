@@ -73,7 +73,7 @@ namespace Game {
     }
 
     uint16_t& window_width() {
-       static uint16_t val = 1366;
+       static uint16_t val = 1024;
        return val;
     }
     uint16_t& window_height() {
@@ -81,7 +81,7 @@ namespace Game {
         return val;
     }
     bool& windowed() {
-        static bool val = false;
+        static bool val = true;
         return val;
     }
 

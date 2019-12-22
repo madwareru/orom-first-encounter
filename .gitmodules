@@ -8,3 +8,6 @@
 [submodule "modules/ecs.hpp"]
 	path = modules/ecs.hpp
 	url = https://github.com/BlackMATov/ecs.hpp.git
+[submodule "modules/glew-cmake"]
+	path = modules/glew-cmake
+	url = https://github.com/Perlmint/glew-cmake

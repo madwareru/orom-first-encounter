@@ -1485,11 +1485,11 @@ namespace Game {
                         break;
                 }
             }
-            auto start = std::chrono::high_resolution_clock::now();
+//            auto start = std::chrono::high_resolution_clock::now();
             fov_sprite_.blit_on_sprite(background_sprite, 0, 0);
-            auto end = std::chrono::high_resolution_clock::now();
-            std::chrono::duration<double, std::milli> elapsed = end-start;
-            LOG("draw fog: " << elapsed.count() << " ms.");
+//            auto end = std::chrono::high_resolution_clock::now();
+//            std::chrono::duration<double, std::milli> elapsed = end-start;
+//            LOG("draw fog: " << elapsed.count() << " ms.");
         }
 
         void Stage::on_enter() {
