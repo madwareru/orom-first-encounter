@@ -1,5 +1,4 @@
 #include <graphics/soaspritergb.h>
-#include <graphics/framebuffer.h>
 #include <emmintrin.h>
 #include <iostream>
 
@@ -102,64 +101,6 @@ void SOASpriteRGB::blit_on_opengl_buffer(uint8_t* dest_cbuf, uint16_t dw, uint16
             *d_data++ = *b_data++; *d_data++ = *g_data++; *d_data++ = *r_data++;
         }
     }
-}
-
-void SOASpriteRGB::blit_on_frame_buffer(FrameBuffer& fbuffer, size_t x, size_t y) {
-    const size_t sw = width_;
-    const size_t sh = height_;
-    auto bbuf = b_buffer_;
-    auto gbuf = g_buffer_;
-    auto rbuf = r_buffer_;
-
-    fbuffer.lock([&](auto dw, auto dh, auto dest_cbuf) {
-        if(x >= dw || y >= dh) {
-            return;
-        }
-
-        size_t span_width = dw - x;
-        if(span_width > sw) {
-            span_width = sw;
-        }
-
-        size_t span4_count = span_width / 4;
-        span_width %= 4;
-
-        size_t span_count = dh - y;
-        if(span_count > sh) {
-            span_count = sh;
-        }
-
-        uint8_t* b_data_l = &bbuf[0];
-        uint8_t* g_data_l = &gbuf[0];
-        uint8_t* r_data_l = &rbuf[0];
-
-        uint32_t* d_data_l = &dest_cbuf[x + dw * y];
-
-        for(size_t j = span_count; j; --j) {
-            uint8_t* b_data = b_data_l;
-            uint8_t* g_data = g_data_l;
-            uint8_t* r_data = r_data_l;
-
-            uint32_t* d_data = d_data_l;
-
-            for(size_t i = span4_count; i; --i) {
-                *d_data++ = *b_data++ | (*g_data++) * 0x100 | (*r_data++) * 0x10000;
-                *d_data++ = *b_data++ | (*g_data++) * 0x100 | (*r_data++) * 0x10000;
-                *d_data++ = *b_data++ | (*g_data++) * 0x100 | (*r_data++) * 0x10000;
-                *d_data++ = *b_data++ | (*g_data++) * 0x100 | (*r_data++) * 0x10000;
-            }
-
-            for(size_t i = span_width; i; --i) {
-                *d_data++ = *b_data++ | (*g_data++) * 0x100 | (*r_data++) * 0x10000;
-            }
-
-            b_data_l += sw;
-            g_data_l += sw;
-            r_data_l += sw;
-
-            d_data_l += dw;
-        }
-    });
 }
 
 void SOASpriteRGB::blit_on_sprite(SOASpriteRGB& dsprite, int16_t x, int16_t y) {

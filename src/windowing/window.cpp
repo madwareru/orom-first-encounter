@@ -3,7 +3,6 @@
 #include <memory>
 #include <emmintrin.h>
 #include <graphics/soaspritergb.h>
-#include <graphics/framebuffer.h>
 #include <windowing/window.h>
 
 #include <util/macro_shared.h>
