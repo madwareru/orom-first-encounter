@@ -89,8 +89,10 @@ bool start_main_loop(
 
     GLuint vbo_vertices;
     glGenBuffers(1, &vbo_vertices);
+    DEFER([&](){ glDeleteBuffers(1, &vbo_vertices); })
     GLuint vbo_uv;
     glGenBuffers(1, &vbo_uv);
+    DEFER([&](){ glDeleteBuffers(1, &vbo_uv); })
 
     GLuint vertexShader;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -142,6 +144,7 @@ bool start_main_loop(
     }
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+    DEFER([&](){ glDeleteProgram(shaderProgram); })
 
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
@@ -156,9 +159,11 @@ bool start_main_loop(
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
     glEnableVertexAttribArray(1);
     glBindVertexArray(0);
+    DEFER([&](){ glDeleteVertexArrays(1, &VAO); })
 
     GLuint texture;
     glGenTextures(1, &texture);
+    DEFER([&](){ glDeleteTextures(1, &texture); })
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -172,6 +177,7 @@ bool start_main_loop(
 
     GLuint PBO;
     glGenBuffers(1, &PBO);
+    DEFER([&](){ glDeleteBuffers(1, &PBO); })
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBO);
     glBufferData(GL_PIXEL_UNPACK_BUFFER, 3 * fbw * fbh, nullptr, GL_STREAM_DRAW);
     uint8_t* ptr = reinterpret_cast<uint8_t*>(glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY));
