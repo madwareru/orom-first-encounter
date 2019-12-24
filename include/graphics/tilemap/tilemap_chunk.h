@@ -3,17 +3,20 @@
 
 #include <cstdint>
 
-//8x1 chunk
-struct TileMapChunk {
-    int32_t min_x;
+struct TileCorners {
+    uint8_t top_left_height;
+    uint8_t top_right_height;
+    uint8_t bottom_left_height;
+    uint8_t bottom_right_height;
+};
+
+struct TileEntry {
     int32_t min_y;
-    int32_t max_x;
     int32_t max_y;
-    uint8_t start_tile_i;
+    TileCorners corners;
+    uint16_t tile_id;
+    uint8_t tile_i;
     uint8_t tile_j;
-    uint16_t tile_id[8];
-    uint8_t top_heights[16];
-    uint8_t bottom_heights[16];
 };
 
 #endif /* end of include guard: TILEMAP_CHUNK_H */

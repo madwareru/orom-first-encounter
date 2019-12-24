@@ -64,42 +64,35 @@ uint8_t SOASpriteRGB::get_mask_pixel(size_t x, size_t y) const {
 }
 
 void SOASpriteRGB::blit_on_opengl_buffer(uint8_t* dest_cbuf, uint16_t dw, uint16_t dh){
-    const size_t sw = width_;
-    const size_t sh = height_;
-    auto bbuf = b_buffer_;
-    auto gbuf = g_buffer_;
-    auto rbuf = r_buffer_;
-
-    size_t span_width = dw;
-    if(span_width > sw) {
-        span_width = sw;
-    }
-
-    size_t span4_count = span_width / 4;
-    span_width %= 4;
-
-    size_t span_count = dh;
-    if(span_count > sh) {
-        span_count = sh;
-    }
-
-    uint8_t* b_data = &bbuf[0];
-    uint8_t* g_data = &gbuf[0];
-    uint8_t* r_data = &rbuf[0];
-
+    uint8_t* b_data = &b_buffer_[0];
+    uint8_t* g_data = &g_buffer_[0];
+    uint8_t* r_data = &r_buffer_[0];
     uint8_t* d_data = &dest_cbuf[0];
 
-    for(size_t j = span_count; j; --j) {
-        for(size_t i = span4_count; i; --i) {
-            *d_data++ = *b_data++; *d_data++ = *g_data++; *d_data++ = *r_data++;
-            *d_data++ = *b_data++; *d_data++ = *g_data++; *d_data++ = *r_data++;
-            *d_data++ = *b_data++; *d_data++ = *g_data++; *d_data++ = *r_data++;
-            *d_data++ = *b_data++; *d_data++ = *g_data++; *d_data++ = *r_data++;
-        }
+    __m128i zero_batch = _mm_set1_epi8(0);
 
-        for(size_t i = span_width; i; --i) {
-            *d_data++ = *b_data++; *d_data++ = *g_data++; *d_data++ = *r_data++;
-        }
+    for(size_t i = dw * dh; i; i -= 16) {
+        auto bd = _mm_loadu_si128(reinterpret_cast<__m128i*>(b_data));
+        auto gd = _mm_loadu_si128(reinterpret_cast<__m128i*>(g_data));
+        auto rd = _mm_loadu_si128(reinterpret_cast<__m128i*>(r_data));
+
+        auto m_r_b = _mm_unpacklo_epi8(rd, bd);
+        auto m_g_a = _mm_unpacklo_epi8(gd, zero_batch);
+        auto m_r_b_hi = _mm_unpackhi_epi8(rd, bd);
+        auto m_g_a_hi = _mm_unpackhi_epi8(gd, zero_batch);
+
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(d_data), _mm_unpacklo_epi8(m_r_b, m_g_a));
+        d_data += 16;
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(d_data), _mm_unpackhi_epi8(m_r_b, m_g_a));
+        d_data += 16;
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(d_data), _mm_unpacklo_epi8(m_r_b_hi, m_g_a_hi));
+        d_data += 16;
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(d_data), _mm_unpackhi_epi8(m_r_b_hi, m_g_a_hi));
+        d_data += 16;
+
+        b_data += 16;
+        g_data += 16;
+        r_data += 16;
     }
 }
 

@@ -6,10 +6,10 @@
 #include <vector>
 #include <queue>
 #include <tuple>
+#include <graphics/soaspritergb.h>
 #include <graphics/soaspritergba.h>
 
 struct ResourceFile;
-struct SOASpriteRGB;
 struct SOASpritePal;
 struct Sprite256;
 struct Font16;
@@ -119,8 +119,11 @@ namespace Game {
             void render(SOASpriteRGB &background_sprite);
             ~Stage();
         private:
+            void update_tile(uint8_t i, uint8_t j);
+            void update_tile(uint8_t i, uint8_t j, uint16_t left, uint16_t right, uint16_t top, uint16_t bottom);
             void update_scrolling();
             void update_scrolling(uint16_t left, uint16_t right, uint16_t top, uint16_t bottom);
+            void update_water_tiles();
             void recalc_lighting();
             void update_fog_of_war_rendition();
 
@@ -166,6 +169,7 @@ namespace Game {
 
             std::priority_queue<renderer_entry, std::vector<renderer_entry>, compare_renderer_entry> render_queue_;
             SOASpriteRGBA fov_sprite_;
+            SOASpriteRGB tiles_sprite_;
             int32_t shadow_offset_;
             //void handle_button_click(uint8_t button_id);
 

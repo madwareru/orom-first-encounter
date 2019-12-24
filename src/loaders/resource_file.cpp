@@ -289,8 +289,10 @@ std::tuple<bool, std::shared_ptr<SOASpritePal>> ResourceFile::read_pal_bmp_share
             auto palette = *(bmp_data->palette());
             result->lock([&](auto w, auto h, auto buf, auto rpal, auto gpal, auto bpal) {
                 for(size_t i = 0; i < 0x1000; ++i) {
-                    auto clr = palette[i & 0xFF];
-                    uint8_t lightness = (i / 0x100) & 0xFF;
+                    auto clr = palette[i / 0x10];
+                    uint8_t lightness = i & 0xF;
+//                    auto clr = palette[i & 0xFF];
+//                    uint8_t lightness = (i / 0x100) & 0xFF;
                     auto bboost = 15 - lightness;
                     auto gboost = (lightness * 10) / 9;
                     auto rboost = (lightness * 10) / 5;

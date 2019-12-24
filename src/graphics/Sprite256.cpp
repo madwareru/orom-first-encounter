@@ -193,52 +193,6 @@ void Sprite256::blit_on_sprite(SOASpriteRGB& other, int32_t x, int32_t y, uint16
         uint8_t* buf = &raw[0];
         uint16_t w_drawn = 0;
 
-        if(x >= 0 && y >= 0 && (static_cast<size_t>(x + sw) <= w) && (static_cast<size_t>(y + sh) <= h)) {
-            size_t offset = static_cast<size_t>(y) * w + static_cast<size_t>(x);
-            // render trivially without checks
-            int i = 0;
-            while(i < raw_size) {
-                uint8_t ipx = *buf++;
-                uint8_t is_empty_area_mask = ipx & EMPTY_AREA_BITS;
-                uint8_t chunk_size = ipx & CHUNK_SIZE_BITS;
-                ++i;
-
-                if(is_empty_area_mask > 0) {
-                    if(is_empty_area_mask == BLANK_LINE) {
-                        offset += w * chunk_size;
-                    } else {
-                        w_drawn += chunk_size;
-                        offset += chunk_size;
-                        if(w_drawn >= sw) {
-                            offset += w - sw;
-                            w_drawn -= sw;
-                        }
-                    }
-                    continue;
-                }
-
-                for(uint8_t j = 0; j < chunk_size; ++j) {
-                    uint8_t palette_id = *buf++;
-
-                    if(w_drawn >= sw) {
-                        offset += w - sw;
-                        w_drawn -= sw;
-                    }
-
-                    rbuf[offset] = palette_r_[palette_id];
-                    gbuf[offset] = palette_g_[palette_id];
-                    bbuf[offset] = palette_b_[palette_id];
-
-                    offset++;
-                    w_drawn++;
-                }
-                i += chunk_size;
-            }
-            return;
-        }
-
-        //since we can't be sure about borders we draw in more "pixely" way
-
         auto xx = x;
         auto yy = y;
         int i = 0;

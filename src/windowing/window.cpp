@@ -13,7 +13,7 @@
 #include <chrono>
 
 #define FPS_30_MILLIS 0.033
-//#define VSYNC_ON
+#define VSYNC_ON
 
 LifetimeProcHolder::LifetimeProcHolder(
     init_proc   init_proc_addr_p,
@@ -179,11 +179,12 @@ bool start_main_loop(
     glGenBuffers(1, &PBO);
     DEFER([&](){ glDeleteBuffers(1, &PBO); })
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBO);
-    glBufferData(GL_PIXEL_UNPACK_BUFFER, 3 * fbw * fbh, nullptr, GL_STREAM_DRAW);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, 4 * fbw * fbh, nullptr, GL_STREAM_DRAW);
     uint8_t* ptr = reinterpret_cast<uint8_t*>(glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY));
     if(ptr)
     {
         for(size_t s = fbw*fbh; s; --s) {
+            *ptr++ = 0;
             *ptr++ = 0;
             *ptr++ = 0;
             *ptr++ = 0;
@@ -196,7 +197,7 @@ bool start_main_loop(
         GL_RGB,
         fbw, fbh,
         0,
-        GL_BGR,
+        GL_RGBA,
         GL_UNSIGNED_BYTE,
         nullptr
    );
@@ -259,7 +260,7 @@ bool start_main_loop(
 
         glBindTexture(GL_TEXTURE_2D, texture);
         glBindBuffer(GL_PIXEL_UNPACK_BUFFER, PBO);
-        glBufferData(GL_PIXEL_UNPACK_BUFFER, 3 * fbw * fbh, nullptr, GL_STREAM_DRAW);
+        glBufferData(GL_PIXEL_UNPACK_BUFFER, 4 * fbw * fbh, nullptr, GL_STREAM_DRAW);
         uint8_t* ptr = reinterpret_cast<uint8_t*>(glMapBuffer(GL_PIXEL_UNPACK_BUFFER, GL_WRITE_ONLY));
         if(ptr)
         {
@@ -272,7 +273,7 @@ bool start_main_loop(
             GL_RGB,
             fbw, fbh,
             0,
-            GL_BGR,
+            GL_RGBA,
             GL_UNSIGNED_BYTE,
             nullptr
        );

@@ -18,6 +18,7 @@
 #include <cmath>
 #include <thread>
 #include <future>
+#include <queue>
 
 namespace {
     enum {
@@ -404,6 +405,7 @@ namespace Game {
                 window_width_{window_width},
                 window_height_{window_height},
                 fov_sprite_{window_width, window_height},
+                tiles_sprite_{window_width, window_height},
                 shadow_offset_{128} {
             terrain_cache_ = new uint8_t[6 * window_width_ * window_height_];
             size_t offset = 0;
@@ -490,7 +492,7 @@ namespace Game {
 
             auto general_map_info = alm.general_map_info();
 
-            max_camera_x_ = static_cast<uint32_t>((general_map_info->width() - 16) * 32 - window_width_);
+            max_camera_x_ = static_cast<uint32_t>((general_map_info->width() - 16) * 32 - (window_width_ - 160));
             max_camera_y_ = static_cast<uint32_t>((general_map_info->height() - 16) * 32 - window_height_);
 
             tile_map_ptr_.release();
@@ -582,51 +584,35 @@ namespace Game {
                 for(uint16_t y = 0; y < general_map_info->height(); ++y) {
                     int16_t min_y = (static_cast<int16_t>(y) - 8) * 32;
                     int16_t max_y = min_y + 32;
-                    for(uint16_t i = 0; i < general_map_info->width(); i += 8) {
-                        TileMapChunk chunk;
-                        chunk.start_tile_i = static_cast<uint8_t>(i);
-                        chunk.tile_j = static_cast<uint8_t>(y);
-                        int16_t local_min_y = min_y;
-                        int16_t local_max_y = max_y - 255;
-                        chunk.min_x = (static_cast<int16_t>(chunk.start_tile_i) - 8) * 32;
-                        chunk.max_x = chunk.min_x + 256;
-                        for(size_t j = 0; j < 8; ++j) {
-                            const auto tile = tiles[t_offset + i + j];
-                            const auto height_tl = height_map[h_offset + i + j];
-                            const auto height_tr = (i + j < general_map_info->width()-1)
-                                    ? height_map[h_offset + i + j + 1]
-                                    : height_tl;
+                    for(uint16_t i = 0; i < general_map_info->width(); ++i) {
+                        auto& next_tile = tile_map_ptr_->get_tile(i, y);
+                        next_tile.tile_i = static_cast<uint8_t>(i);
+                        next_tile.tile_j = static_cast<uint8_t>(y);
 
-                            const auto height_bl = (chunk.tile_j < tile_map_ptr_->height()-1 )
-                                    ? height_map[h_offset + i + j + h_stride] :
-                                    height_tl;
+                        const auto tile = tiles[t_offset + i];
+                        const auto height_tl = height_map[h_offset + i];
+                        const auto height_tr = (i < general_map_info->width()-1)
+                                ? height_map[h_offset + i + 1]
+                                : height_tl;
 
-                            const auto height_br =  (chunk.tile_j < tile_map_ptr_->height()-1 )
-                                    ? ((i + j < general_map_info->width()-1)
-                                    ? height_map[h_offset + i + j + h_stride + 1]
-                                    : height_bl) : height_tl;
+                        const auto height_bl = (y < tile_map_ptr_->height()-1 )
+                                ? height_map[h_offset + i + h_stride] :
+                                height_tl;
 
-                            chunk.tile_id[j] = tile->tile_id();
-                            chunk.top_heights[j * 2] = height_tl;
-                            if(min_y - height_tl < local_min_y) {
-                                local_min_y = min_y - height_tl;
-                            }
-                            chunk.top_heights[j * 2 + 1] = height_tr;
-                            if(min_y - height_tr < local_min_y) {
-                                local_min_y = min_y - height_tr;
-                            }
-                            chunk.bottom_heights[j * 2] = height_bl;
-                            if(max_y - height_bl > local_max_y) {
-                                local_max_y = max_y - height_bl;
-                            }
-                            chunk.bottom_heights[j * 2 + 1] = height_br;
-                            if(max_y - height_br > local_max_y) {
-                                local_max_y = max_y - height_br;
-                            }
-                        }
-                        chunk.min_y = local_min_y;
-                        chunk.max_y = local_max_y;
-                        tile_map_ptr_->add_chunk(chunk);
+                        const auto height_br =  (y < tile_map_ptr_->height()-1 )
+                                ? ((i < general_map_info->width()-1)
+                                ? height_map[h_offset + i + h_stride + 1]
+                                : height_bl) : height_tl;
+
+                        next_tile.tile_id = tile->tile_id();
+                        auto& corners = next_tile.corners;
+
+                        corners.top_left_height = height_tl;
+                        corners.top_right_height = height_tr;
+                        corners.bottom_left_height = height_bl;
+                        corners.bottom_right_height = height_br;
+                        next_tile.min_y = std::min(min_y - height_tl, min_y - height_tr);
+                        next_tile.max_y = std::max(max_y - height_bl, max_y - height_br);
                     }
                     t_offset += t_stride;
                     h_offset += h_stride;
@@ -972,27 +958,77 @@ namespace Game {
         }
 
         void Stage::update_fog_of_war_rendition() {
-            for(int32_t j = 1; j < 255; ++j) {
-                for(int32_t i = 1; i < 255; ++i) {
-                    auto dj = j - tile_selection_y;
-                    auto di = i - tile_selection_x;
+            static bool marked[256*256];
+            for(uint8_t j = 1; j < 255; ++j) {
+                for(uint8_t i = 1; i < 255; ++i) {
+                    const auto dj = j - tile_selection_y;
+                    const auto di = i - tile_selection_x;
+                    const auto offs = i + j * 256;
+                    marked[offs] = false;
 
                     if((di*di + dj * dj) <= 48) {
-                        fov_map[i + j * 256] = 255;
+                        fov_map[offs] = 255;
                     } else if(fov_map[i + j * 256] == 255) {
-                        fov_map[i + j * 256] = 196;
+                        fov_map[offs] = 196;
                     }
                 }
             }
-            for(int32_t j = 1; j < 255; ++j) {
-                for(int32_t i = 1; i < 255; ++i) {
-
+            std::queue<uint8_t> i_queue;
+            std::queue<uint8_t> j_queue;
+            for(uint8_t j = 1; j < 255; ++j) {
+                for(uint8_t i = 1; i < 255; ++i) {
                     const auto offs = i + j * 256;
+                    uint8_t new_fov_shifted = (fov_map[offs] + fov_map[offs - 1] + fov_map[offs - 257] + fov_map[offs - 256]) / 4;
 
-                    fov_map_shifted[offs] =
-                        (fov_map[offs] + fov_map[offs - 1] + fov_map[offs - 257] + fov_map[offs - 256]) / 4;
-//                    if(fov_map_shifted[offs] > 196) fov_map_shifted[offs] = 255;
-//                    else if(fov_map_shifted[offs] > 0) fov_map_shifted[offs] = 196;
+                    if(fov_map_shifted[offs] != new_fov_shifted) {
+                        fov_map_shifted[offs] = new_fov_shifted;
+                        if(i < tile_map_ptr_->width() && j < tile_map_ptr_->height()) {
+                            i_queue.push(i);
+                            j_queue.push(j);
+                        }
+                    }
+                }
+            }
+            while(!i_queue.empty() && !j_queue.empty()) {
+                auto i = i_queue.front();
+                auto j = j_queue.front();
+                i_queue.pop();
+                j_queue.pop();
+                if(!marked[i + j * 256]) {
+                    update_tile(i, j);
+                    marked[i + j * 256] = true;
+                }
+                if(!marked[i + j * 256 + 1]) {
+                    update_tile(i + 1, j);
+                    marked[i + j * 256 + 1] = true;
+                }
+                if(!marked[i + j * 256 - 1]) {
+                    update_tile(i - 1, j);
+                    marked[i + j * 256 - 1] = true;
+                }
+                if(!marked[i + j * 256 - 257]) {
+                    update_tile(i - 1, j - 1);
+                    marked[i + j * 256 - 257] = true;
+                }
+                if(!marked[i + j * 256 - 256]) {
+                    update_tile(i, j - 1);
+                    marked[i + j * 256 - 256] = true;
+                }
+                if(!marked[i + j * 256 - 255]) {
+                    update_tile(i + 1, j - 1);
+                    marked[i + j * 256 - 255] = true;
+                }
+                if(!marked[i + j * 256 + 255]) {
+                    update_tile(i - 1, j + 1);
+                    marked[i + j * 256 + 255] = true;
+                }
+                if(!marked[i + j * 256 + 256]) {
+                    update_tile(i, j + 1);
+                    marked[i + j * 256 + 256] = true;
+                }
+                if(!marked[i + j * 256 + 257]) {
+                    update_tile(i + 1, j + 1);
+                    marked[i + j * 256 + 257] = true;
                 }
             }
         }
@@ -1004,18 +1040,40 @@ namespace Game {
                 if(mouse_state.mouse_x < 16 && render_shared_.camera_x >= SCROLL_SPEED) {
                     is_scrolled = true;
                     render_shared_.camera_x -= SCROLL_SPEED;
+                    const size_t size = window_width_-SCROLL_SPEED;
+                    tiles_sprite_.lock([&](auto tsw, auto tsh, auto rb, auto gb, auto bb)
+                    {
+                        for(int j = 0; j < tsh; ++j)
+                        {
+                            const auto stride = j * tsw;
+                            memmove(&rb[stride+SCROLL_SPEED], &rb[stride], size);
+                            memmove(&gb[stride+SCROLL_SPEED], &gb[stride], size);
+                            memmove(&bb[stride+SCROLL_SPEED], &bb[stride], size);
+                            memmove(&screen_space_fov_[stride+SCROLL_SPEED], &screen_space_fov_[stride], size);
+                        }
+                    });
                     for(int j = 0; j < window_height_ * 6; ++j) {
                         const auto stride = j * window_width_;
-                        const size_t size = window_width_-SCROLL_SPEED;
                         memmove(&terrain_cache_[stride+SCROLL_SPEED], &terrain_cache_[stride], size);
                     }
                     update_scrolling(0, SCROLL_SPEED, 0, window_height_);
                 } else if(mouse_state.mouse_x >= (window_width_ - 16) && render_shared_.camera_x < (max_camera_x_ - SCROLL_SPEED - 1)) {
                     is_scrolled = true;
                     render_shared_.camera_x += SCROLL_SPEED;
+                    const size_t size = window_width_-SCROLL_SPEED;
+                    tiles_sprite_.lock([&](auto tsw, auto tsh, auto rb, auto gb, auto bb)
+                    {
+                        for(int j = 0; j < tsh; ++j)
+                        {
+                            const auto stride = j * tsw;
+                            memmove(&rb[stride], &rb[stride+SCROLL_SPEED], size);
+                            memmove(&gb[stride], &gb[stride+SCROLL_SPEED], size);
+                            memmove(&bb[stride], &bb[stride+SCROLL_SPEED], size);
+                            memmove(&screen_space_fov_[stride], &screen_space_fov_[stride+SCROLL_SPEED], size);
+                        }
+                    });
                     for(int j = 0; j < window_height_ * 6; ++j) {
                         const auto stride = j * window_width_;
-                        const size_t size = window_width_-SCROLL_SPEED;
                         memmove(&terrain_cache_[stride], &terrain_cache_[stride+SCROLL_SPEED], size);
                     }
                     update_scrolling(window_width_ - SCROLL_SPEED, window_width_, 0, window_height_);
@@ -1025,8 +1083,16 @@ namespace Game {
                     render_shared_.camera_y -= SCROLL_SPEED;
                     const size_t offset = window_width_*SCROLL_SPEED;
                     size_t base_offset = 0;
+                    size_t size = window_width_*(window_height_-SCROLL_SPEED);
+                    tiles_sprite_.lock([&](auto tsw, auto tsh, auto rb, auto gb, auto bb)
+                    {
+                        memmove(&rb[offset], &rb[0], size);
+                        memmove(&gb[offset], &gb[0], size);
+                        memmove(&bb[offset], &bb[0], size);
+                        memmove(&screen_space_fov_[offset], &screen_space_fov_[0], size);
+                    });
                     for(uint16_t i = 0; i < 6; ++i){
-                        memmove(&terrain_cache_[base_offset+offset], &terrain_cache_[base_offset], window_width_*(window_height_-SCROLL_SPEED));
+                        memmove(&terrain_cache_[base_offset+offset], &terrain_cache_[base_offset], size);
                         base_offset += window_width_*window_height_;
                     }
                     update_scrolling(0, window_width_, 0, SCROLL_SPEED);
@@ -1035,13 +1101,20 @@ namespace Game {
                     render_shared_.camera_y += SCROLL_SPEED;
                     const size_t offset = window_width_*SCROLL_SPEED;
                     size_t base_offset = 0;
+                    size_t size = window_width_*(window_height_-SCROLL_SPEED);
+                    tiles_sprite_.lock([&](auto tsw, auto tsh, auto rb, auto gb, auto bb)
+                    {
+                        memmove(&rb[0], &rb[offset], size);
+                        memmove(&gb[0], &gb[offset], size);
+                        memmove(&bb[0], &bb[offset], size);
+                        memmove(&screen_space_fov_[0], &screen_space_fov_[offset], size);
+                    });
                     for(uint16_t i = 0; i < 6; ++i){
-                        memmove(&terrain_cache_[base_offset], &terrain_cache_[base_offset+offset], window_width_*(window_height_-SCROLL_SPEED));
+                        memmove(&terrain_cache_[base_offset], &terrain_cache_[base_offset+offset], size);
                         base_offset += window_width_*window_height_;
                     }
                     update_scrolling(0, window_width_, window_height_-SCROLL_SPEED, window_height_);
                 }
-                if(is_scrolled) return;
             }
 
             //update fov
@@ -1058,10 +1131,13 @@ namespace Game {
 
             //update_world
             {
-                shadow_offset_ = ((shadow_offset_ + 129) % 256) - 128;
+                //shadow_offset_ = ((shadow_offset_ + 129) % 256) - 128;
                 recalc_lighting();
-
+                const uint8_t WATER_SCROLLING_TICKS = 4;
                 ++water_offset_;
+                if(water_offset_ % WATER_SCROLLING_TICKS == 0) {
+                    update_water_tiles();
+                }
                 for(size_t i = 0; i < map_objects_.size(); ++i) {
                     if(map_objects_[i].phase_ticks_remain < 0) continue;
                     if(map_objects_[i].phase_ticks_remain == 1) {
@@ -1545,305 +1621,285 @@ namespace Game {
             update_scrolling(0, window_width_, 0, window_height_);
         }
 
-        void Stage::update_scrolling(uint16_t left, uint16_t right, uint16_t top, uint16_t bottom) {
-            int32_t high_row[33];
-            int32_t low_row[33];
-            const std::vector<TileMapChunk>& tilemap_chunks = tile_map_ptr_->get_chunks();
-
-            const uint32_t bottom_y = render_shared_.camera_y + bottom;
-            const uint32_t right_x = render_shared_.camera_x + right;
-
-            for(size_t i = 0; i < tilemap_chunks.size(); ++i) {
-                const TileMapChunk& current_chunk = tilemap_chunks[i];
-                if(current_chunk.max_y < static_cast<int32_t>(render_shared_.camera_y)) {
-                    continue;
-                }
-                if(current_chunk.min_y >= static_cast<int32_t>(bottom_y)) {
-                    continue;
-                }
-                if(current_chunk.max_x < static_cast<int32_t>(render_shared_.camera_x)) {
-                    continue;
-                }
-                if(current_chunk.min_x >= static_cast<int32_t>(right_x)) {
-                    continue;
-                }
-
-                int32_t sti = static_cast<int32_t>(current_chunk.start_tile_i);
-
-                int32_t start_x = (sti - 8) * 32 - static_cast<int32_t>(render_shared_.camera_x);
-
-                int32_t x0 = start_x;
-                int32_t x1 = x0 + 32;
-
-                uint8_t tile_j = current_chunk.tile_j;
-
-                if(current_chunk.tile_j >= tile_map_ptr_->height())
-                    break;
-
-                int32_t y = (tile_j - 8) * 32 - static_cast<int32_t>(render_shared_.camera_y);
-
-                uint8_t k = 0;
-                while(k < 16) {
-                    if(x0 >= static_cast<int32_t>(right))
-                        break;
-
-                    uint8_t tile_i = current_chunk.start_tile_i + k / 2;
-
-                    if(tile_i >= tile_map_ptr_->width())
-                        break;
-
-
-                    uint32_t tile_id = current_chunk.tile_id[k/2];
-
-                    auto tlh = current_chunk.top_heights[k];
-                    auto blh = current_chunk.bottom_heights[k++];
-                    auto trh = current_chunk.top_heights[k];
-                    auto brh = current_chunk.bottom_heights[k++];
-
-                    int32_t y0_top = y - static_cast<int32_t>(tlh);
-                    int32_t y1_top = y - static_cast<int32_t>(trh);
-                    int32_t y0_bottom = (y - static_cast<int32_t>(blh)) + 32;
-                    int32_t y1_bottom = (y - static_cast<int32_t>(brh)) + 32;
-
-                    uint8_t row_id = tile_id & 0xF;
-                    uint8_t column_id = (tile_id & 0xF0) / 0x10;
-                    uint8_t terrain_id = (tile_id / 0x100) & 0x3;
-
-                    if(terrain_id == 2 && row_id > 7) {
-                        row_id = 7;
-                    } else if(terrain_id != 2 && row_id > 13) {
-                        row_id = 13;
-                    }
-
-                    if(terrain_id == 3 && column_id > 3) {
-                        column_id = 3;
-                    }
-
-                    if((y0_bottom >= top ||
-                        y1_bottom >= top)
-                        &&
-                       (y0_top < static_cast<int32_t>(bottom) ||
-                        y1_top < static_cast<int32_t>(bottom))
-                        &&
-                        x1 > left
-                        &&
-                        x0 < static_cast<int32_t>(right)
-                    ) {
-
-                        brezenham(x0, y0_top, x1, y1_top, [&](auto xx, auto yy) {
-                            uint8_t id = static_cast<uint8_t>(xx - x0);
-                            low_row[id] = yy;
-                        });
-                        brezenham(x0, y0_bottom, x1, y1_bottom, [&](auto xx, auto yy) {
-                            uint8_t id = static_cast<uint8_t>(xx - x0);
-                            high_row[id] = yy;
-                        });
-
-                        uint8_t corrected_tile_id = (column_id * 0x10) | row_id;
-
-                        for(uint8_t x = 0; x < 32; ++x) {
-                            int32_t cx = x0 + x;
-                            if(cx < 0 || cx >= right) continue;
-
-                            int32_t ly = low_row[x];
-                            int32_t hy = high_row[x];
-
-                            int32_t cy = ly;
-                            uint16_t h_diff = static_cast<uint16_t>(hy - ly);
-
-                            if(h_diff > 64000) {
-                                h_diff = 0;
-                            }
-                            auto scaler_array = ACQUIRE_HEIGHT_SCALER(h_diff);
-
-                            for(uint8_t j = 0; j < 32; ++j) {
-                                for(uint8_t zz = scaler_array[j]; zz; --zz) {
-                                    if(cy >= 0 && cy < bottom) {
-                                        int32_t stride_dest = cy * window_width_ + cx;
-
-                                        render_shared_.terrain_tile_high_byte_cache[stride_dest] = terrain_id;
-                                        render_shared_.terrain_tile_low_byte_cache[stride_dest] = corrected_tile_id;
-                                        render_shared_.terrain_tile_u_cache[stride_dest] = x;
-                                        render_shared_.terrain_tile_v_cache[stride_dest] = j;
-                                        render_shared_.terrain_tile_i_cache[stride_dest] = tile_i;
-                                        render_shared_.terrain_tile_j_cache[stride_dest] = tile_j;
-                                    }
-                                    ++cy;
-                                }
-                                if(cy >= bottom)
-                                    break;
-                            }
-                        }
-                    }
-
-                    x0 = x1;
-                    x1 += 32;
-                }
-            }
-
+        void Stage::update_tile(uint8_t i, uint8_t j) {
+            update_tile(i, j, 0, window_width_, 0, window_height_);
         }
 
-        void Stage::draw_tiles(SOASpriteRGB& back_sprite) {
-            back_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
-                uint8_t* ub = render_shared_.terrain_tile_u_cache;
-                uint8_t* vb = render_shared_.terrain_tile_v_cache;
-                uint8_t* ib = render_shared_.terrain_tile_i_cache;
-                uint8_t* jb = render_shared_.terrain_tile_j_cache;
-                uint8_t* hb = render_shared_.terrain_tile_high_byte_cache;
-                uint8_t* lb = render_shared_.terrain_tile_low_byte_cache;
+        void Stage::update_tile(uint8_t i, uint8_t j, uint16_t left, uint16_t right, uint16_t top, uint16_t bottom) {
+            int32_t high_row[33];
+            int32_t low_row[33];
 
-                uint8_t* rb = rbuf;
-                uint8_t* gb = gbuf;
-                uint8_t* bb = bbuf;
+            int32_t start_x = -static_cast<int32_t>(render_shared_.camera_x) - 0x100;
+            const TileEntry& current_tile = tile_map_ptr_->get_tile(i, j);
+            int32_t y = static_cast<int32_t>(current_tile.tile_j - 8) * 32 - static_cast<int32_t>(render_shared_.camera_y);
+            const int32_t x0 = start_x + static_cast<int32_t>(current_tile.tile_i * 32);
+            const int32_t x1 = x0 + 32;
+
+            if(x0 >= static_cast<int32_t>(right))
+                return;
+
+            uint32_t tile_id = current_tile.tile_id;
+
+            auto tlh = current_tile.corners.top_left_height;
+            auto trh = current_tile.corners.top_right_height;
+            auto blh = current_tile.corners.bottom_left_height;
+            auto brh = current_tile.corners.bottom_right_height;
+
+            int32_t y0_top = y - static_cast<int32_t>(tlh);
+            int32_t y1_top = y - static_cast<int32_t>(trh);
+            int32_t y0_bottom = (y - static_cast<int32_t>(blh)) + 32;
+            int32_t y1_bottom = (y - static_cast<int32_t>(brh)) + 32;
+
+            uint8_t row_id = tile_id & 0xF;
+            uint8_t column_id = (tile_id & 0xF0) / 0x10;
+            uint8_t terrain_id = (tile_id / 0x100) & 0x3;
+
+            if(terrain_id == 2 && row_id > 7) {
+                row_id = 7;
+            } else if(terrain_id != 2 && row_id > 13) {
+                row_id = 13;
+            }
+
+            if(terrain_id == 3 && column_id > 3) {
+                column_id = 3;
+            }
+
+            if((y0_bottom >= top ||
+                y1_bottom >= top)
+                &&
+               (y0_top < static_cast<int32_t>(bottom) ||
+                y1_top < static_cast<int32_t>(bottom))
+                &&
+                x1 > left
+                &&
+                x0 < static_cast<int32_t>(right)
+            ) {
+
+                brezenham(x0, y0_top, x1, y1_top, [&](auto xx, auto yy) {
+                    uint8_t id = static_cast<uint8_t>(xx - x0);
+                    low_row[id] = yy;
+                });
+                brezenham(x0, y0_bottom, x1, y1_bottom, [&](auto xx, auto yy) {
+                    uint8_t id = static_cast<uint8_t>(xx - x0);
+                    high_row[id] = yy;
+                });
+
+                uint8_t corrected_tile_id = (column_id * 0x10) | row_id;
 
                 const uint8_t WATER_SCROLLING_TICKS = 4;
 
-                const auto quarter_size = dw*dh/4;
-
                 auto woffset = (water_offset_ / WATER_SCROLLING_TICKS) * 4;
 
-                auto d_func = [&](auto soffs, auto size) {
-                    const uint8_t* tr = tiles_[0][0]->red_palette();
-                    const uint8_t* tg = tiles_[0][0]->green_palette();
-                    const uint8_t* tb = tiles_[0][0]->blue_palette();
+                if(terrain_id == 2) {
+                    column_id = (column_id + woffset) % 16;
+                }
 
-                    uint8_t terrain_id = NO_ID;
-                    uint8_t col_id = NO_ID;
-                    const uint8_t* tbuf;
+                auto tile_sprite = tiles_[terrain_id][column_id];
+                auto tbuf = tile_sprite->buffer();
+                auto tr = tile_sprite->red_palette();
+                auto tg = tile_sprite->green_palette();
+                auto tb = tile_sprite->blue_palette();
 
-                    const size_t high_p = soffs + size;
+                for(uint8_t u = 0; u < 32; ++u) {
+                    __m128i u_vect = _mm_set1_epi16(u);
+                    int32_t cx = x0 + u;
+                    if(cx < 0 || cx >= right) continue;
 
-                    uint16_t lside[8] = {0,0,0,0,0,0,0,0};
-                    uint16_t rside[8] = {0,0,0,0,0,0,0,0};
+                    int32_t ly = low_row[u];
+                    int32_t hy = high_row[u];
 
-                    __m128i ls;
-                    __m128i rs;
+                    int32_t cy = ly;
+                    uint16_t h_diff = static_cast<uint16_t>(hy - ly);
 
-                    for(size_t offset = soffs; offset < high_p; ++offset) {
-
-                        uint8_t terrain_id_ = hb[offset];
-                        uint8_t low_byte = lb[offset];
-                        uint8_t col_id_ = low_byte / 0x10;
-                        uint8_t row_id = low_byte & 0xF;
-
-                        if(terrain_id_ == 2) {
-                            col_id_ = (col_id_ + woffset) % 16;
-                        }
-
-                        if(terrain_id_ != terrain_id || col_id_ != col_id) {
-                            terrain_id = terrain_id_;
-                            col_id = col_id_;
-                            auto tile_sprite = tiles_[terrain_id_][col_id_];
-                            tbuf = tile_sprite->buffer();
-                        }
-
-                        uint8_t u = ub[offset];
-                        uint8_t v = vb[offset];
-
-                        __m128i u_vect = _mm_set1_epi16(u);
-
-                        auto tile_stride = 32 * (row_id * 32 + v) + u;
-                        uint8_t i = ib[offset];
-                        uint8_t j = jb[offset];
-                        uint32_t loffs = j * 256 + i;
-                        uint32_t loffs2 = loffs + 256;
-
-                        lside[0] = lightness_map[loffs];
-                        lside[1] = fov_map_shifted[loffs++];
-
-                        rside[0] = lightness_map[loffs];
-                        rside[1] = fov_map_shifted[loffs];
-
-                        lside[2] = lightness_map[loffs2];
-                        lside[3] = fov_map_shifted[loffs2++];
-
-                        rside[2] = lightness_map[loffs2];
-                        rside[3] = fov_map_shifted[loffs2];
-
-                        ls = _mm_loadu_si128(reinterpret_cast<__m128i*>(lside));
-                        rs = _mm_loadu_si128(reinterpret_cast<__m128i*>(rside));
-                        _mm_storeu_si128(reinterpret_cast<__m128i*>(lside),
-                            _mm_add_epi16(
-                                _mm_mullo_epi16(u_vect, _mm_sub_epi16(rs, ls)),
-                                _mm_slli_epi16(ls, 5)
-                            )
-                        );
-
-                        uint8_t lc = (32 * lside[0] + (lside[2] - lside[0]) * v) / 1024;
-                        uint8_t fc = (32 * lside[1] + (lside[3] - lside[1]) * v) / 1024;
-                        fc = (fc*fc) / 256;
-
-                        uint32_t pal_stride = 256 * lc + tbuf[tile_stride];
-                        rb[offset] = tr[pal_stride];
-                        gb[offset] = tg[pal_stride];
-                        bb[offset] = tb[pal_stride];
-                        screen_space_fov_[offset] = ((255 - fc) / 16) * 17;
+                    if(h_diff > 64000) {
+                        h_diff = 0;
                     }
-                };
+                    auto scaler_array = ACQUIRE_HEIGHT_SCALER(h_diff);
 
-                auto f_0 = std::async(std::launch::async, [&]{ d_func(0, quarter_size); });
-                auto f_1 = std::async(std::launch::async, [&]{ d_func(quarter_size, quarter_size); });
-                auto f_2 = std::async(std::launch::async, [&]{ d_func(quarter_size * 2, quarter_size); });
-                auto f_3 = std::async(std::launch::async, [&]{ d_func(quarter_size * 3, quarter_size); });
+                    for(uint8_t v = 0; v < 32; ++v) {
+                        for(uint8_t zz = scaler_array[v]; zz; --zz) {
+                            if(cy >= 0 && cy < bottom) {
+                                int32_t stride_dest = cy * window_width_ + cx;
 
-                f_0.wait();
-                f_1.wait();
-                f_2.wait();
-                f_3.wait();
-            });
+                                render_shared_.terrain_tile_high_byte_cache[stride_dest] = terrain_id;
+                                render_shared_.terrain_tile_low_byte_cache[stride_dest] = corrected_tile_id;
+                                render_shared_.terrain_tile_u_cache[stride_dest] = u;
+                                render_shared_.terrain_tile_v_cache[stride_dest] = v;
+                                render_shared_.terrain_tile_i_cache[stride_dest] = static_cast<uint8_t>(i);
+                                render_shared_.terrain_tile_j_cache[stride_dest] = static_cast<uint8_t>(j);
+
+                                auto tile_stride = 32 * (row_id * 32 + v) + u;
+
+                                uint32_t loffs = j * 256 + i;
+                                uint32_t loffs2 = loffs + 256;
+
+                                uint16_t lside[8] = {0,0,0,0,0,0,0,0};
+                                uint16_t rside[8] = {0,0,0,0,0,0,0,0};
+
+                                lside[0] = lightness_map[loffs];
+                                lside[1] = fov_map_shifted[loffs++];
+
+                                rside[0] = lightness_map[loffs];
+                                rside[1] = fov_map_shifted[loffs];
+
+                                lside[2] = lightness_map[loffs2];
+                                lside[3] = fov_map_shifted[loffs2++];
+
+                                rside[2] = lightness_map[loffs2];
+                                rside[3] = fov_map_shifted[loffs2];
+
+                                auto ls = _mm_loadu_si128(reinterpret_cast<__m128i*>(lside));
+                                auto rs = _mm_loadu_si128(reinterpret_cast<__m128i*>(rside));
+
+                                _mm_storeu_si128(reinterpret_cast<__m128i*>(lside),
+                                    _mm_add_epi16(
+                                        _mm_mullo_epi16(u_vect, _mm_sub_epi16(rs, ls)),
+                                        _mm_slli_epi16(ls, 5)
+                                    )
+                                );
+
+                                uint8_t lc = (32 * lside[0] + (lside[2] - lside[0]) * v) / 1024;
+                                uint8_t fc = (32 * lside[1] + (lside[3] - lside[1]) * v) / 1024;
+                                fc = (fc*fc) / 256;
+
+                                uint32_t pal_stride = 0x10 * tbuf[tile_stride] + lc;
+
+                                tiles_sprite_.lock([&](auto tsw, auto tsh, auto rb, auto gb, auto bb)
+                                {
+                                    rb[stride_dest] = tr[pal_stride];
+                                    gb[stride_dest] = tg[pal_stride];
+                                    bb[stride_dest] = tb[pal_stride];
+                                });
+                                screen_space_fov_[stride_dest] = ((255 - fc) / 16) * 17;
+                            }
+                            ++cy;
+                        }
+                        if(cy >= bottom)
+                            break;
+                    }
+                }
+            }
+        }
+
+        void Stage::update_water_tiles() {
+            const uint32_t top_y = render_shared_.camera_y;
+            const uint32_t bottom_y = render_shared_.camera_y + window_height_;
+            const uint32_t right_x = render_shared_.camera_x + window_width_;
+            const uint32_t left_x = render_shared_.camera_x;
+
+            const uint16_t corr8 = 0x100;
+
+            uint32_t ltile = (left_x + corr8) / 32;
+            uint32_t rtile = (right_x + corr8) / 32;
+            uint32_t ttile = (top_y+ corr8) / 32;
+            uint32_t btile = (bottom_y + corr8) / 32;
+            if(ttile >= 8) ttile -= 8;
+            else ttile = 0;
+            if(btile <= tile_map_ptr_->height()-9) btile += 8;
+            else btile = static_cast<uint32_t>(tile_map_ptr_->height()-1);
+            if(ltile >= 1) --ltile;
+            if(rtile <= tile_map_ptr_->width()-2) ++rtile;
+            for(size_t j = ttile; j <= btile; ++j) {
+                for(size_t i = ltile; i <= rtile; ++i) {
+                    if(static_cast<int32_t>((i-7) * 32) < static_cast<int32_t>(render_shared_.camera_x)) {
+                        continue;
+                    }
+                    if(static_cast<int32_t>((i-8) * 32) >= static_cast<int32_t>(right_x)) {
+                        continue;
+                    }
+                    const auto& tile = tile_map_ptr_->get_tile(i, j);
+                    if(tile.tile_id & 0x200) update_tile(static_cast<uint8_t>(i), static_cast<uint8_t>(j));
+                }
+            }
+        }
+
+        void Stage::update_scrolling(uint16_t left, uint16_t right, uint16_t top, uint16_t bottom) {
+            const uint32_t top_y = render_shared_.camera_y + top;
+            const uint32_t bottom_y = render_shared_.camera_y + bottom;
+            const uint32_t right_x = render_shared_.camera_x + right;
+            const uint32_t left_x = render_shared_.camera_x + left;
+
+            const uint16_t corr8 = 0x100;
+
+            uint32_t ltile = (left_x + corr8) / 32;
+            uint32_t rtile = (right_x + corr8) / 32;
+            uint32_t ttile = (top_y+ corr8) / 32;
+            uint32_t btile = (bottom_y + corr8) / 32;
+            if(ttile >= 8) ttile -= 8;
+            else ttile = 0;
+            if(btile <= tile_map_ptr_->height()-9) btile += 8;
+            else btile = static_cast<uint32_t>(tile_map_ptr_->height()-1);
+            if(ltile >= 1) --ltile;
+            if(rtile <= tile_map_ptr_->width()-2) ++rtile;
+
+            for(size_t j = ttile; j <= btile; ++j) {
+                for(size_t i = ltile; i <= rtile; ++i) {
+                    if(static_cast<int32_t>((i-7) * 32) < static_cast<int32_t>(render_shared_.camera_x)) {
+                        continue;
+                    }
+                    if(static_cast<int32_t>((i-8) * 32) >= static_cast<int32_t>(right_x)) {
+                        continue;
+                    }
+                    update_tile(static_cast<uint8_t>(i), static_cast<uint8_t>(j), left, right, top, bottom);
+                }
+            }
+        }
+
+        void Stage::draw_tiles(SOASpriteRGB& back_sprite) {
+            tiles_sprite_.blit_on_sprite(back_sprite, 0, 0);
         }
 
         void Stage::draw_wireframe(SOASpriteRGB& back_sprite) {
-            const std::vector<TileMapChunk>& tilemap_chunks = tile_map_ptr_->get_chunks();
-            back_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
-                auto plotter = [&](auto x, auto y) {
-                    if(x < 0 || y < 0 || x >= dw || y >= dh) return;
-                    auto stride = x + y * dw;
-                    rbuf[stride] = 0xFF;
-                    gbuf[stride] = 0x20;
-                    bbuf[stride] = 0x20;
-                };
+//            const std::vector<TileMapChunk>& tilemap_chunks = tile_map_ptr_->get_chunks();
+//            back_sprite.lock([&](auto dw, auto dh, auto rbuf, auto gbuf, auto bbuf) {
+//                auto plotter = [&](auto x, auto y) {
+//                    if(x < 0 || y < 0 || x >= dw || y >= dh) return;
+//                    auto stride = x + y * dw;
+//                    rbuf[stride] = 0xFF;
+//                    gbuf[stride] = 0x20;
+//                    bbuf[stride] = 0x20;
+//                };
 
-                const uint32_t bottom_y = render_shared_.camera_y + window_height_;
-                const uint32_t right_x = render_shared_.camera_x + window_width_;
+//                const uint32_t bottom_y = render_shared_.camera_y + window_height_;
+//                const uint32_t right_x = render_shared_.camera_x + window_width_;
 
-                for(size_t i = 0; i < tilemap_chunks.size(); ++i) {
-                    const TileMapChunk& current_chunk = tilemap_chunks[i];
-                    if(current_chunk.max_y < static_cast<int32_t>(render_shared_.camera_y)) {
-                        continue;
-                    }
-                    if(current_chunk.min_y >= static_cast<int32_t>(bottom_y)) {
-                        continue;
-                    }
-                    if(current_chunk.max_x < static_cast<int32_t>(render_shared_.camera_x)) {
-                        continue;
-                    }
-                    if(current_chunk.min_x >= static_cast<int32_t>(right_x)) {
-                        continue;
-                    }
+//                for(size_t i = 0; i < tilemap_chunks.size(); ++i) {
+//                    const TileMapChunk& current_chunk = tilemap_chunks[i];
+//                    if(current_chunk.max_y < static_cast<int32_t>(render_shared_.camera_y)) {
+//                        continue;
+//                    }
+//                    if(current_chunk.min_y >= static_cast<int32_t>(bottom_y)) {
+//                        continue;
+//                    }
+//                    if(current_chunk.max_x < static_cast<int32_t>(render_shared_.camera_x)) {
+//                        continue;
+//                    }
+//                    if(current_chunk.min_x >= static_cast<int32_t>(right_x)) {
+//                        continue;
+//                    }
 
-                    int32_t x0 = (current_chunk.start_tile_i - 8) * 32 - static_cast<int32_t>(render_shared_.camera_x);
-                    int32_t x1 = x0 + 32;
-                    int32_t y = (current_chunk.tile_j - 8) * 32 - static_cast<int32_t>(render_shared_.camera_y);
+//                    int32_t x0 = (current_chunk.start_tile_i - 8) * 32 - static_cast<int32_t>(render_shared_.camera_x);
+//                    int32_t x1 = x0 + 32;
+//                    int32_t y = (current_chunk.tile_j - 8) * 32 - static_cast<int32_t>(render_shared_.camera_y);
 
-                    for(size_t k = 0; k < 16; k += 2) {
-                        if(x0 <= -32 || x0 >= dw) {
-                            x0 = x1;
-                            x1 += 32;
-                            continue;
-                        }
-                        int32_t y0_top = y - current_chunk.top_heights[k];
-                        int32_t y1_top = y - current_chunk.top_heights[k+1];
-                        int32_t y0_bottom = y + 32 - current_chunk.bottom_heights[k];
+//                    for(size_t k = 0; k < 16; k += 2) {
+//                        if(x0 <= -32 || x0 >= dw) {
+//                            x0 = x1;
+//                            x1 += 32;
+//                            continue;
+//                        }
+//                        int32_t y0_top = y - current_chunk.top_heights[k];
+//                        int32_t y1_top = y - current_chunk.top_heights[k+1];
+//                        int32_t y0_bottom = y + 32 - current_chunk.bottom_heights[k];
 
-                        brezenham(x0, y0_top, x1, y1_top, plotter);
-                        brezenham(x0, y0_top, x0, y0_bottom, plotter);
+//                        brezenham(x0, y0_top, x1, y1_top, plotter);
+//                        brezenham(x0, y0_top, x0, y0_bottom, plotter);
 
-                        x0 = x1;
-                        x1 += 32;
-                    }
-                }
-            });
+//                        x0 = x1;
+//                        x1 += 32;
+//                    }
+//                }
+//            });
         }
     }
 }
