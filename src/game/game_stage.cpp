@@ -624,9 +624,9 @@ namespace Game {
                         size_t stride = (j * 256 + 1) * 3;
                         for(uint8_t i = 1; i < general_map_info->width() - 1; ++i) {
                             // central differences method
-                            float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
+                            float x = static_cast<float>(static_cast<int16_t>(height_map[h_stride * j + i - 1]) - static_cast<int16_t>(height_map[h_stride * j + i])); /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
                             float y = 16.0f * 2; /*2.0f*eps*/
-                            float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
+                            float z = static_cast<float>(static_cast<int16_t>(height_map[h_stride * j + i - h_stride]) - static_cast<int16_t>(height_map[h_stride * j + i])); /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
                             float d = std::sqrtf(x*x + y*y + z*z);
 
                             x /= d;
@@ -1043,7 +1043,7 @@ namespace Game {
                     const size_t size = window_width_-SCROLL_SPEED;
                     tiles_sprite_.lock([&](auto tsw, auto tsh, auto rb, auto gb, auto bb)
                     {
-                        for(int j = 0; j < tsh; ++j)
+                        for(uint32_t j = 0; j < tsh; ++j)
                         {
                             const auto stride = j * tsw;
                             memmove(&rb[stride+SCROLL_SPEED], &rb[stride], size);
@@ -1063,7 +1063,7 @@ namespace Game {
                     const size_t size = window_width_-SCROLL_SPEED;
                     tiles_sprite_.lock([&](auto tsw, auto tsh, auto rb, auto gb, auto bb)
                     {
-                        for(int j = 0; j < tsh; ++j)
+                        for(uint32_t j = 0; j < tsh; ++j)
                         {
                             const auto stride = j * tsw;
                             memmove(&rb[stride], &rb[stride+SCROLL_SPEED], size);

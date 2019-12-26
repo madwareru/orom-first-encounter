@@ -9,7 +9,7 @@
             "type": "cppvsdbg",
             "request": "launch",
             "program": "orom-first-encounter.exe",
-            "args": ["windowed", "1366"],
+            "args": ["windowed"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/build",
             "environment": [],
