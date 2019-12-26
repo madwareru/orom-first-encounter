@@ -3,3 +3,4 @@ msvc-build2019-win32
 /CMakeLists.txt.user
 /CMakeLists.txt.user.4.9-pre1
 build
+cloc-1.84.exe
