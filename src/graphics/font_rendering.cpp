@@ -21,8 +21,6 @@ static uint8_t symbol_to_font_atlas_lookup[256] = {
     ROW_16_ASCENDING(0xD0)  // [0xF0..0xFF]
 };
 
-
-
 Font16::Font16(std::shared_ptr<Sprite16> sprite, std::vector<uint16_t>&& glyph_width_storage)
     :
     font_sprite_{sprite},

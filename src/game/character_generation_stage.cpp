@@ -102,7 +102,7 @@ namespace Game {
             selected_hero_{0},
             selected_difficulty_{0}
         {
-            std::srand(std::time(nullptr));
+            std::srand(static_cast<uint32_t>(std::time(nullptr)));
 
             auto[backgound_success, backgound_bmp] = Game::Resources::Graphics().read_bmp_shared("interface/chrgen/precreate/mainarea.bmp");
             if(backgound_success) {
@@ -331,7 +331,6 @@ namespace Game {
                 coord_y,
                 0x00, 0x00, 0x00
             );
-
 
             if(current_button_order_ >= NONE_BUTTON_ORDER ||
                current_button_order_ == selected_hero_order  ||
