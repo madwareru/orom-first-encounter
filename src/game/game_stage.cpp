@@ -623,7 +623,7 @@ namespace Game {
                     for(uint8_t j = 1; j < general_map_info->height() - 1; ++j) {
                         size_t stride = (j * 256 + 1) * 3;
                         for(uint8_t i = 1; i < general_map_info->width() - 1; ++i) {
-
+                            // central differences method
                             float x = height_map[h_stride * j + i - 1] - height_map[h_stride * j + i]; /*f(p.x-eps,p.z) - f(p.x+eps,p.z)*/
                             float y = 16.0f * 2; /*2.0f*eps*/
                             float z = height_map[h_stride * j + i - h_stride] - height_map[h_stride * j + i]; /*f(p.x,p.z-eps) - f(p.x,p.z+eps)*/
@@ -998,35 +998,35 @@ namespace Game {
                     update_tile(i, j);
                     marked[i + j * 256] = true;
                 }
-                if(!marked[i + j * 256 + 1]) {
+                if(i < tile_map_ptr_->width()-1 && !marked[i + j * 256 + 1]) {
                     update_tile(i + 1, j);
                     marked[i + j * 256 + 1] = true;
                 }
-                if(!marked[i + j * 256 - 1]) {
+                if(i > 0 && !marked[i + j * 256 - 1]) {
                     update_tile(i - 1, j);
                     marked[i + j * 256 - 1] = true;
                 }
-                if(!marked[i + j * 256 - 257]) {
+                if(i > 0 && j > 0 && !marked[i + j * 256 - 257]) {
                     update_tile(i - 1, j - 1);
                     marked[i + j * 256 - 257] = true;
                 }
-                if(!marked[i + j * 256 - 256]) {
+                if(j > 0 && !marked[i + j * 256 - 256]) {
                     update_tile(i, j - 1);
                     marked[i + j * 256 - 256] = true;
                 }
-                if(!marked[i + j * 256 - 255]) {
+                if(j > 0 && i < tile_map_ptr_->width()-1 && !marked[i + j * 256 - 255]) {
                     update_tile(i + 1, j - 1);
                     marked[i + j * 256 - 255] = true;
                 }
-                if(!marked[i + j * 256 + 255]) {
+                if(i > 0 && j < tile_map_ptr_->height()-1 && !marked[i + j * 256 + 255]) {
                     update_tile(i - 1, j + 1);
                     marked[i + j * 256 + 255] = true;
                 }
-                if(!marked[i + j * 256 + 256]) {
+                if(j < tile_map_ptr_->height()-1 && !marked[i + j * 256 + 256]) {
                     update_tile(i, j + 1);
                     marked[i + j * 256 + 256] = true;
                 }
-                if(!marked[i + j * 256 + 257]) {
+                if(i < tile_map_ptr_->width()-1 && j < tile_map_ptr_->height()-1 &&!marked[i + j * 256 + 257]) {
                     update_tile(i + 1, j + 1);
                     marked[i + j * 256 + 257] = true;
                 }

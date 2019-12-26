@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <memory>
+#include <string>
 
 struct Sprite16;
 struct Sprite16a;

@@ -81,7 +81,7 @@ namespace Game {
         return val;
     }
     bool& windowed() {
-        static bool val = true;
+        static bool val = false;
         return val;
     }
 
@@ -501,7 +501,7 @@ namespace Game {
             case event::start_adventure: {
                     auto hero = param0;
                     auto difficulty = param1;
-                    start_level(90, hero, difficulty);
+                    start_level(40, hero, difficulty);
                 }
                 break;
             default: break;

@@ -13,7 +13,7 @@
 #include <chrono>
 
 #define FPS_30_MILLIS 0.033
-#define VSYNC_ON
+//#define VSYNC_ON
 
 LifetimeProcHolder::LifetimeProcHolder(
     init_proc   init_proc_addr_p,
