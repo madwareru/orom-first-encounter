@@ -1,7 +1,8 @@
 #ifndef SOASPRITERGBA_H
 #define SOASPRITERGBA_H
 
-#include <cinttypes>
+#include <inttypes.h>
+#include <stddef.h>
 
 struct SOASpriteRGB;
 

@@ -4,7 +4,7 @@
 
 SOASpritePal::SOASpritePal(size_t w, size_t h): width_{w}, height_{h} {
     buffer_raw_ = new uint8_t[w * h + 8 + 0x3000];
-    buffer_ = (reinterpret_cast<int32_t>(&buffer_raw_[0]) % 16 == 0)
+    buffer_ = (reinterpret_cast<int64_t>(&buffer_raw_[0]) % 16 == 0)
             ? &buffer_raw_[0]
             : &buffer_raw_[8];
     pal_r_ = buffer_ + w*h;
@@ -33,15 +33,15 @@ SOASpriteRGB::SOASpriteRGB(size_t w, size_t h): width_{w}, height_{h} {
     g_buffer_raw_ = new uint8_t[w * h + 8];
     b_buffer_raw_ = new uint8_t[w * h + 8];
 
-    r_buffer_ = (reinterpret_cast<int32_t>(&r_buffer_raw_[0]) % 16 == 0)
+    r_buffer_ = (reinterpret_cast<int64_t>(&r_buffer_raw_[0]) % 16 == 0)
         ? &r_buffer_raw_[0]
         : &r_buffer_raw_[8];
 
-    g_buffer_ = (reinterpret_cast<int32_t>(&g_buffer_raw_[0]) % 16 == 0)
+    g_buffer_ = (reinterpret_cast<int64_t>(&g_buffer_raw_[0]) % 16 == 0)
         ? &g_buffer_raw_[0]
         : &g_buffer_raw_[8];
 
-    b_buffer_ = (reinterpret_cast<int32_t>(&b_buffer_raw_[0]) % 16 == 0)
+    b_buffer_ = (reinterpret_cast<int64_t>(&b_buffer_raw_[0]) % 16 == 0)
         ? &b_buffer_raw_[0]
         : &b_buffer_raw_[8];
 }
