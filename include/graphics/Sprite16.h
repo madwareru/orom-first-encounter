@@ -1,7 +1,8 @@
 #ifndef SPRITE_16_H_
 #define SPRITE_16_H_
 
-#include <cinttypes>
+#include <inttypes.h>
+#include <stddef.h>
 #include <vector>
 #include <tuple>
 

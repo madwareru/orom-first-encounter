@@ -1,7 +1,8 @@
 #ifndef SPRITE_16A_H_
 #define SPRITE_16A_H_
 
-#include <cinttypes>
+#include <inttypes.h>
+#include <stddef.h>
 #include <loaders/ksy/rage_of_mages_1_16a.h>
 
 struct SOASpriteRGB;

@@ -1,7 +1,8 @@
 #ifndef TILEMAP_CHUNK_H
 #define TILEMAP_CHUNK_H
 
-#include <cstdint>
+#include <inttypes.h>
+#include <stddef.h>
 
 struct TileCorners {
     uint8_t top_left_height;

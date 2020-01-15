@@ -9,19 +9,19 @@ SOASpriteRGBA::SOASpriteRGBA(size_t w, size_t h): width_{w}, height_{h} {
     b_buffer_raw_ = new uint8_t[w * h + 8];
     a_buffer_raw_ = new uint8_t[w * h + 8];
 
-    r_buffer_ = (reinterpret_cast<int32_t>(&r_buffer_raw_[0]) % 16 == 0)
+    r_buffer_ = (reinterpret_cast<int64_t>(&r_buffer_raw_[0]) % 16 == 0)
         ? &r_buffer_raw_[0]
         : &r_buffer_raw_[8];
 
-    g_buffer_ = (reinterpret_cast<int32_t>(&g_buffer_raw_[0]) % 16 == 0)
+    g_buffer_ = (reinterpret_cast<int64_t>(&g_buffer_raw_[0]) % 16 == 0)
         ? &g_buffer_raw_[0]
         : &g_buffer_raw_[8];
 
-    b_buffer_ = (reinterpret_cast<int32_t>(&b_buffer_raw_[0]) % 16 == 0)
+    b_buffer_ = (reinterpret_cast<int64_t>(&b_buffer_raw_[0]) % 16 == 0)
         ? &b_buffer_raw_[0]
         : &b_buffer_raw_[8];
 
-    a_buffer_ = (reinterpret_cast<int32_t>(&a_buffer_raw_[0]) % 16 == 0)
+    a_buffer_ = (reinterpret_cast<int64_t>(&a_buffer_raw_[0]) % 16 == 0)
         ? &a_buffer_raw_[0]
         : &a_buffer_raw_[8];
 }

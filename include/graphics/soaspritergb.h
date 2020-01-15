@@ -1,7 +1,8 @@
 #ifndef SOASPRITERGB_H
 #define SOASPRITERGB_H
 
-#include <cinttypes>
+#include <inttypes.h>
+#include <stddef.h>
 
 struct FrameBuffer;
 
