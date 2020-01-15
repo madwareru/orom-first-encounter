@@ -393,7 +393,6 @@ namespace Game {
 //        goblin_sprite->blit_on_sprite(background_sprite, 0, 0, frame_);
     }
 
-
     init_proc& init_proc_ptr() {
         static init_proc proc_p = init;
         return proc_p;
@@ -459,8 +458,20 @@ namespace Game {
         double xpos,
         double ypos
     ) {
-        mouse_state.mouse_x = static_cast<uint16_t>(xpos);
-        mouse_state.mouse_y = static_cast<uint16_t>(ypos);
+        if(xpos <= 0.0001) {
+            mouse_state.mouse_x = 0;
+        } else if(xpos >= static_cast<double>(Game::window_width())) {
+            mouse_state.mouse_x = Game::window_width() - 1;
+        } else {
+            mouse_state.mouse_x = static_cast<uint16_t>(xpos);
+        }
+        if(ypos <= 0.0001) {
+            mouse_state.mouse_y = 0;
+        } else if(ypos >= static_cast<double>(Game::window_height())) {
+            mouse_state.mouse_y = Game::window_height() - 1;
+        } else {
+            mouse_state.mouse_y = static_cast<uint16_t>(ypos);
+        }
     }
     GLFWcursorposfun& mouse_callback_ptr() {
         static GLFWcursorposfun fun = mouse_callback;
@@ -501,7 +512,7 @@ namespace Game {
             case event::start_adventure: {
                     auto hero = param0;
                     auto difficulty = param1;
-                    start_level(40, hero, difficulty);
+                    start_level(10, hero, difficulty);
                 }
                 break;
             default: break;

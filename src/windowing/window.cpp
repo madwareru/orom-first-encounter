@@ -12,8 +12,8 @@
 #include <GLFW/glfw3.h>
 #include <chrono>
 
-#define FPS_30_MILLIS 0.033
-//#define VSYNC_ON
+#define FPS_30_MILLIS 0.017
+#define VSYNC_ON
 
 LifetimeProcHolder::LifetimeProcHolder(
     init_proc   init_proc_addr_p,
